@@ -31,6 +31,13 @@ jobs:
         run: |
           mkdir -p site
           python build.py rt_data.json site/index.html site/summary.json --standalone
+      - name: 블로거에 오늘 글 올리기
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+        run: python post_blogger.py site/summary.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
@@ -40,6 +47,22 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  notify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 오늘 요약 받기
+        run: sleep 60; curl -sf "${{ needs.deploy.outputs.page_url }}summary.json?t=$(date +%s)" -o summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/summary.json?t=$(date +%s)" -o summary.json
+      - name: 카카오톡 나에게 보내기
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 kakao_send.py summary.json
