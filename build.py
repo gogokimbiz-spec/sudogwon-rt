@@ -62,9 +62,30 @@ def chg(rows, a, b, pa, pb):
             res.append((names[codes[r]], (statistics.median(cur[r]) / statistics.median(prev[r]) - 1) * 100))
     return sorted(res, key=lambda x: -x[1])
 ch = chg(T, maxd - 29, maxd, maxd - 59, maxd - 30)
+# 신고가: 같은 지역·단지·법정동·전용면적(㎡ 반올림)의 이전 거래 최고가 초과
+hist = {}
+for x in T:
+    hist.setdefault((x[0], x[6], x[7], round(x[2] / 10)), []).append(x)
+apt_l, umd_l = list(apts), list(umds)
+def trade_dict(x):
+    k = (x[0], x[6], x[7], round(x[2] / 10))
+    prev = [y for y in hist[k] if y[1] < x[1]]
+    pm = max(prev, key=lambda y: y[3]) if prev else None
+    d = {'region': names[codes[x[0]]], 'apt': apt_l[x[6]], 'umd': umd_l[x[7]], 'area': round(x[2] / 10),
+         'floor': x[4], 'built': x[5], 'price_man': x[3], 'pp_man': round(x[3] / (x[2] / 10) * 3.3058)}
+    if pm and x[3] > pm[3]:
+        d['new_high'] = True; d['prev_high_man'] = pm[3]; d['prev_high_date'] = (d0 + datetime.timedelta(pm[1])).isoformat()
+    return d
+day_list = [trade_dict(x) for x in sorted(dayT, key=lambda x: -x[3])]
 summary = {'asof': asof, 'day': day, 'trade_count': len(dayT), 'jeonse_count': len(dayJ), 'by_sido': by_sido,
            'top_trades': [{'region': names[codes[x[0]]], 'apt': list(apts)[x[6]], 'area': round(x[2] / 10), 'price_man': x[3]} for x in top],
            'up3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[:3]],
-           'down3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[::-1][:3]]}
+           'down3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[::-1][:3]],
+           'up5': [{'region': n, 'chg': round(v, 1)} for n, v in ch[:5]],
+           'down5': [{'region': n, 'chg': round(v, 1)} for n, v in ch[::-1][:5]],
+           'new_highs': [d for d in day_list if d.get('new_high')],
+           'day_trades': day_list[:20],
+           'trade_median_man': statistics.median([x[3] for x in dayT]) if dayT else None,
+           'jeonse_median_man': statistics.median([x[3] for x in dayJ]) if dayJ else None}
 json.dump(summary, open(out_sum, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print('built', out_html, len(html), 'bytes;', len(T), 'trades', len(J), 'jeonse; last day', day, len(dayT))
