@@ -1,0 +1,368 @@
+<title>수도권 실거래 지도</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&family=Do+Hyeon&display=swap">
+<style>
+/* Layout: 조작 바(유형·기간) → 지도(변동률: 상승 빨강/하락 파랑/보합 흰색) + 선택 지역 카드 → 일별 거래 + 상승·하락 순위 */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --mapbg:#e9edf2; --fg:#17202b; --muted:#5d6b7a; --line:#dde3e9; --edge:#9aa6b2;
+  --accent:#1f5fbf; --na:#cfd6de; --flat:#ffffff;
+  --u1:#f8c6c0; --u2:#ec857a; --u3:#d4443a; --u4:#9e1c1c; --up:#d23c3c;
+  --d1:#c6d9f4; --d2:#82aae4; --d3:#3b74cc; --d4:#1b4594; --down:#2a6fd6;
+  --seoul:#1f5fbf; --incheon:#14967f; --gg:#d08a1e;
+  --display:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --panel:#171e26; --mapbg:#0c1116; --fg:#e6ecf2; --muted:#93a1b0; --line:#2a3440; --edge:#0c1116;
+  --accent:#6ea6ff; --na:#36414e; --flat:#f2f4f6;
+  --u1:#f3b3ab; --u2:#e9776c; --u3:#d23f35; --u4:#9a1d1d; --up:#ff6b6b;
+  --d1:#b5cdf0; --d2:#7aa3e0; --d3:#3e78d0; --d4:#20498f; --down:#6aa3ff;
+  --seoul:#6ea6ff; --incheon:#3cc7aa; --gg:#f0b44c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --panel:#171e26; --mapbg:#0c1116; --fg:#e6ecf2; --muted:#93a1b0; --line:#2a3440; --edge:#0c1116;
+  --accent:#6ea6ff; --na:#36414e; --flat:#f2f4f6;
+  --u1:#f3b3ab; --u2:#e9776c; --u3:#d23f35; --u4:#9a1d1d; --up:#ff6b6b;
+  --d1:#b5cdf0; --d2:#7aa3e0; --d3:#3e78d0; --d4:#20498f; --down:#6aa3ff;
+  --seoul:#6ea6ff; --incheon:#3cc7aa; --gg:#f0b44c; color-scheme:dark}
+*{box-sizing:border-box}
+body{word-break:keep-all;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+h1{font-family:var(--display);font-weight:400;font-size:2.1rem;line-height:1.1;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;font-size:.9rem}
+.meta{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:.78rem;color:var(--muted);white-space:nowrap}
+.chip b{color:var(--fg);font-weight:500}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ctl{display:grid;gap:5px}
+.ctl>span{font-size:.74rem;color:var(--muted);letter-spacing:.03em}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:.86rem;border:0;background:transparent;color:var(--fg);padding:6px 14px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.dates{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+input[type=date]{font:inherit;font-size:.86rem;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg)}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.presets button{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:5px 10px;border-radius:999px;cursor:pointer}
+.presets button.on{border-color:var(--fg)}
+button:focus-visible,input:focus-visible,.rank li:focus-visible,path.r:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cmp{font-size:.8rem;color:var(--muted);flex-basis:100%}
+.cmp b{color:var(--fg);font-weight:500}
+.main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.lower{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.main,.lower{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.mapbox{position:relative}
+.mapwrap{background:var(--mapbg);border-radius:8px;padding:8px}
+svg.map{width:100%;height:auto;display:block}
+path.r{stroke:var(--edge);stroke-width:.6;cursor:pointer}
+path.r:hover{stroke:var(--fg);stroke-width:1.2}
+path.r.sel{stroke:var(--fg);stroke-width:2.2}
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin-top:10px}
+.ramp{display:flex;height:12px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.ramp i{width:26px}
+.sw{display:inline-block;width:14px;height:12px;border-radius:2px;vertical-align:middle;border:1px solid var(--line)}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:.78rem;padding:6px 9px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-120%)}
+.lbl{font-size:.75rem;color:var(--muted);letter-spacing:.03em}
+.det h2{font-family:var(--display);font-weight:400;font-size:1.6rem;margin:2px 0 10px}
+.big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.big .v{font-family:var(--mono);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.pill{font-family:var(--mono);font-size:.85rem;padding:2px 9px;border-radius:999px;border:1px solid currentColor}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{border-top:2px solid var(--line);padding-top:8px}
+.kpi .v{font-family:var(--mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--muted);font-size:.74rem}
+td.n,th.n{text-align:right}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;margin-top:12px}
+h3{font-size:1rem;margin:0 0 4px;font-weight:700}
+.note{color:var(--muted);font-size:.78rem;margin:2px 0 10px}
+svg.chart{width:100%;height:auto;display:block}
+svg.chart text{fill:var(--muted);font-size:10px;font-family:var(--mono)}
+.key{display:flex;gap:14px;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+.key i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.ranks{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:480px){.ranks{grid-template-columns:1fr}}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+.rank li{display:flex;justify-content:space-between;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:.84rem}
+.rank li:hover{background:var(--bg)}
+.rank .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.8rem;white-space:nowrap}
+footer{color:var(--muted);font-size:.76rem;line-height:1.6}
+.more{font:inherit;font-size:.86rem;width:100%;margin-top:10px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);cursor:pointer}
+.more:hover{border-color:var(--fg)}
+.tcount{font-size:.78rem;color:var(--muted);margin-top:8px}
+.lower{grid-template-columns:1fr!important}
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.day h2{font-family:var(--display);font-weight:400;font-size:1.6rem;margin:2px 0 0}
+.dayhead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.daynav{display:flex;gap:6px;align-items:center}
+.daynav button{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:5px 11px;cursor:pointer}
+.daynav button:disabled{opacity:.35;cursor:default}
+.daysum{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 10px}
+.rg{font:inherit;font-size:.82rem;border:0;background:none;color:var(--accent);padding:0;cursor:pointer;text-align:left}
+.rg:hover{text-decoration:underline}
+.sec{font-size:.74rem;color:var(--muted);letter-spacing:.06em;margin:6px 0 -6px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>수도권 아파트 실거래 지도</h1>
+      <p class="sub">서울·인천·경기 76개 시군구 · 국토교통부 실거래가 공개 API</p>
+    </div>
+    <div class="meta">
+      <span class="chip">수집 <b>__ASOF__</b></span>
+      <span class="chip">자료 <b id="range"></b></span>
+      <span class="chip">매매 <b id="ntrade"></b>건 · 전세 <b id="njeonse"></b>건</span>
+    </div>
+  </header>
+
+  <div class="topbar">
+    <div class="seg" id="kind"><button id="k-T" data-k="T" aria-pressed="true">매매</button><button id="k-J" data-k="J" aria-pressed="false">전세</button></div>
+    <span class="lbl">매매·전세를 바꾸면 화면 전체가 함께 바뀝니다.</span>
+  </div>
+
+  <section class="panel day" id="day" aria-live="polite">
+    <div class="dayhead">
+      <div><div class="lbl">전날 실거래 · 계약일 기준</div><h2 id="dayTitle"></h2></div>
+      <div class="daynav"><button id="dPrev" aria-label="하루 전">◀</button><input type="date" id="dDate" aria-label="날짜 선택"><button id="dNext" aria-label="하루 뒤">▶</button></div>
+    </div>
+    <div class="daysum" id="daySum"></div>
+    <div class="presets" id="dayReg"><button id="dr-all" data-r="all" class="on">전체</button><button id="dr-11" data-r="11">서울</button><button id="dr-28" data-r="28">인천</button><button id="dr-41" data-r="41">경기</button></div>
+    <div class="tbl"><table><thead id="dayHead"></thead><tbody id="dayBody"></tbody></table></div>
+    <div id="dayMore"></div>
+    <p class="note" style="margin-top:10px">거래가 높은 순입니다. 계약 후 30일 안에 신고하므로 전날 거래는 앞으로 더 늘어납니다. ◀ 버튼으로 지난 날짜도 볼 수 있고, 지역명을 누르면 아래 지도에서 그 지역이 선택됩니다.</p>
+  </section>
+
+  <div class="sec" id="mapsec">지도 · 선택한 지역</div>
+  <section class="controls" aria-label="지도 기간 설정">
+    <div class="ctl"><span>지도 기간</span>
+      <div class="dates"><input type="date" id="from" aria-label="시작일"><span>~</span><input type="date" id="to" aria-label="종료일"></div>
+    </div>
+    <div class="ctl"><span>빠른 선택</span>
+      <div class="presets" id="presets">
+        <button id="p-10" data-p="m10">10월</button>
+        <button id="p-9" data-p="m9">9월</button>
+        <button id="p-30" data-p="d30">최근 30일</button>
+        <button id="p-90" data-p="d90">최근 90일</button>
+      </div>
+    </div>
+    <div class="cmp" id="cmp"></div>
+  </section>
+
+  <div class="main">
+    <section class="panel mapbox">
+      <div class="lbl" id="maptitle"></div>
+      <div class="mapwrap"><svg class="map" id="map" role="img" aria-label="수도권 시군구 변동률 지도"></svg></div>
+      <div class="tip" id="tip" hidden></div>
+      <div class="legend">
+        <span>하락</span>
+        <span class="ramp"><i style="background:var(--d4)"></i><i style="background:var(--d3)"></i><i style="background:var(--d2)"></i><i style="background:var(--d1)"></i><i style="background:var(--flat)"></i><i style="background:var(--u1)"></i><i style="background:var(--u2)"></i><i style="background:var(--u3)"></i><i style="background:var(--u4)"></i></span>
+        <span>상승</span>
+        <span>· 칸 경계 ±1 · 3 · 6 · 10%</span>
+        <span><i class="sw" style="background:var(--flat)"></i> 보합(±1% 이내)</span>
+        <span><i class="sw" style="background:var(--na)"></i> 거래 부족</span>
+      </div>
+    </section>
+    <section class="panel det" id="det" aria-live="polite"></section>
+  </div>
+
+  <div class="lower">
+    <section class="panel" hidden>
+      <h3 id="charttitle">하루하루 신고된 거래</h3>
+      <p class="note">계약일 기준 일별 건수입니다. 선택한 기간은 진하게, 비교 기간은 옅게 칠했습니다. 신고 기한이 30일이라 최근 2~4주는 더 늘어납니다.</p>
+      <svg class="chart" id="chart" viewBox="0 0 640 230" role="img" aria-label="일별 거래 건수"></svg>
+      <div class="key"><span><i style="background:var(--gg)"></i>경기</span><span><i style="background:var(--seoul)"></i>서울</span><span><i style="background:var(--incheon)"></i>인천</span></div>
+    </section>
+    <section class="panel">
+      <h3>많이 오르고 내린 곳</h3>
+      <p class="note" id="ranknote"></p>
+      <div class="ranks">
+        <div><div class="lbl up">상승 10</div><ol class="rank" id="rankUp"></ol></div>
+        <div><div class="lbl down">하락 10</div><ol class="rank" id="rankDn"></ol></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    변동률은 선택한 기간과 바로 앞 같은 길이 기간의 3.3㎡당 가격 중앙값을 비교합니다. 두 기간 모두 거래가 10건 이상인 곳만 색을 칠하고, ±1% 이내는 보합으로 봅니다.
+    해제 신고된 매매는 뺐고, 전세는 월세 없는 계약만 셉니다. 한 단지에서 여러 채가 한꺼번에 거래되면 중앙값이 흔들릴 수 있습니다.
+    여주·양평·가평·연천·포천·강화·옹진은 제외했습니다. 인천은 2026년 7월 개편 구, 화성은 2026년 신설 4개 구, 부천은 3개 구 기준이며, 지도 경계는 행정동을 묶어 그린 근사치입니다.
+    출처: 국토교통부 실거래가 공개시스템(공공데이터포털 API).
+  </footer>
+</div>
+
+<script>
+const D=__DATA__;
+const G=__GEO__;
+const DAY0=new Date(D.d0+'T00:00:00Z');
+const MAXD=Math.max(...D.T[1]);
+const iso=i=>new Date(DAY0.getTime()+i*864e5).toISOString().slice(0,10);
+const idxOf=s=>Math.round((new Date(s+'T00:00:00Z')-DAY0)/864e5);
+const short=i=>{const s=iso(i);return `${+s.slice(5,7)}.${+s.slice(8)}`};
+const $=id=>document.getElementById(id);
+const fmtMan=v=>{if(v==null||!isFinite(v))return '–';v=Math.round(v);const e=Math.floor(v/10000),m=v%10000;return e?`${e}억${m?' '+m.toLocaleString():''}`:`${m.toLocaleString()}만`};
+const N=D.codes.length;
+$('ntrade').textContent=D.T[0].length.toLocaleString();
+$('njeonse').textContent=D.J[0].length.toLocaleString();
+const PY=3.3058;
+// per-record price per 3.3㎡
+const ppT=D.T[3].map((p,i)=>p/(D.T[2][i]/10)*PY);
+const ppJ=D.J[3].map((p,i)=>p/(D.J[2][i]/10)*PY);
+const med=a=>{if(!a.length)return null;a.sort((x,y)=>x-y);const m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2};
+const MIN_N=10;
+
+const MONTHS=(()=>{const e=new Date(DAY0.getTime()+MAXD*864e5);const out=[];for(let k=1;k<=2;k++){const a=new Date(Date.UTC(e.getUTCFullYear(),e.getUTCMonth()-k,1)),b=new Date(Date.UTC(e.getUTCFullYear(),e.getUTCMonth()-k+1,0));out.push([a.toISOString().slice(0,10),b.toISOString().slice(0,10),a.getUTCMonth()+1])}return out})();
+document.getElementById('p-10').textContent=MONTHS[0][2]+'월';document.getElementById('p-9').textContent=MONTHS[1][2]+'월';
+document.getElementById('range').textContent=`${short(0)} ~ ${short(MAXD)}`;
+let kind='T', from=idxOf('2026-10-01'), to=idxOf('2026-10-31'), sel=D.codes.indexOf('11680');
+let shown=10; const STEP=20;
+
+function stats(k,a,b){
+  const R=k==='T'?D.T:D.J, PP=k==='T'?ppT:ppJ;
+  const buckets=Array.from({length:N},()=>[]);
+  for(let i=0;i<R[0].length;i++){const d=R[1][i];if(d>=a&&d<=b)buckets[R[0][i]].push(PP[i])}
+  return buckets.map(x=>({n:x.length,m:med(x)}));
+}
+function compute(){
+  const len=to-from+1, pf=from-len, pt=from-1;
+  const cur=stats(kind,from,to), prev=pf>=0?stats(kind,Math.max(0,pf),pt):null;
+  const res=cur.map((c,i)=>{const p=prev?prev[i]:{n:0,m:null};
+    const ok=prev&&pf>=0&&c.n>=MIN_N&&p.n>=MIN_N;return {i,c,p,chg:ok?(c.m/p.m-1)*100:null}});
+  return {res,pf,pt,hasPrev:pf>=0};
+}
+function colorOf(v){
+  if(v==null)return 'var(--na)';const a=Math.abs(v);
+  if(a<1)return 'var(--flat)';
+  const s=a<3?1:a<6?2:a<10?3:4;return `var(--${v>0?'u':'d'}${s})`;
+}
+const sgn=v=>(v>0?'+':'')+v.toFixed(1)+'%';
+const cls=v=>v==null?'flat':Math.abs(v)<1?'flat':v>0?'up':'down';
+
+// map
+let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+const each=(g,fn)=>{(g.type==='Polygon'?[g.coordinates]:g.coordinates).forEach(p=>p.forEach(r=>r.forEach(fn)))};
+G.features.forEach(f=>each(f.geometry,([x,y])=>{minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y)}));
+const kx=Math.cos((minY+maxY)/2*Math.PI/180),W=640,sc=W/((maxX-minX)*kx),H=Math.round((maxY-minY)*sc);
+const P=([x,y])=>((x-minX)*kx*sc).toFixed(1)+','+((maxY-y)*sc).toFixed(1);
+const pathOf=g=>(g.type==='Polygon'?[g.coordinates]:g.coordinates).map(p=>p.map(r=>'M'+r.map(P).join('L')+'Z').join('')).join('');
+const svg=$('map');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+svg.innerHTML=G.features.map(f=>{const i=D.codes.indexOf(f.properties.c);return `<path class="r" tabindex="0" data-i="${i}" d="${pathOf(f.geometry)}"><title>${D.names[i]}</title></path>`}).join('');
+const paths=[...svg.querySelectorAll('path.r')];
+
+let last=null;
+function render(){
+  const r=compute();last=r;
+  const kname=kind==='T'?'매매':'전세';
+  paths.forEach(p=>{const x=r.res[+p.dataset.i];p.style.fill=colorOf(x.chg);p.classList.toggle('sel',+p.dataset.i===sel)});
+  const s=paths.find(p=>+p.dataset.i===sel);if(s)svg.appendChild(s);
+  $('maptitle').textContent=`${kname} 3.3㎡당 가격 변동률 · ${short(from)}~${short(to)} vs 직전 ${to-from+1}일`;
+  $('cmp').innerHTML=r.hasPrev?`비교 기간 <b>${iso(r.pf)} ~ ${iso(r.pt)}</b> (선택한 기간과 같은 ${to-from+1}일)`:`<span class="up">비교할 직전 기간 자료가 없습니다. 시작일을 ${iso(to-from+1)} 이후로 잡아 주세요.</span>`;
+  document.querySelectorAll('#kind button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===kind));
+  $('from').value=iso(from);$('to').value=iso(to);
+  renderDet();renderRank();renderDay();
+}
+function renderDet(){
+  const x=last.res[sel],kname=kind==='T'?'매매':'전세';
+  const rows=[];const R=kind==='T'?D.T:D.J;
+  const hits=[];for(let i=R[0].length-1;i>=0;i--){if(R[0][i]===sel&&R[1][i]>=from&&R[1][i]<=to)hits.push(i)}
+  const total=hits.length;
+  for(const i of hits.slice(0,shown)){
+    if(kind==='T')rows.push(`<tr><td>${short(R[1][i])}</td><td>${D.apts[R[6][i]]}<br><span class="lbl">${D.umds[R[7][i]]} · ${R[5][i]}년</span></td><td class="n">${(R[2][i]/10).toFixed(0)}㎡ · ${R[4][i]}층</td><td class="n"><b>${fmtMan(R[3][i])}</b></td></tr>`);
+    else rows.push(`<tr><td>${short(R[1][i])}</td><td>${D.umds[R[4][i]]}</td><td class="n">${(R[2][i]/10).toFixed(0)}㎡</td><td class="n"><b>${fmtMan(R[3][i])}</b></td></tr>`);
+  }
+  const pill=x.chg==null?'<span class="pill flat">비교 불가</span>':`<span class="pill ${cls(x.chg)}">${Math.abs(x.chg)<1?'보합 ':''}${sgn(x.chg)}</span>`;
+  $('det').innerHTML=`<div class="lbl">선택한 지역 · ${kname}</div><h2>${D.names[sel]}</h2>
+  <div class="big"><span class="v">${fmtMan(x.c.m)}</span><span class="lbl">3.3㎡당 중앙값</span>${pill}</div>
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">선택 기간 거래</div><div class="v">${x.c.n.toLocaleString()}건</div></div>
+    <div class="kpi"><div class="lbl">직전 기간 3.3㎡당</div><div class="v">${fmtMan(x.p.m)} <span class="lbl">(${x.p.n}건)</span></div></div>
+  </div>
+  <div class="tbl"><table><thead><tr><th>계약일</th><th>${kind==='T'?'단지':'법정동'}</th><th class="n">${kind==='T'?'전용·층':'전용'}</th><th class="n">${kind==='T'?'거래가':'보증금'}</th></tr></thead><tbody>${rows.join('')||'<tr><td colspan="4">이 기간에 거래가 없습니다.</td></tr>'}</tbody></table></div>
+  ${total?`<div class="tcount">최신순 ${Math.min(shown,total).toLocaleString()}건 / 전체 ${total.toLocaleString()}건</div>`:''}
+  ${shown<total?`<button class="more" id="more">${Math.min(STEP,total-shown)}건 더 보기</button>`:''}
+  ${kind==='J'?'<p class="note" style="margin-top:8px">전세 자료에는 단지명이 없어 법정동으로 표시합니다.</p>':''}`;
+}
+function renderRank(){
+  const list=last.res.filter(x=>x.chg!=null).sort((a,b)=>b.chg-a.chg);
+  const li=x=>`<li tabindex="0" data-i="${x.i}"><span>${D.names[x.i]}</span><span class="v ${cls(x.chg)}">${sgn(x.chg)}</span></li>`;
+  $('rankUp').innerHTML=list.filter(x=>x.chg>0).slice(0,10).map(li).join('')||'<li>없음</li>';
+  $('rankDn').innerHTML=list.filter(x=>x.chg<0).reverse().slice(0,10).map(li).join('')||'<li>없음</li>';
+  const up=list.filter(x=>x.chg>=1).length,dn=list.filter(x=>x.chg<=-1).length,fl=list.length-up-dn;
+  $('ranknote').innerHTML=`비교 가능한 ${list.length}곳 중 <span class="up">상승 ${up}</span> · 보합 ${fl} · <span class="down">하락 ${dn}</span>`;
+}
+function renderChart(){
+  const R=kind==='T'?D.T:D.J;const days=MAXD+1;const S=[['41','--gg'],['11','--seoul'],['28','--incheon']];
+  const cnt={11:new Array(days).fill(0),28:new Array(days).fill(0),41:new Array(days).fill(0)};
+  for(let i=0;i<R[0].length;i++)cnt[D.codes[R[0][i]].slice(0,2)][R[1][i]]++;
+  const w=640,h=230,l=38,rg=8,t=10,bt=22;const mx=Math.max(...Object.values(cnt).flat());
+  const step=mx>1200?400:mx>600?200:100;const yMax=Math.ceil(mx/step)*step;
+  const x=i=>l+i*(w-l-rg)/(days-1),y=v=>t+(h-t-bt)*(1-v/yMax);
+  let g='';
+  if(last.hasPrev)g+=`<rect x="${x(last.pf)}" y="${t}" width="${Math.max(1,x(last.pt)-x(last.pf))}" height="${h-t-bt}" fill="var(--line)" opacity=".45"/>`;
+  g+=`<rect x="${x(from)}" y="${t}" width="${Math.max(1,x(to)-x(from))}" height="${h-t-bt}" fill="var(--accent)" opacity=".14"/>`;
+  for(let v=0;v<=yMax;v+=step)g+=`<line x1="${l}" x2="${w-rg}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${l-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`;
+  for(let i=0;i<days;i++){const s=iso(i);if(s.endsWith('-01'))g+=`<text x="${x(i)}" y="${h-6}" text-anchor="middle">${+s.slice(5,7)}월</text>`}
+  S.forEach(([s,c])=>{g+=`<polyline points="${cnt[s].map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1)).join(' ')}" fill="none" stroke="var(${c})" stroke-width="1.3" stroke-linejoin="round"/>`});
+  $('chart').innerHTML=g;$('charttitle').textContent=`하루하루 신고된 ${kind==='T'?'매매':'전세'} 거래`;
+}
+// controls
+function setRange(a,b,preset){
+  shown=10;
+  a=Math.max(0,Math.min(MAXD,a));b=Math.max(0,Math.min(MAXD,b));if(a>b)[a,b]=[b,a];from=a;to=b;
+  document.querySelectorAll('#presets button').forEach(x=>x.classList.toggle('on',x.dataset.p===preset));render();
+}
+$('from').min=$('to').min=iso(0);$('from').max=$('to').max=iso(MAXD);
+$('from').addEventListener('change',e=>{if(e.target.value)setRange(idxOf(e.target.value),to)});
+$('to').addEventListener('change',e=>{if(e.target.value)setRange(from,idxOf(e.target.value))});
+$('presets').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const p=b.dataset.p;
+  if(p==='m10'||p==='m9'){const m=MONTHS[p==='m10'?0:1];setRange(Math.max(0,idxOf(m[0])),Math.min(MAXD,idxOf(m[1])),p)}
+  if(p==='d30')setRange(MAXD-29,MAXD,p);
+  if(p==='d90')setRange(MAXD-89,MAXD,p);});
+$('kind').addEventListener('click',e=>{const b=e.target.closest('button');if(b){kind=b.dataset.k;shown=10;render()}});
+$('det').addEventListener('click',e=>{if(e.target.id==='more'){shown+=STEP;renderDet()}});
+const tip=$('tip');
+svg.addEventListener('mousemove',e=>{const p=e.target.closest('path.r');if(!p){tip.hidden=true;return}const x=last.res[+p.dataset.i];const box=svg.closest('.mapbox').getBoundingClientRect();tip.hidden=false;tip.style.left=(e.clientX-box.left)+'px';tip.style.top=(e.clientY-box.top)+'px';tip.textContent=`${D.names[x.i]} · ${x.chg==null?'거래 부족':sgn(x.chg)} · ${fmtMan(x.c.m)}`});
+svg.addEventListener('mouseleave',()=>tip.hidden=true);
+const pick=i=>{sel=i;shown=10;render()};
+svg.addEventListener('click',e=>{const p=e.target.closest('path.r');if(p)pick(+p.dataset.i)});
+svg.addEventListener('keydown',e=>{const p=e.target.closest('path.r');if(p&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pick(+p.dataset.i)}});
+['rankUp','rankDn'].forEach(id=>{$(id).addEventListener('click',e=>{const li=e.target.closest('li[data-i]');if(li)pick(+li.dataset.i)});$(id).addEventListener('keydown',e=>{const li=e.target.closest('li[data-i]');if(li&&e.key==='Enter')pick(+li.dataset.i)})});
+// 전날 실거래
+let dayIdx=MAXD, dayShown=30, dayReg='all';
+const WD='일월화수목금토';
+function renderDay(){
+  const R=kind==='T'?D.T:D.J, PP=kind==='T'?ppT:ppJ;
+  const cnt={'11':0,'28':0,'41':0};const hits=[];
+  for(let i=0;i<R[0].length;i++){if(R[1][i]!==dayIdx)continue;const s=D.codes[R[0][i]].slice(0,2);cnt[s]++;if(dayReg==='all'||s===dayReg)hits.push(i)}
+  hits.sort((a,b)=>R[3][b]-R[3][a]);
+  const s=iso(dayIdx),dt=new Date(s+'T00:00:00Z');
+  $('dayTitle').textContent=`${+s.slice(5,7)}월 ${+s.slice(8)}일 (${WD[dt.getUTCDay()]}) ${kind==='T'?'매매':'전세'} ${(cnt['11']+cnt['28']+cnt['41']).toLocaleString()}건`;
+  $('dDate').value=s;$('dPrev').disabled=dayIdx<=0;$('dNext').disabled=dayIdx>=MAXD;
+  const pr=hits.map(i=>R[3][i]);
+  $('daySum').innerHTML=`<span class="chip">서울 <b>${cnt['11']}</b>건</span><span class="chip">인천 <b>${cnt['28']}</b>건</span><span class="chip">경기 <b>${cnt['41']}</b>건</span>`+(hits.length?`<span class="chip">${kind==='T'?'거래가':'보증금'} 중앙값 <b>${fmtMan(med(pr.slice()))}</b></span><span class="chip">최고 <b>${fmtMan(pr[0])}</b></span>`:'');
+  $('dayHead').innerHTML=kind==='T'?'<tr><th>지역</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>':'<tr><th>지역</th><th>법정동</th><th class="n">전용</th><th class="n">보증금</th></tr>';
+  $('dayBody').innerHTML=hits.slice(0,dayShown).map(i=>{const rg=`<td><button class="rg" data-i="${R[0][i]}">${D.names[R[0][i]]}</button></td>`;const per=`<br><span class="lbl">3.3㎡당 ${fmtMan(PP[i])}</span>`;
+    return kind==='T'?`<tr>${rg}<td>${D.apts[R[6][i]]}<br><span class="lbl">${D.umds[R[7][i]]} · ${R[5][i]}년</span></td><td class="n">${(R[2][i]/10).toFixed(0)}㎡ · ${R[4][i]}층</td><td class="n"><b>${fmtMan(R[3][i])}</b>${per}</td></tr>`
+    :`<tr>${rg}<td>${D.umds[R[4][i]]}</td><td class="n">${(R[2][i]/10).toFixed(0)}㎡</td><td class="n"><b>${fmtMan(R[3][i])}</b>${per}</td></tr>`}).join('')||'<tr><td colspan="4">이 날 신고된 거래가 아직 없습니다. ◀ 버튼으로 지난 날짜를 보세요.</td></tr>';
+  $('dayMore').innerHTML=(hits.length?`<div class="tcount">${Math.min(dayShown,hits.length)}건 / 전체 ${hits.length}건</div>`:'')+(dayShown<hits.length?`<button class="more" id="dMore">${Math.min(30,hits.length-dayShown)}건 더 보기</button>`:'');
+  document.querySelectorAll('#dayReg button').forEach(b=>b.classList.toggle('on',b.dataset.r===dayReg));
+}
+const setDay=i=>{dayIdx=Math.max(0,Math.min(MAXD,i));dayShown=30;renderDay()};
+$('dPrev').addEventListener('click',()=>setDay(dayIdx-1));
+$('dNext').addEventListener('click',()=>setDay(dayIdx+1));
+$('dDate').min=iso(0);$('dDate').max=iso(MAXD);
+$('dDate').addEventListener('change',e=>{if(e.target.value)setDay(idxOf(e.target.value))});
+$('dayReg').addEventListener('click',e=>{const b=e.target.closest('button');if(b){dayReg=b.dataset.r;dayShown=30;renderDay()}});
+$('dayMore').addEventListener('click',e=>{if(e.target.id==='dMore'){dayShown+=30;renderDay()}});
+$('dayBody').addEventListener('click',e=>{const b=e.target.closest('.rg');if(b){pick(+b.dataset.i);$('mapsec').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}});
+from=MAXD-29;to=MAXD;
+document.querySelector('#p-30').classList.add('on');
+render();
+</script>
