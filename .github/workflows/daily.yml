@@ -2,7 +2,7 @@ name: 매일 실거래 갱신
 
 on:
   schedule:
-    - cron: '41 20 * * *'   # 매일 05:41 KST
+    - cron: '11 20 * * *'   # 매일 05:11 KST
   workflow_dispatch:         # Actions 탭에서 수동 실행
 
 permissions:
