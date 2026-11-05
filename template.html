@@ -107,6 +107,9 @@ footer{color:var(--muted);font-size:.76rem;line-height:1.6}
 .daysum{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 10px}
 .rg{font:inherit;font-size:.82rem;border:0;background:none;color:var(--accent);padding:0;cursor:pointer;text-align:left}
 .rg:hover{text-decoration:underline}
+.nh{display:inline-block;background:var(--up);color:#fff;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:1px;letter-spacing:.02em}
+.chip.nhc{border-color:var(--up);color:var(--up)}
+.chip.nhc b{color:var(--up)}
 .sec{font-size:.74rem;color:var(--muted);letter-spacing:.06em;margin:6px 0 -6px}
 </style>
 
@@ -137,7 +140,7 @@ footer{color:var(--muted);font-size:.76rem;line-height:1.6}
     <div class="presets" id="dayReg"><button id="dr-all" data-r="all" class="on">전체</button><button id="dr-11" data-r="11">서울</button><button id="dr-28" data-r="28">인천</button><button id="dr-41" data-r="41">경기</button></div>
     <div class="tbl"><table><thead id="dayHead"></thead><tbody id="dayBody"></tbody></table></div>
     <div id="dayMore"></div>
-    <p class="note" style="margin-top:10px">거래가 높은 순입니다. 계약 후 30일 안에 신고하므로 전날 거래는 앞으로 더 늘어납니다. ◀ 버튼으로 지난 날짜도 볼 수 있고, 지역명을 누르면 아래 지도에서 그 지역이 선택됩니다.</p>
+    <p class="note" style="margin-top:10px">거래가 높은 순입니다. <b>신고가</b>는 같은 단지·같은 전용면적에서 이 자료에 담긴 이전 거래(약 6개월)보다 비싸게 팔린 거래예요. 계약 후 30일 안에 신고하므로 전날 거래는 앞으로 더 늘어납니다. ◀ 버튼으로 지난 날짜도 볼 수 있고, 지역명을 누르면 아래 지도에서 그 지역이 선택됩니다.</p>
   </section>
 
   <div class="sec" id="mapsec">지도 · 선택한 지역</div>
@@ -336,6 +339,11 @@ svg.addEventListener('keydown',e=>{const p=e.target.closest('path.r');if(p&&(e.k
 ['rankUp','rankDn'].forEach(id=>{$(id).addEventListener('click',e=>{const li=e.target.closest('li[data-i]');if(li)pick(+li.dataset.i)});$(id).addEventListener('keydown',e=>{const li=e.target.closest('li[data-i]');if(li&&e.key==='Enter')pick(+li.dataset.i)})});
 // 전날 실거래
 let dayIdx=MAXD, dayShown=30, dayReg='all';
+// 신고가: 같은 지역·단지·법정동·전용면적(㎡ 반올림)의 이전 거래 최고가를 넘은 매매
+const HIST=new Map();
+for(let i=0;i<D.T[0].length;i++){const k=D.T[0][i]+'|'+D.T[6][i]+'|'+D.T[7][i]+'|'+Math.round(D.T[2][i]/10);let a=HIST.get(k);if(!a)HIST.set(k,a=[]);a.push(i)}
+function prevMax(i){const a=HIST.get(D.T[0][i]+'|'+D.T[6][i]+'|'+D.T[7][i]+'|'+Math.round(D.T[2][i]/10));let m=null,md=null;for(const j of a){if(D.T[1][j]<D.T[1][i]&&(m==null||D.T[3][j]>m)){m=D.T[3][j];md=D.T[1][j]}}return m==null?null:{p:m,d:md}}
+const isNewHigh=i=>{const pm=prevMax(i);return pm&&D.T[3][i]>pm.p?pm:null};
 const WD='일월화수목금토';
 function renderDay(){
   const R=kind==='T'?D.T:D.J, PP=kind==='T'?ppT:ppJ;
@@ -346,10 +354,12 @@ function renderDay(){
   $('dayTitle').textContent=`${+s.slice(5,7)}월 ${+s.slice(8)}일 (${WD[dt.getUTCDay()]}) ${kind==='T'?'매매':'전세'} ${(cnt['11']+cnt['28']+cnt['41']).toLocaleString()}건`;
   $('dDate').value=s;$('dPrev').disabled=dayIdx<=0;$('dNext').disabled=dayIdx>=MAXD;
   const pr=hits.map(i=>R[3][i]);
-  $('daySum').innerHTML=`<span class="chip">서울 <b>${cnt['11']}</b>건</span><span class="chip">인천 <b>${cnt['28']}</b>건</span><span class="chip">경기 <b>${cnt['41']}</b>건</span>`+(hits.length?`<span class="chip">${kind==='T'?'거래가':'보증금'} 중앙값 <b>${fmtMan(med(pr.slice()))}</b></span><span class="chip">최고 <b>${fmtMan(pr[0])}</b></span>`:'');
+  const nhN=kind==='T'?hits.filter(i=>isNewHigh(i)).length:0;
+  $('daySum').innerHTML=(nhN?`<span class="chip nhc">신고가 <b>${nhN}</b>건</span>`:'')+`<span class="chip">서울 <b>${cnt['11']}</b>건</span><span class="chip">인천 <b>${cnt['28']}</b>건</span><span class="chip">경기 <b>${cnt['41']}</b>건</span>`+(hits.length?`<span class="chip">${kind==='T'?'거래가':'보증금'} 중앙값 <b>${fmtMan(med(pr.slice()))}</b></span><span class="chip">최고 <b>${fmtMan(pr[0])}</b></span>`:'');
   $('dayHead').innerHTML=kind==='T'?'<tr><th>지역</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>':'<tr><th>지역</th><th>법정동</th><th class="n">전용</th><th class="n">보증금</th></tr>';
   $('dayBody').innerHTML=hits.slice(0,dayShown).map(i=>{const rg=`<td><button class="rg" data-i="${R[0][i]}">${D.names[R[0][i]]}</button></td>`;const per=`<br><span class="lbl">3.3㎡당 ${fmtMan(PP[i])}</span>`;
-    return kind==='T'?`<tr>${rg}<td>${D.apts[R[6][i]]}<br><span class="lbl">${D.umds[R[7][i]]} · ${R[5][i]}년</span></td><td class="n">${(R[2][i]/10).toFixed(0)}㎡ · ${R[4][i]}층</td><td class="n"><b>${fmtMan(R[3][i])}</b>${per}</td></tr>`
+    const nh=kind==='T'?isNewHigh(i):null;
+    return kind==='T'?`<tr>${rg}<td>${D.apts[R[6][i]]}${nh?'<span class="nh">신고가</span>':''}<br><span class="lbl">${D.umds[R[7][i]]} · ${R[5][i]}년</span></td><td class="n">${(R[2][i]/10).toFixed(0)}㎡ · ${R[4][i]}층</td><td class="n"><b>${fmtMan(R[3][i])}</b>${per}${nh?`<br><span class="lbl up">이전 최고 ${fmtMan(nh.p)} (${short(nh.d)})</span>`:''}</td></tr>`
     :`<tr>${rg}<td>${D.umds[R[4][i]]}</td><td class="n">${(R[2][i]/10).toFixed(0)}㎡</td><td class="n"><b>${fmtMan(R[3][i])}</b>${per}</td></tr>`}).join('')||'<tr><td colspan="4">이 날 신고된 거래가 아직 없습니다. ◀ 버튼으로 지난 날짜를 보세요.</td></tr>';
   $('dayMore').innerHTML=(hits.length?`<div class="tcount">${Math.min(dayShown,hits.length)}건 / 전체 ${hits.length}건</div>`:'')+(dayShown<hits.length?`<button class="more" id="dMore">${Math.min(30,hits.length-dayShown)}건 더 보기</button>`:'');
   document.querySelectorAll('#dayReg button').forEach(b=>b.classList.toggle('on',b.dataset.r===dayReg));
