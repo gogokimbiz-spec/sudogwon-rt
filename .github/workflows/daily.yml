@@ -31,6 +31,7 @@ jobs:
         run: |
           mkdir -p site
           python build.py rt_data.json site/index.html site/summary.json --standalone
+          cp privacy.html site/ 2>/dev/null || true
       - name: 블로거에 오늘 글 올리기
         env:
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
