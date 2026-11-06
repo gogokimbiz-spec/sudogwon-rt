@@ -40,6 +40,12 @@ def trade_rows(rows, with_prev=False):
     return ''.join(out)
 
 parts = []
+# 1. 오늘의 부동산 뉴스 (맨 위)
+news = S.get('news')
+if news:
+    parts.append('<div style="margin:4px 0 18px;padding:12px 14px;border-left:4px solid #1f5fbf;background:#f3f6fb">'
+                 f"<div style=\"font-size:13px;color:#555;margin-bottom:4px\">📰 오늘의 부동산 뉴스</div>"
+                 f"<a href=\"{esc(news['link'])}\" style=\"font-weight:bold;font-size:16px\">{esc(news['title'])}</a> <small>({esc(news.get('source', ''))})</small></div>")
 # 2. 지도 버튼
 parts.append(f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 지역별 지도로 자세히 보기</a></p>')
 # 3. 신고가 표
@@ -64,10 +70,6 @@ up = ' · '.join(f"{esc(short(x['region']))} <span style=\"color:#d23c3c\">+{x['
 dn = ' · '.join(f"{esc(short(x['region']))} <span style=\"color:#2a6fd6\">{x['chg']}%</span>" for x in S.get('down5', []))
 parts.append(f"<h3>최근 30일 3.3㎡당 매매가 변동 (직전 30일 대비)</h3><p>상승: {up or '-'}<br>하락: {dn or '-'}</p>"
              "<p><small>시군구별 3.3㎡당 매매가 중앙값 비교이며, 두 기간 모두 거래 10건 이상인 지역만 집계했습니다.</small></p>")
-# 7. 오늘의 부동산 뉴스
-news = S.get('news')
-if news:
-    parts.append(f"<h3>오늘의 부동산 뉴스</h3><p><a href=\"{esc(news['link'])}\">{esc(news['title'])}</a> <small>({esc(news.get('source', ''))})</small></p>")
 # 8. 출처·고지
 parts.append('<hr><p><small>자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 해제 신고된 거래는 제외했습니다. '
              '이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')

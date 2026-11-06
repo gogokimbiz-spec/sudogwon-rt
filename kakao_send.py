@@ -30,6 +30,8 @@ def man2(v):  # 3.3㎡당 가격: 1억 2,768만 / 7,460만
 d = datetime.date.fromisoformat(S['day']); wd = '월화수목금토일'[d.weekday()]
 link = S.get('blog_url') or SITE
 L = [f"🏠 수도권 아파트 실거래 | {d.month}월 {d.day}일({wd})", f"매매 {S['trade_count']}건 · 전세 {S['jeonse_count']}건", '']
+if S.get('news'):
+    L += [f"📰 {S['news']['title']}", '']
 nh = S.get('new_highs') or []
 if nh:
     L.append(f"🔺 신고가 {len(nh)}건 (최근 6개월 기준)")
@@ -42,8 +44,6 @@ w = S.get('watch') or []
 if w:
     L += ['', '📊 관심지역 30일 (3.3㎡당)']
     L += [f"· {area_name(x['region'])} {man2(x['pp_man'])} {'▲' if x['chg'] >= 0 else '▼'}{abs(x['chg'])}%" for x in w]
-if S.get('news'):
-    L += ['', f"📰 {S['news']['title']}"]
 L += ['', f'👉 {link}']
 text = '\n'.join(L)
 print(text)
