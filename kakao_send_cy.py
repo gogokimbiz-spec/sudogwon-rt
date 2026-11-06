@@ -31,6 +31,8 @@ link = S.get('blog_url') or SITE
 r1, lw = S['rank1'], S['last_week']
 def compose(nshow, with_news, with_last=True):
     L = [f"🏗 수도권 청약 | {w0.month}.{w0.day}~{w1.month}.{w1.day}", f"접수 {len(r1)}곳 · 당첨발표 {len(S['winners'])}곳"]
+    if with_news and S.get('news'):
+        L += ['', f"📰 {cut(S['news'][0]['title'], 28)}"]
     if r1:
         L.append('')
         for x in r1[:nshow]:
@@ -41,8 +43,6 @@ def compose(nshow, with_news, with_last=True):
     if with_last and done:
         top = done[0]; mi = sum(1 for x in done if x['status'] == '미달')
         L += ['', f"🏆 지난주 최고 {city(top['region'])} {cut(top['name'], 9)} {top['rate']:.1f}:1" + (f" · 미달 {mi}곳" if mi else '')]
-    if with_news and S.get('news'):
-        L += ['', f"📰 {cut(S['news'][0]['title'], 28)}"]
     L += ['', f'👉 {link}']
     return '\n'.join(L)
 # 카카오 텍스트 메시지는 200자 안팎이 넘으면 잘릴 수 있어 짧아질 때까지 줄입니다

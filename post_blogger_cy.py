@@ -43,6 +43,12 @@ def rate(x):
     return f"<b>{x['rate']:.2f} : 1</b><br><small style=\"color:{c}\">{esc(x['status'])}</small>"
 
 parts = [f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 수도권 청약 지도로 자세히 보기</a></p>']
+# 청약·분양 뉴스를 맨 위에 (지도 버튼보다 먼저)
+news = S.get('news') or []
+if news:
+    parts.insert(0, '<div style="margin:4px 0 18px;padding:12px 14px;border-left:4px solid #1f5fbf;background:#f3f6fb">'
+                    '<div style="font-size:13px;color:#555;margin-bottom:6px">📰 이번 주 청약·분양 뉴스</div><ul style="margin:0;padding-left:18px">' + ''.join(
+        f"<li style=\"margin:2px 0\"><a href=\"{esc(n['link'])}\" style=\"font-weight:bold\">{esc(n['title'])}</a> <small>({esc(n.get('source', ''))}{' · ' + n['date'][5:].replace('-', '.') if n.get('date') else ''})</small></li>" for n in news) + '</ul></div>')
 r1 = S['rank1']
 parts.append(f"<h3>이번 주 청약 접수 {len(r1)}곳</h3>")
 if r1:
@@ -66,10 +72,6 @@ if lw:
     rows = ''.join(f"<tr><td {TD}>{esc(x['region'])}</td><td {TD}>{name(x)}</td><td {TDR}>{rate(x)}<br><small>{x.get('apps', 0):,}건</small></td><td {TDR}>{man(x['pp_man'])}{gap(x)}</td></tr>" for x in lw)
     parts.append(f"<h3>지난주 1순위 결과 {len(lw)}곳</h3><table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>1순위 경쟁률</th><th {THR}>3.3㎡당</th></tr>{rows}</table>"
                  '<p><small>1순위 접수 건수 ÷ 일반공급 세대수(특별공급 제외). 2순위까지 일반공급에 못 미친 주택형이 있으면 미달로 표시합니다.</small></p>')
-news = S.get('news') or []
-if news:
-    parts.append('<h3>이번 주 청약·분양 뉴스</h3><ul>' + ''.join(
-        f"<li><a href=\"{esc(n['link'])}\">{esc(n['title'])}</a> <small>({esc(n.get('source', ''))}{' · ' + n['date'][5:].replace('-', '.') if n.get('date') else ''})</small></li>" for n in news) + '</ul>')
 parts.append('<hr><p><small>자료: 한국부동산원 청약홈 APT 분양정보·경쟁률, 국토교통부 실거래가 공개시스템. '
              '청약 신청 전에는 반드시 입주자모집공고를 확인하세요. 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
 content = ''.join(parts)
