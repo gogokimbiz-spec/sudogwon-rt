@@ -90,10 +90,17 @@ for i, c in enumerate(codes):
     if n1 >= 20 and n0 >= 20: elig[c] = (m1, n1, (m1 / m0 - 1) * 100)
 period = (d0 + datetime.timedelta(maxd)).toordinal() // watch_days
 def pick(pool, k):
-    pool = sorted(c for c in pool if c in elig)
+    # 전체 지역을 고정 순서로 섞어 두고(거래량과 무관하게 순서가 변하지 않음), 기간마다 차례로 k곳.
+    # 차례가 된 지역이 거래 부족이면 다음 지역으로 넘어감.
+    pool = sorted(pool)
     if not pool: return []
-    random.Random(20261106).shuffle(pool)  # 고정 순서로 섞은 뒤 기간마다 차례로 → 모든 지역이 한 번씩 돌아감
-    return [pool[(period * k + j) % len(pool)] for j in range(min(k, len(pool)))]
+    random.Random(20261106).shuffle(pool)
+    out, j = [], 0
+    while len(out) < k and j < len(pool):
+        c = pool[(period * k + j) % len(pool)]
+        if c in elig and c not in out: out.append(c)
+        j += 1
+    return out
 if fixed:
     wcodes = [c for c in fixed if c in elig][:3]
 else:
