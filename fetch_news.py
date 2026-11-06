@@ -23,8 +23,13 @@ for src, url in FEEDS:
     for it in root.iter('item'):
         title = html.unescape(re.sub(r'<[^>]+>', '', it.findtext('title') or '')).strip()
         link = (it.findtext('link') or '').strip()
-        try: pub = parsedate_to_datetime(it.findtext('pubDate'))
-        except Exception: continue
+        raw = (it.findtext('pubDate') or '').strip()
+        try:
+            pub = parsedate_to_datetime(re.sub(r'([+-]\d{2}):(\d{2})$', r'\1\2', raw))  # '+09:00' → '+0900'
+        except Exception:
+            continue
+        if pub.tzinfo is None:  # 시간대 표시가 없으면 한국 시간으로 간주
+            pub = pub.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=9)))
         age = (now - pub).total_seconds() / 3600
         if not title or not link or age > 30: continue
         score = sum(k in title for k in GOOD) * 2 - sum(k in title for k in BAD) * 10 - age / 8

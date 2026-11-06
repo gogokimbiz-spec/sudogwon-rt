@@ -62,6 +62,7 @@ if res.get('result_code') != 0:
 
 new_rt = tok.get('refresh_token')
 if new_rt:
+    open('.kakao_rt', 'w').write(new_rt)  # 같은 작업의 청약 알림이 새 토큰을 쓰도록
     if os.environ.get('GH_TOKEN'):
         subprocess.run(['gh', 'secret', 'set', 'KAKAO_REFRESH_TOKEN', '--body', new_rt], check=True)
         print('새 refresh_token 을 Secret 에 저장했습니다.')

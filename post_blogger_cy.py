@@ -1,0 +1,97 @@
+"""청약 주간 요약(cheongyak/summary.json)으로 구글 블로거에 주간 글을 올립니다 (GitHub Actions 용).
+필요한 환경변수: BLOGGER_BLOG_ID, BLOGGER_CLIENT_ID, BLOGGER_CLIENT_SECRET, BLOGGER_REFRESH_TOKEN (실거래 글과 같은 값)
+선택: SITE_URL (사이트 주소), ADSENSE_CLIENT, ADSENSE_SLOT
+사용법: python post_blogger_cy.py site/cheongyak/summary.json [--dry]
+"""
+import os, sys, json, datetime, urllib.request, urllib.parse, html
+
+env = {k: os.environ.get(k, '').strip() for k in ['BLOGGER_BLOG_ID', 'BLOGGER_CLIENT_ID', 'BLOGGER_CLIENT_SECRET', 'BLOGGER_REFRESH_TOKEN']}
+DRY = '--dry' in sys.argv
+if not DRY and not all(env.values()):
+    print('블로거 설정값이 없어 게시를 건너뜁니다.'); sys.exit(0)
+SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/cheongyak/'
+S = json.load(open(sys.argv[1], encoding='utf-8'))
+esc = html.escape
+
+def man(v):
+    if v is None: return '-'
+    v = int(round(v)); e, m = divmod(v, 10000)
+    return (f'{e}억 {m:,}' if m else f'{e}억') if e else f'{m:,}만'
+D = lambda s: datetime.date.fromisoformat(s[:10])
+WD = '월화수목금토일'
+md = lambda s: f"{D(s).month}.{D(s).day}({WD[D(s).weekday()]})" if s else '-'
+w0, w1 = D(S['week'][0]), D(S['week'][1])
+nth = (w0.day - 1) // 7 + 1
+title = f"[수도권 청약] {w0.month}월 {nth}주차({w0.month}.{w0.day}~{w1.month}.{w1.day}) 청약 일정 · 접수 {len(S['rank1'])}곳"
+
+T = 'style="border-collapse:collapse;width:100%;font-size:14px"'
+TH = 'style="text-align:left;border-bottom:2px solid #ccc;padding:6px 4px"'
+THR = 'style="text-align:right;border-bottom:2px solid #ccc;padding:6px 4px"'
+TD = 'style="border-bottom:1px solid #eee;padding:6px 4px;vertical-align:top"'
+TDR = 'style="border-bottom:1px solid #eee;padding:6px 4px;text-align:right;white-space:nowrap;vertical-align:top"'
+RED, BLUE = '#d23c3c', '#2a6fd6'
+def gap(x):
+    g = x.get('gap_new')
+    if g is None: return ''
+    return f"<br><small style=\"color:{RED if g >= 5 else BLUE if g <= -5 else '#666'}\">신축 시세 {'+' if g > 0 else ''}{g}%</small>"
+def name(x):
+    sub = ' · '.join(s for s in [x.get('umd'), x.get('builder'), f"{x['units']:,}세대 (일반 {x['general']:,})", '공공' if x.get('kind') == '국민' else ''] if s)
+    return f"<a href=\"{esc(x['url'])}\">{esc(x['name'])}</a><br><small>{esc(sub)}</small>"
+def rate(x):
+    if 'rate' not in x: return '-'
+    c = BLUE if x['status'] == '미달' else RED if x['status'] == '1순위 마감' else '#666'
+    return f"<b>{x['rate']:.2f} : 1</b><br><small style=\"color:{c}\">{esc(x['status'])}</small>"
+
+parts = [f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 수도권 청약 지도로 자세히 보기</a></p>']
+r1 = S['rank1']
+parts.append(f"<h3>이번 주 청약 접수 {len(r1)}곳</h3>")
+if r1:
+    rows = ''.join(f"<tr><td {TD}>{md(x['date'])}{'<br><small>특공 ' + md(x['sp_date']) + '</small>' if x.get('sp_date') and x['sp_date'] != x['date'] else ''}</td>"
+                   f"<td {TD}>{esc(x['region'])}</td><td {TD}>{name(x)}</td><td {TDR}><b>{man(x['pp_man'])}</b>{gap(x)}</td></tr>" for x in r1)
+    parts.append(f"<table {T}><tr><th {TH}>1순위</th><th {TH}>지역</th><th {TH}>단지</th><th {THR}>3.3㎡당 분양가</th></tr>{rows}</table>")
+    parts.append('<p><small>3.3㎡당 분양가는 주택형별 최고가를 <b>전용면적</b>으로 나눈 값(세대수 가중)이라 분양 광고의 공급면적 기준 평당가보다 높습니다. '
+                 '신축 시세는 같은 시군구 최근 10년 내 준공 아파트의 최근 6개월 매매 3.3㎡당 중앙값입니다. 단지명을 누르면 청약홈 모집공고로 갑니다.</small></p>')
+else:
+    parts.append('<p>이번 주에는 수도권 청약 접수가 없습니다.</p>')
+if S['winners']:
+    parts.append(f"<h3>이번 주 당첨자 발표 {len(S['winners'])}곳</h3><ul>" +
+                 ''.join(f"<li>{md(x['date'])} · {esc(x['region'])} <a href=\"{esc(x['url'])}\">{esc(x['name'])}</a>{' — ' + rate(x).replace('<br>', ' ') if 'rate' in x else ''}</li>" for x in S['winners']) + '</ul>')
+ad_client, ad_slot = os.environ.get('ADSENSE_CLIENT', '').strip(), os.environ.get('ADSENSE_SLOT', '').strip()
+if ad_client and ad_slot:
+    parts.append(f'<div style="margin:24px 0"><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ad_client}" crossorigin="anonymous"></script>'
+                 f'<ins class="adsbygoogle" style="display:block" data-ad-client="{ad_client}" data-ad-slot="{ad_slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>'
+                 '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
+lw = S['last_week']
+if lw:
+    rows = ''.join(f"<tr><td {TD}>{esc(x['region'])}</td><td {TD}>{name(x)}</td><td {TDR}>{rate(x)}<br><small>{x.get('apps', 0):,}건</small></td><td {TDR}>{man(x['pp_man'])}{gap(x)}</td></tr>" for x in lw)
+    parts.append(f"<h3>지난주 1순위 결과 {len(lw)}곳</h3><table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>1순위 경쟁률</th><th {THR}>3.3㎡당</th></tr>{rows}</table>"
+                 '<p><small>1순위 접수 건수 ÷ 일반공급 세대수(특별공급 제외). 2순위까지 일반공급에 못 미친 주택형이 있으면 미달로 표시합니다.</small></p>')
+news = S.get('news') or []
+if news:
+    parts.append('<h3>이번 주 청약·분양 뉴스</h3><ul>' + ''.join(
+        f"<li><a href=\"{esc(n['link'])}\">{esc(n['title'])}</a> <small>({esc(n.get('source', ''))}{' · ' + n['date'][5:].replace('-', '.') if n.get('date') else ''})</small></li>" for n in news) + '</ul>')
+parts.append('<hr><p><small>자료: 한국부동산원 청약홈 APT 분양정보·경쟁률, 국토교통부 실거래가 공개시스템. '
+             '청약 신청 전에는 반드시 입주자모집공고를 확인하세요. 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+content = ''.join(parts)
+
+if DRY:
+    open('post_preview_cy.html', 'w', encoding='utf-8').write(f'<meta charset="utf-8"><h1>{esc(title)}</h1>' + content); print(title); sys.exit(0)
+
+tok = json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token', urllib.parse.urlencode({
+    'client_id': env['BLOGGER_CLIENT_ID'], 'client_secret': env['BLOGGER_CLIENT_SECRET'],
+    'refresh_token': env['BLOGGER_REFRESH_TOKEN'], 'grant_type': 'refresh_token'}).encode()))['access_token']
+H = {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json; charset=utf-8'}
+API = f"https://www.googleapis.com/blogger/v3/blogs/{env['BLOGGER_BLOG_ID']}/posts"
+key = f"({w0.month}.{w0.day}~"
+q = urllib.request.Request(API + '/search?' + urllib.parse.urlencode({'q': '수도권 청약', 'fetchBodies': 'false'}), headers=H)
+items = json.load(urllib.request.urlopen(q)).get('items', [])
+same = [p for p in items if key in p.get('title', '') and '[수도권 청약]' in p.get('title', '') and p.get('published', '')[:4] == str(w0.year)]
+body = json.dumps({'title': title, 'content': content, 'labels': ['수도권 청약', '아파트 분양', '청약 경쟁률']}).encode()
+if same:
+    r = urllib.request.urlopen(urllib.request.Request(f"{API}/{same[0]['id']}", data=body, headers=H, method='PUT'))
+else:
+    r = urllib.request.urlopen(urllib.request.Request(API, data=body, headers=H, method='POST'))
+post = json.load(r)
+print('게시 완료:', post.get('url'))
+S['blog_url'] = post.get('url')
+json.dump(S, open(sys.argv[1], 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
