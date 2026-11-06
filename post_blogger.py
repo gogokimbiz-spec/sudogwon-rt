@@ -30,12 +30,20 @@ TD = 'style="border-bottom:1px solid #eee;padding:6px 4px;vertical-align:top"'
 TDR = 'style="border-bottom:1px solid #eee;padding:6px 4px;text-align:right;white-space:nowrap"'
 RED = 'style="color:#d23c3c;font-weight:bold"'
 
+try:
+    _NM = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'names.json'), encoding='utf-8'))
+    CODE = {v: k for k, v in _NM.items()}
+except Exception:
+    CODE = {}
+def reg(name):  # 지역명에 시군구 페이지 링크
+    c = CODE.get(name)
+    return f'<a href="{SITE}r/{c}.html">{esc(name)}</a>' if c else esc(name)
 def trade_rows(rows, with_prev=False):
     out = []
     for t in rows:
         badge = f' <span {RED}>[신고가]</span>' if t.get('new_high') else ''
         prev = f"<br><small>이전 최고 {man(t['prev_high_man'])} ({t['prev_high_date'][5:].replace('-', '.')})</small>" if with_prev and t.get('new_high') else ''
-        out.append(f"<tr><td {TD}>{esc(t['region'])}</td><td {TD}>{esc(t['apt'])}{badge}<br><small>{esc(t['umd'])} · {t['built']}년</small></td>"
+        out.append(f"<tr><td {TD}>{reg(t['region'])}</td><td {TD}>{esc(t['apt'])}{badge}<br><small>{esc(t['umd'])} · {t['built']}년</small></td>"
                    f"<td {TDR}>{t['area']}㎡ · {t['floor']}층</td><td {TDR}><b>{man(t['price_man'])}</b><br><small>3.3㎡당 {man(t['pp_man'])}</small>{prev}</td></tr>")
     return ''.join(out)
 
