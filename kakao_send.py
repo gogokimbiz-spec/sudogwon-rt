@@ -13,24 +13,38 @@ S = json.load(open(sys.argv[1], encoding='utf-8'))
 def man(v):
     v = int(round(v)); e, m = divmod(v, 10000)
     return (f'{e}억 {m:,}' if m else f'{e}억') if e else f'{m:,}만'
-def sh(r):
-    n = r.split(' ')[-1]
-    return n[:-1] if len(n) > 2 and n[-1] in '구시' else n
+def city(r):  # 신고가 줄: '광명시'→'광명', '서울 강남구'→'강남', '용인 기흥구'→'용인'
+    p = r.split(' ')
+    if len(p) == 1: return p[0][:-1] if p[0][-1] in '시군' else p[0]
+    if p[0] in ('서울', '인천'): return p[1][:-1] if len(p[1]) > 2 else r
+    return p[0]
+def area_name(r):  # 관심지역 줄: '서울 강남구'→'강남', '성남 분당구'→'성남 분당', '광명시'→'광명'
+    p = r.split(' ')
+    if len(p) == 1: return p[0][:-1] if p[0][-1] in '시군' else p[0]
+    g = p[1][:-1] if len(p[1]) > 2 else p[1]
+    return g if p[0] == '서울' else f'{p[0]} {g}'
+cut = lambda s, n=12: s if len(s) <= n else s[:n] + '…'
+def man2(v):  # 3.3㎡당 가격: 1억 2,768만 / 7,460만
+    v = int(round(v)); e, m = divmod(v, 10000)
+    return (f'{e}억 {m:,}만' if m else f'{e}억') if e else f'{m:,}만'
 d = datetime.date.fromisoformat(S['day']); wd = '월화수목금토일'[d.weekday()]
 link = S.get('blog_url') or SITE
-L = [f"[수도권 실거래] {d.month}월 {d.day}일 ({wd})",
-     f"매매 {S['trade_count']}건 (서울 {S['by_sido']['11']} · 인천 {S['by_sido']['28']} · 경기 {S['by_sido']['41']}) · 전세 {S['jeonse_count']}건"]
+L = [f"🏠 수도권 아파트 실거래 | {d.month}월 {d.day}일({wd})", f"매매 {S['trade_count']}건 · 전세 {S['jeonse_count']}건", '']
 nh = S.get('new_highs') or []
 if nh:
-    L.append(f"신고가 {len(nh)}건: " + ' · '.join(f"{sh(t['region'])} {t['apt']}" for t in nh[:2]) + (' 외' if len(nh) > 2 else ''))
-for i, t in enumerate((S.get('top_trades') or [])[:2]):
-    L.append(f"{'최고가:' if i == 0 else '　　　'} {sh(t['region'])} {t['apt']} {t['area']}㎡ {man(t['price_man'])}")
-L.append('30일 상승: ' + ' · '.join(f"{sh(x['region'])} +{x['chg']}%" for x in S.get('up3', [])))
-L.append('30일 하락: ' + ' · '.join(f"{sh(x['region'])} {x['chg']}%" for x in S.get('down3', [])))
+    L.append(f"🔺 신고가 {len(nh)}건 (최근 6개월 기준)")
+    L += [f"· {city(t['region'])} {cut(t['apt'])} {t['area']}㎡ {man(t['price_man'])}" for t in nh[:3]]
+    if len(nh) > 3: L.append(f"  외 {len(nh) - 3}건")
+else:
+    L.append('💰 거래가 상위 3건')
+    L += [f"· {city(t['region'])} {cut(t['apt'])} {t['area']}㎡ {man(t['price_man'])}" for t in (S.get('day_trades') or S.get('top_trades') or [])[:3]]
+w = S.get('watch') or []
+if w:
+    L += ['', '📊 관심지역 30일 (3.3㎡당)']
+    L += [f"· {area_name(x['region'])} {man2(x['pp_man'])} {'▲' if x['chg'] >= 0 else '▼'}{abs(x['chg'])}%" for x in w]
 if S.get('news'):
-    L.append(f"📰 {S['news']['title']}")
-L.append('※ 아직 신고 중이라 건수는 늘어날 수 있어요')
-L.append(f'자세히 보기: {link}')
+    L += ['', f"📰 {S['news']['title']}"]
+L += ['', f'👉 {link}']
 text = '\n'.join(L)
 print(text)
 

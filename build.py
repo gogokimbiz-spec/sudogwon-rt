@@ -77,6 +77,31 @@ def trade_dict(x):
         d['new_high'] = True; d['prev_high_man'] = pm[3]; d['prev_high_date'] = (d0 + datetime.timedelta(pm[1])).isoformat()
     return d
 day_list = [trade_dict(x) for x in sorted(dayT, key=lambda x: -x[3])]
+# 관심지역: 며칠마다 자동으로 바뀜 (서울 1 · 경기 1 · 인천/경기 1). 날짜로 정해지므로 같은 기간엔 항상 같은 지역.
+import random
+def stat30(code_i, a, b):
+    v = [x[3] / (x[2] / 10) * 3.3058 for x in T if x[0] == code_i and a <= x[1] <= b]
+    return (statistics.median(v), len(v)) if v else (None, 0)
+watch_days = int(os.environ.get('WATCH_DAYS', '3') or 3)
+fixed = [c.strip() for c in os.environ.get('WATCH_FIXED', '').split(',') if c.strip() in ci]
+elig = {}
+for i, c in enumerate(codes):
+    m1, n1 = stat30(i, maxd - 29, maxd); m0, n0 = stat30(i, maxd - 59, maxd - 30)
+    if n1 >= 20 and n0 >= 20: elig[c] = (m1, n1, (m1 / m0 - 1) * 100)
+period = (d0 + datetime.timedelta(maxd)).toordinal() // watch_days
+def pick(pool, k):
+    pool = sorted(c for c in pool if c in elig)
+    if not pool: return []
+    random.Random(20261106).shuffle(pool)  # 고정 순서로 섞은 뒤 기간마다 차례로 → 모든 지역이 한 번씩 돌아감
+    return [pool[(period * k + j) % len(pool)] for j in range(min(k, len(pool)))]
+if fixed:
+    wcodes = [c for c in fixed if c in elig][:3]
+else:
+    wcodes = pick([c for c in codes if c.startswith('11')], 1) + pick([c for c in codes if c.startswith('41')], 1) + \
+             pick([c for c in codes if c.startswith('28') or c.startswith('41')], 1)
+    wcodes = list(dict.fromkeys(wcodes))
+watch = [{'region': names[c], 'pp_man': round(elig[c][0]), 'n': elig[c][1], 'chg': round(elig[c][2], 1)} for c in wcodes]
+period_start = datetime.date.fromordinal(period * watch_days)
 summary = {'asof': asof, 'day': day, 'trade_count': len(dayT), 'jeonse_count': len(dayJ), 'by_sido': by_sido,
            'top_trades': [{'region': names[codes[x[0]]], 'apt': list(apts)[x[6]], 'area': round(x[2] / 10), 'price_man': x[3]} for x in top],
            'up3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[:3]],
@@ -84,6 +109,7 @@ summary = {'asof': asof, 'day': day, 'trade_count': len(dayT), 'jeonse_count': l
            'up5': [{'region': n, 'chg': round(v, 1)} for n, v in ch[:5]],
            'down5': [{'region': n, 'chg': round(v, 1)} for n, v in ch[::-1][:5]],
            'new_highs': [d for d in day_list if d.get('new_high')],
+           'watch': watch, 'watch_period': [period_start.isoformat(), (period_start + datetime.timedelta(watch_days - 1)).isoformat()],
            'day_trades': day_list[:20],
            'trade_median_man': statistics.median([x[3] for x in dayT]) if dayT else None,
            'jeonse_median_man': statistics.median([x[3] for x in dayJ]) if dayJ else None}
