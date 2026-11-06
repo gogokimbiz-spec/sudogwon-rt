@@ -40,6 +40,8 @@ jobs:
           mkdir -p site
           python build.py rt_data.json site/index.html site/summary.json --standalone
           cp privacy.html site/ 2>/dev/null || true
+          # 검색엔진 소유 확인 파일과 사이트맵 (있으면 같이 올림)
+          for f in google*.html naver*.html sitemap.xml robots.txt; do [ -f "$f" ] && cp "$f" site/ || true; done
       - name: 청약홈 분양정보 수집
         id: cy
         continue-on-error: true
