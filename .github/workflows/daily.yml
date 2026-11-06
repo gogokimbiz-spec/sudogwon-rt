@@ -28,14 +28,14 @@ jobs:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python fetch.py
       - name: 지도 페이지 만들기
+        env:
+          WATCH_DAYS: ${{ vars.WATCH_DAYS }}
+          WATCH_FIXED: ${{ vars.WATCH_FIXED }}
         run: |
           mkdir -p site
           python build.py rt_data.json site/index.html site/summary.json --standalone
           cp privacy.html site/ 2>/dev/null || true
       - name: 오늘의 부동산 뉴스 고르기
-        env:
-          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
-          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
         run: python fetch_news.py site/summary.json || echo '뉴스 단계 실패 - 뉴스 없이 계속'
       - name: 블로거에 오늘 글 올리기
         env:
