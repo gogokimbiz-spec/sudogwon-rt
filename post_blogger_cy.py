@@ -42,7 +42,20 @@ def rate(x):
     c = BLUE if x['status'] == '미달' else RED if x['status'] == '1순위 마감' else '#666'
     return f"<b>{x['rate']:.2f} : 1</b><br><small style=\"color:{c}\">{esc(x['status'])}</small>"
 
-parts = [f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 수도권 청약 지도로 자세히 보기</a></p>']
+RT_SITE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/'
+def cta(href, icon, title, sub, primary):
+    bg = 'background:linear-gradient(135deg,#1f5fbf,#3b82f6);border:2px solid #1f5fbf;box-shadow:0 4px 14px rgba(31,95,191,.35);' if primary \
+        else 'background:#ffffff;border:2px solid #1f5fbf;box-shadow:0 3px 10px rgba(31,95,191,.15);'
+    fg = '#ffffff' if primary else '#1f5fbf'
+    sc = '#e8f0ff' if primary else '#4b5b70'
+    return (f'<a href="{href}" style="flex:1 1 260px;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;text-decoration:none;{bg}">'
+            f'<span style="font-size:28px;line-height:1">{icon}</span>'
+            f'<span style="flex:1;min-width:0"><span style="display:block;font-size:16.5px;font-weight:800;color:{fg};line-height:1.3">{title}</span>'
+            f'<span style="display:block;font-size:12.5px;color:{sc};margin-top:2px">{sub}</span></span>'
+            f'<span style="font-size:15px;font-weight:800;color:{fg};white-space:nowrap">보기 ›</span></a>')
+parts = ['<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
+         + cta(SITE, '🗺️', '청약 지도로 보기', '접수 일정·분양가·신축 시세 비교', True)
+         + cta(f'{RT_SITE}r/', '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>']
 # 청약·분양 뉴스를 맨 위에 (지도 버튼보다 먼저)
 news = S.get('news') or []
 if news:

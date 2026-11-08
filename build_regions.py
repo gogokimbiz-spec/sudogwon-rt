@@ -72,7 +72,9 @@ nav{font-size:.85rem;color:var(--muted)}h1{font-size:1.7rem;margin:4px 0 2px;lin
 .up{color:var(--up)}.down{color:var(--down)}.t{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.85rem}
 th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:500;font-size:.78rem}
 td.n,th.n{text-align:right}td.n{white-space:nowrap;font-variant-numeric:tabular-nums}.nh{background:var(--up);color:#fff;font-size:.7rem;padding:1px 5px;border-radius:4px;margin-left:4px}
-.btn{display:inline-block;padding:9px 14px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;margin:4px 6px 0 0}
+.ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.cta{flex:1 1 240px;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;text-decoration:none;border:2px solid #1f5fbf;background:var(--panel);color:#1f5fbf;box-shadow:0 3px 10px rgba(31,95,191,.15)}
+.cta.pri{background:linear-gradient(135deg,#1f5fbf,#3b82f6);color:#fff;box-shadow:0 4px 14px rgba(31,95,191,.35)}.cta .i{font-size:28px;line-height:1}.cta .tx{flex:1;min-width:0}.cta b{display:block;font-size:16px;line-height:1.3}
+.cta small{display:block;font-size:12.5px;opacity:.85;margin-top:2px}.cta .go{font-weight:800;white-space:nowrap}.cta:focus-visible{outline:3px solid #f0b44c;outline-offset:2px}
 .regs{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.88rem}footer{font-size:.78rem;color:var(--muted)}
 """
 def page(title, desc, canon, body):
@@ -135,7 +137,7 @@ for c in codes:
 <div><span class="s">전세가율</span><b>{f'{ratio:.0f}%' if ratio else '-'}</b></div>
 <div><span class="s">신고가 (30일)</span><b>{len(nh)}건</b></div></div>
 <p>{esc(' '.join(s))}</p>
-<a class="btn" href="{SITE}">▶ 지도에서 보기</a><a class="btn" href="{BLOG}">▶ 오늘의 실거래 브리핑</a></section>
+<div class="ctas"><a class="cta pri" href="{SITE}"><span class="i">🗺️</span><span class="tx"><b>지역별 지도로 보기</b><small>76개 시군구 가격·변동을 한눈에</small></span><span class="go">보기 ›</span></a><a class="cta" href="{BLOG}"><span class="i">📝</span><span class="tx"><b>오늘의 실거래 브리핑</b><small>전날 신고가·거래 TOP 20·뉴스</small></span><span class="go">보기 ›</span></a></div></section>
 {f'<section class="p"><h2>최근 30일 신고가 {len(nh)}건</h2><p class="s">같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래</p><div class="t"><table><tr><th>계약일</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>{nh_html}</table></div></section>' if nh else ''}
 {f'<section class="p"><h2>최근 30일 거래 많은 단지</h2><div class="t"><table><tr><th>단지</th><th class="n">거래</th><th class="n">거래가 중앙값</th><th class="n">3.3㎡당</th></tr>{top_html}</table></div></section>' if top else ''}
 <section class="p"><h2>월별 추이</h2><div class="t"><table><tr><th>월</th><th class="n">매매</th><th class="n">3.3㎡당 매매</th><th class="n">전세</th><th class="n">3.3㎡당 전세</th></tr>{mrows}</table></div><p class="s">이번 달은 아직 신고 중이라 건수가 적게 보입니다.</p></section>
