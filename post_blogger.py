@@ -55,8 +55,20 @@ if news:
                  f"<div style=\"font-size:13px;color:#555;margin-bottom:4px\">📰 오늘의 부동산 뉴스</div>"
                  f"<a href=\"{esc(news['link'])}\" style=\"font-weight:bold;font-size:16px\">{esc(news['title'])}</a> <small>({esc(news.get('source', ''))})</small></div>")
 # 2. 지도 버튼
-parts.append(f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 지역별 지도로 자세히 보기</a> '
-             f'<a href="{SITE}r/" style="display:inline-block;padding:10px 16px;background:#fff;color:#1f5fbf;border:2px solid #1f5fbf;border-radius:8px;text-decoration:none;font-weight:bold">📍 시군구별 실거래가</a></p>')
+def cta(href, icon, title, sub, primary):
+    bg = 'background:linear-gradient(135deg,#1f5fbf,#3b82f6);border:2px solid #1f5fbf;box-shadow:0 4px 14px rgba(31,95,191,.35);' if primary \
+        else 'background:#ffffff;border:2px solid #1f5fbf;box-shadow:0 3px 10px rgba(31,95,191,.15);'
+    fg = '#ffffff' if primary else '#1f5fbf'
+    sc = '#e8f0ff' if primary else '#4b5b70'
+    return (f'<a href="{href}" style="flex:1 1 260px;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;text-decoration:none;{bg}">'
+            f'<span style="font-size:28px;line-height:1">{icon}</span>'
+            f'<span style="flex:1;min-width:0"><span style="display:block;font-size:16.5px;font-weight:800;color:{fg};line-height:1.3">{title}</span>'
+            f'<span style="display:block;font-size:12.5px;color:{sc};margin-top:2px">{sub}</span></span>'
+            f'<span style="font-size:15px;font-weight:800;color:{fg};white-space:nowrap">보기 ›</span></a>')
+# 2. 바로가기 카드 버튼
+parts.append('<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
+             + cta(SITE, '🗺️', '지역별 지도로 보기', '76개 시군구 가격·변동을 한눈에', True)
+             + cta(f'{SITE}r/', '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>')
 # 3. 신고가 표
 if nh:
     parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")
