@@ -55,7 +55,8 @@ if news:
                  f"<div style=\"font-size:13px;color:#555;margin-bottom:4px\">📰 오늘의 부동산 뉴스</div>"
                  f"<a href=\"{esc(news['link'])}\" style=\"font-weight:bold;font-size:16px\">{esc(news['title'])}</a> <small>({esc(news.get('source', ''))})</small></div>")
 # 2. 지도 버튼
-parts.append(f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 지역별 지도로 자세히 보기</a></p>')
+parts.append(f'<p style="margin:8px 0 20px"><a href="{SITE}" style="display:inline-block;padding:10px 16px;background:#1f5fbf;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold">▶ 지역별 지도로 자세히 보기</a> '
+             f'<a href="{SITE}r/" style="display:inline-block;padding:10px 16px;background:#fff;color:#1f5fbf;border:2px solid #1f5fbf;border-radius:8px;text-decoration:none;font-weight:bold">📍 시군구별 실거래가</a></p>')
 # 3. 신고가 표
 if nh:
     parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")
@@ -77,7 +78,8 @@ parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>
 up = ' · '.join(f"{esc(short(x['region']))} <span style=\"color:#d23c3c\">+{x['chg']}%</span>" for x in S.get('up5', []))
 dn = ' · '.join(f"{esc(short(x['region']))} <span style=\"color:#2a6fd6\">{x['chg']}%</span>" for x in S.get('down5', []))
 parts.append(f"<h3>최근 30일 3.3㎡당 매매가 변동 (직전 30일 대비)</h3><p>상승: {up or '-'}<br>하락: {dn or '-'}</p>"
-             "<p><small>시군구별 3.3㎡당 매매가 중앙값 비교이며, 두 기간 모두 거래 10건 이상인 지역만 집계했습니다.</small></p>")
+             "<p><small>시군구별 3.3㎡당 매매가 중앙값 비교이며, 두 기간 모두 거래 10건 이상인 지역만 집계했습니다.</small></p>"
+             f'<p>👉 <a href="{SITE}r/">우리 동네 시군구별 아파트 실거래가·신고가 보기</a></p>')
 # 8. 출처·고지
 parts.append('<hr><p><small>자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 해제 신고된 거래는 제외했습니다. '
              '이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
