@@ -11,7 +11,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write   # 카드 이미지 보관용
   pages: write
   id-token: write
 
@@ -68,6 +68,29 @@ jobs:
             echo '::warning::청약홈 수집 실패 - 어제 청약 지도를 그대로 둡니다'
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/index.html -o site/cheongyak/index.html || true
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json -o site/cheongyak/summary.json || true
+          fi
+      - name: 이번 주 청약 카드 이미지 만들기
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
+          pip install -q pillow
+          python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
+      - name: 카드 이미지 보관 (블로그 대표 이미지용)
+        continue-on-error: true
+        run: |
+          D=$(python -c "import json;print(json.load(open('site/summary.json'))['day'])")
+          mkdir -p cards/rt cards/cy
+          [ -f site/cards/single.png ] && cp site/cards/single.png "cards/rt/$D.png"
+          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
+            W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''
+            [ -n "$W" ] && [ -f site/cheongyak/cards/single.png ] && cp site/cheongyak/cards/single.png "cards/cy/$W.png"
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cards
+          if ! git diff --cached --quiet; then
+            git commit -q -m "카드 이미지 $D"
+            git pull -q --rebase --autostash && git push -q
           fi
       - name: 청약 주간 블로그 글 (월요일)
         if: steps.cy.outcome == 'success'
