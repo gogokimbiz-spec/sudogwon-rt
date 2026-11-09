@@ -1,0 +1,4 @@
+Noto Sans CJK KR (subset: Korean, Latin, symbols)
+Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name Source.
+Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
+Subset made for card image generation in this repository.
