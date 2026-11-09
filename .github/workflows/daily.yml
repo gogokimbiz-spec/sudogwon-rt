@@ -42,6 +42,13 @@ jobs:
           cp privacy.html site/ 2>/dev/null || true
           # 검색엔진 소유 확인 파일과 사이트맵 (있으면 같이 올림)
           for f in google*.html naver*.html sitemap.xml robots.txt; do [ -f "$f" ] && cp "$f" site/ || true; done
+      - name: 오늘의 신고가 카드 이미지 만들기
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
+          pip install -q pillow
+          python make_cards.py site/summary.json site/cards
+          cp site/cards/single.png site/cards/latest.png
       - name: 시군구별 실거래가 페이지 만들기
         continue-on-error: true
         run: python build_regions.py rt_data.json site
@@ -118,6 +125,13 @@ jobs:
           KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: python3 kakao_send.py summary.json
+      - name: 텔레그램 채널에 올리기
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 telegram_send.py summary.json
       - name: 청약 주간 카톡 (월요일)
         if: ${{ !cancelled() }}
         continue-on-error: true
@@ -130,6 +144,7 @@ jobs:
           if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
             curl -sf "${{ needs.deploy.outputs.page_url }}cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json
             python3 kakao_send_cy.py cy_summary.json
+            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}" python3 telegram_send.py cy_summary.json --cy || echo '청약 텔레그램 실패'
           else
             echo '월요일이 아니라 청약 카톡은 건너뜁니다'
           fi
