@@ -69,7 +69,7 @@ try: ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD')
 except Exception: ok_img = False
 if ok_img:
     feed = {'object_type': 'feed', 'content': {'title': f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})",
-            'description': '이미지를 눌러 크게 보기 · 인스타그램에도 그대로 올릴 수 있어요',
+            'description': '이미지를 눌러 크게 보기',
             'image_url': f"{card}?d={S.get('asof', '')}", 'image_width': 1080, 'image_height': 1350,
             'link': {'web_url': link, 'mobile_web_url': link}},
             'buttons': [{'title': '청약 일정 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}

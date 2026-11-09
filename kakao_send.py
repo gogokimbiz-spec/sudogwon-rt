@@ -70,7 +70,7 @@ if ok_img:
     nhn = len(S.get('new_highs') or [])
     feed = {'object_type': 'feed',
             'content': {'title': f"{d.month}월 {d.day}일({wd}) 수도권 아파트 " + (f"신고가 {nhn}건" if nhn else '거래가 TOP'),
-                        'description': '이미지를 눌러 크게 보기 · 인스타그램에도 그대로 올릴 수 있어요',
+                        'description': '이미지를 눌러 크게 보기',
                         'image_url': f"{card}?d={S.get('asof', S['day'])}", 'image_width': 1080, 'image_height': 1350,
                         'link': {'web_url': link, 'mobile_web_url': link}},
             'buttons': [{'title': '자세히 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
