@@ -58,7 +58,7 @@ rr(d, (64, 56, 64 + lw + 44, 110), 27, fill=RED); d.text((86, 62), lab, font=F(3
 d.text((64, 136), '이번 주 수도권 청약', font=F(78, 'Black'), fill=WHITE)
 cnt = f'{len(r1)}곳'
 d.text((W - 64 - d.textlength(cnt, font=F(110, 'Black')), 128), cnt, font=F(110, 'Black'), fill=RED)
-d.text((64, 248), '분양가 3.3㎡당 · 주변 신축 아파트 시세와 비교', font=F(28, 'Medium'), fill=MUTED)
+d.text((64, 248), '분양가 3.3㎡당 · 주변 신축 대비 비싸면 빨강, 싸면 파랑', font=F(28, 'Medium'), fill=MUTED)
 
 top, bottom = 330, SH - 170
 n_last = min(3, len(done)) if len(r1) <= 4 else 0       # 접수 단지가 적으면 지난주 결과도 같이
@@ -82,7 +82,7 @@ for x in rows_:
     d.text((W - 64 - d.textlength(pr, font=pfnt), cy - 58), pr, font=pfnt, fill=INK)
     g = x.get('gap_new')
     if g is not None:
-        s2 = f"신축 시세 {'+' if g > 0 else ''}{g}%"; sf = F(28)
+        s2 = f"주변 신축 대비 {'+' if g > 0 else ''}{g}%"; sf = F(28)
         d.text((W - 64 - d.textlength(s2, font=sf), cy + 4), s2, font=sf, fill=RED if g > 0 else BLUE if g < 0 else INK2)
     y += rh
 if n_last:
@@ -113,7 +113,7 @@ shutil.copy(os.path.join(OUT, 'single.png'), os.path.join(OUT, 'latest.png'))
 cap = [f"🏗 이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day} 1순위 접수)", '']
 for x in r1[:10]:
     g = x.get('gap_new')
-    cap.append(f"· {md(x['date'])} {x['region']} {x['name']} 3.3㎡당 {man(x['pp_man'])}만" + (f" (신축 시세 {'+' if g > 0 else ''}{g}%)" if g is not None else ''))
+    cap.append(f"· {md(x['date'])} {x['region']} {x['name']} 3.3㎡당 {man(x['pp_man'])}만" + (f" (주변 신축 대비 {'+' if g > 0 else ''}{g}%)" if g is not None else ''))
 if done:
     cap += ['', '🏆 지난주 1순위 경쟁률'] + [f"· {x['region']} {x['name']} {x['rate']:.1f}:1 {x.get('status', '')}" for x in done[:3]]
 tags = ['청약', '아파트청약', '수도권청약', '분양', '청약일정', '내집마련', '부동산'] + list(dict.fromkeys(city(x['region']) + '청약' for x in r1))[:4]

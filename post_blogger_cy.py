@@ -33,7 +33,7 @@ RED, BLUE = '#d23c3c', '#2a6fd6'
 def gap(x):
     g = x.get('gap_new')
     if g is None: return ''
-    return f"<br><small style=\"color:{RED if g >= 5 else BLUE if g <= -5 else '#666'}\">신축 시세 {'+' if g > 0 else ''}{g}%</small>"
+    return f"<br><small style=\"color:{RED if g >= 5 else BLUE if g <= -5 else '#666'}\">주변 신축 대비 {'+' if g > 0 else ''}{g}%</small>"
 def name(x):
     sub = ' · '.join(s for s in [x.get('umd'), x.get('builder'), f"{x['units']:,}세대 (일반 {x['general']:,})", '공공' if x.get('kind') == '국민' else ''] if s)
     return f"<a href=\"{esc(x['url'])}\">{esc(x['name'])}</a><br><small>{esc(sub)}</small>"
@@ -54,7 +54,7 @@ def cta(href, icon, title, sub, primary):
             f'<span style="display:block;font-size:12.5px;color:{sc};margin-top:2px">{sub}</span></span>'
             f'<span style="font-size:15px;font-weight:800;color:{fg};white-space:nowrap">보기 ›</span></a>')
 parts = ['<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
-         + cta(SITE, '🗺️', '청약 지도로 보기', '접수 일정·분양가·신축 시세 비교', True)
+         + cta(SITE, '🗺️', '청약 지도로 보기', '접수 일정·분양가·주변 신축 대비', True)
          + cta(f'{RT_SITE}r/', '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>']
 # 청약·분양 뉴스를 맨 위에 (지도 버튼보다 먼저)
 news = S.get('news') or []
@@ -69,7 +69,7 @@ if r1:
                    f"<td {TD}>{esc(x['region'])}</td><td {TD}>{name(x)}</td><td {TDR}><b>{man(x['pp_man'])}</b>{gap(x)}</td></tr>" for x in r1)
     parts.append(f"<table {T}><tr><th {TH}>1순위</th><th {TH}>지역</th><th {TH}>단지</th><th {THR}>3.3㎡당 분양가</th></tr>{rows}</table>")
     parts.append('<p><small>3.3㎡당 분양가는 주택형별 최고가를 <b>전용면적</b>으로 나눈 값(세대수 가중)이라 분양 광고의 공급면적 기준 평당가보다 높습니다. '
-                 '신축 시세는 같은 시군구 최근 10년 내 준공 아파트의 최근 6개월 매매 3.3㎡당 중앙값입니다. 단지명을 누르면 청약홈 모집공고로 갑니다.</small></p>')
+                 '주변 신축 대비는 분양가를 같은 시군구 최근 10년 내 준공 아파트의 최근 6개월 매매 3.3㎡당 중앙값과 비교한 값입니다. 단지명을 누르면 청약홈 모집공고로 갑니다.</small></p>')
 else:
     parts.append('<p>이번 주에는 수도권 청약 접수가 없습니다.</p>')
 if S['winners']:
