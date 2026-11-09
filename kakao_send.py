@@ -84,6 +84,26 @@ if ok_img:
 else:
     print('오늘의 카드 이미지가 없어 이미지 메시지는 건너뜁니다.')
 
+# 오늘의 부동산 타로 (블로그 글의 타로 칸으로 연결 – 블로그 방문 유도)
+try:
+    from tarot import today_card
+    t = today_card()
+    ok_t = urllib.request.urlopen(urllib.request.Request(t['image'], method='HEAD'), timeout=20).status == 200
+except Exception as e:
+    ok_t = False; print('타로 카드 이미지를 확인하지 못해 타로 메시지는 건너뜁니다:', e)
+if ok_t:
+    tl = (S.get('blog_url') or SITE) + ('#tarot' if S.get('blog_url') else '')
+    feed = {'object_type': 'feed', 'content': {'title': f"🔮 {t['label']} 부동산 타로 · {t['n']} {t['stars']}",
+            'description': t['msg'], 'image_url': t['image'], 'image_width': 800, 'image_height': 800,
+            'link': {'web_url': tl, 'mobile_web_url': tl}},
+            'buttons': [{'title': '🔮 나도 카드 뽑기', 'link': {'web_url': tl, 'mobile_web_url': tl}}]}
+    try:
+        r3 = json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+             data=urllib.parse.urlencode({'template_object': json.dumps(feed, ensure_ascii=False)}).encode(),
+             headers={'Authorization': 'Bearer ' + tok['access_token']})))
+        print('타로 전송 결과:', r3)
+    except urllib.error.HTTPError as err:
+        print('::warning::타로 전송 실패:', err.read().decode('utf-8', 'replace')[:300])
 new_rt = tok.get('refresh_token')
 if new_rt:
     open('.kakao_rt', 'w').write(new_rt)  # 같은 작업의 청약 알림이 새 토큰을 쓰도록

@@ -99,7 +99,24 @@ parts.append('<hr><p><small>자료: 국토교통부 실거래가 공개시스템
 _key = S['day']
 if os.path.exists(f'cards/rt/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'):
     _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/rt/{_key}.png"
+    _has_img = True
     parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
+# 오늘의 부동산 타로 (대표 이미지 바로 아래 – 대표 이미지가 블로그 썸네일이 되도록 타로는 그 뒤에 둠)
+try:
+    from tarot import today_card
+    _t = today_card()
+    parts.insert((1 if news else 0) + (1 if '_has_img' in globals() else 0),
+        '<div id="tarot" style="margin:0 0 22px;padding:16px;border-radius:16px;background:linear-gradient(135deg,#0f2742,#1f4f8f);color:#fff;text-align:center">'
+        f'<div style="font-size:13px;color:#e8b94a;font-weight:bold;letter-spacing:.02em">🔮 {_t["label"]} 오늘의 부동산 타로</div>'
+        f'<img src="{_t["image"]}" alt="오늘의 부동산 타로 카드 {esc(_t["n"])}" style="width:180px;max-width:60%;height:auto;margin:10px auto 6px;display:block;border-radius:10px">'
+        f'<div style="font-size:20px;font-weight:bold;color:#fff">{esc(_t["n"])} <span style="color:#e8b94a;font-size:16px">{_t["stars"]}</span></div>'
+        f'<div style="font-size:12.5px;color:#b9c8dc;margin:2px 0 8px">{esc(_t["kw"])}</div>'
+        f'<div style="font-size:15px;line-height:1.6;color:#fff;margin:0 auto 10px;max-width:440px">{esc(_t["msg"])}</div>'
+        f'<div style="font-size:13px;color:#d6e2f2;margin-bottom:12px">행운의 층 <b style="color:#fff">{_t["luck"]["floor"]}층</b> · 행운의 방향 <b style="color:#fff">{_t["dir"]}</b> · 오늘 해보면 좋은 일 <b style="color:#fff">{esc(_t["act"])}</b></div>'
+        f'<a href="{_t["url"]}" style="display:inline-block;background:#ff5c5c;color:#fff;font-weight:bold;font-size:16px;padding:11px 22px;border-radius:999px;text-decoration:none">🔮 나도 카드 뽑기 ›</a>'
+        '<div style="font-size:11px;color:#93a6bf;margin-top:10px">재미로 보는 운세이며 투자 판단의 근거가 아닙니다</div></div>')
+except Exception as _e:
+    print('타로 칸 건너뜀:', _e)
 content = ''.join(parts)
 
 if DRY:
