@@ -51,14 +51,8 @@ jobs:
       - name: 오늘의 신고가 카드 이미지 만들기
         continue-on-error: true
         run: |
-          # 한글 폰트: apt 로 설치하고, 실패하면 Noto 공식 저장소에서 직접 받기
-          (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk) > /dev/null 2>&1 || true
-          if ! ls /usr/share/fonts/**/NotoSansCJK* /usr/share/fonts/*/*/NotoSansCJK* > /dev/null 2>&1; then
-            sudo mkdir -p /usr/share/fonts/noto-kr
-            for w in Black Bold Medium Regular; do
-              sudo curl -sfL -o /usr/share/fonts/noto-kr/NotoSansCJKkr-$w.otf "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-$w.otf"
-            done
-          fi
+          # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards.py site/summary.json site/cards
           cp site/cards/single.png site/cards/latest.png
@@ -114,26 +108,15 @@ jobs:
         if: steps.fin.outcome == 'success'
         continue-on-error: true
         run: |
-          (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk) > /dev/null 2>&1 || true
-          if ! ls /usr/share/fonts/**/NotoSansCJK* /usr/share/fonts/*/*/NotoSansCJK* > /dev/null 2>&1; then
-            sudo mkdir -p /usr/share/fonts/noto-kr
-            for w in Black Bold Medium Regular; do
-              sudo curl -sfL -o /usr/share/fonts/noto-kr/NotoSansCJKkr-$w.otf "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-$w.otf"
-            done
-          fi
+          # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards_fin.py site/fin/summary.json site/fin/cards
       - name: 이번 주 청약 카드 이미지 만들기
         continue-on-error: true
         run: |
-          # 한글 폰트: apt 로 설치하고, 실패하면 Noto 공식 저장소에서 직접 받기
-          (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk) > /dev/null 2>&1 || true
-          if ! ls /usr/share/fonts/**/NotoSansCJK* /usr/share/fonts/*/*/NotoSansCJK* > /dev/null 2>&1; then
-            sudo mkdir -p /usr/share/fonts/noto-kr
-            for w in Black Bold Medium Regular; do
-              sudo curl -sfL -o /usr/share/fonts/noto-kr/NotoSansCJKkr-$w.otf "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-$w.otf"
-            done
-          fi
+          # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
       - name: 카드 이미지 보관 (블로그 대표 이미지용)
