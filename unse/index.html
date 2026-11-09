@@ -394,7 +394,10 @@ if (P.has('render')) {
     shared = true; $('again').textContent = '🔮 나도 카드 뽑기';
     $('hint').textContent = '친구가 뽑은 카드예요 👇';
   } else dealFan();
-} else dealFan();
+} else {
+  if (THEMES[P.get('t')]) setTheme(P.get('t'));   // 블로그 청약 글에서 오면 '청약 당첨운'을 미리 선택
+  dealFan();
+}
 </script>
 </body>
 </html>
