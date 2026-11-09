@@ -69,12 +69,6 @@ jobs:
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/index.html -o site/cheongyak/index.html || true
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json -o site/cheongyak/summary.json || true
           fi
-      - name: 이번 주 청약 카드 이미지 만들기
-        continue-on-error: true
-        run: |
-          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
-          pip install -q pillow
-          python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
       - name: 청약 주간 블로그 글 (월요일)
         if: steps.cy.outcome == 'success'
         continue-on-error: true
