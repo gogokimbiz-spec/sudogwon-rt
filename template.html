@@ -206,7 +206,7 @@ footer{color:var(--muted);font-size:.76rem;line-height:1.6}
 const D=__DATA__;
 const G=__GEO__;
 const DAY0=new Date(D.d0+'T00:00:00Z');
-const MAXD=Math.max(...D.T[1]);
+const MAXD=D.T[1].reduce((a,b)=>b>a?b:a,0);
 const iso=i=>new Date(DAY0.getTime()+i*864e5).toISOString().slice(0,10);
 const idxOf=s=>Math.round((new Date(s+'T00:00:00Z')-DAY0)/864e5);
 const short=i=>{const s=iso(i);return `${+s.slice(5,7)}.${+s.slice(8)}`};
