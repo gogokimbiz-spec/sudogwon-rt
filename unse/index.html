@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>내 집 마련 타로 · 오늘의 부동산 운세 | 수도권 실거래 지도</title>
+<meta name="description" content="카드 한 장으로 보는 내 집 마련운, 청약 당첨운, 오늘의 부동산운. 재미로 뽑고 오늘의 수도권 실거래·청약 브리핑도 확인하세요.">
+<link rel="canonical" href="https://gogokimbiz-spec.github.io/sudogwon-rt/unse/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="내 집 마련 타로 · 오늘의 부동산 운세">
+<meta property="og:description" content="카드 한 장으로 보는 내 집 마련운 · 청약 당첨운 · 오늘의 부동산운">
+<meta property="og:url" content="https://gogokimbiz-spec.github.io/sudogwon-rt/unse/">
+<meta property="og:image" content="https://gogokimbiz-spec.github.io/sudogwon-rt/unse/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+:root{--navy:#0f2742;--navy2:#1c3f6b;--gold:#e8b94a;--gold2:#f6dc95;--cream:#fbf6ea;--red:#ff5c5c;--ink:#17202b;--muted:#5d6b7a;--line:#e3e7ec;--kakao:#fee500}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink);background:#f3f5f7;word-break:keep-all;line-height:1.6}
+a{color:inherit}
+.hero{background:radial-gradient(120% 90% at 50% 0%,#24497a 0%,var(--navy) 60%,#0a1a2e 100%);color:#fff;padding:28px 16px 34px;position:relative;overflow:hidden}
+.stars{position:absolute;inset:0;pointer-events:none;opacity:.75}
+.in{max-width:560px;margin:0 auto;position:relative}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:#b9c8dc}
+.top a{text-decoration:none;color:#b9c8dc}
+h1{font-family:"Gowun Batang",serif;font-size:2.1rem;line-height:1.25;margin:18px 0 6px;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--gold)}
+.lead{margin:0;color:#d6e2f2;font-size:.95rem}
+.themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0 0}
+.themes button{font:inherit;cursor:pointer;border:1.5px solid rgba(232,185,74,.45);background:rgba(255,255,255,.06);color:#fff;border-radius:14px;padding:10px 4px;display:grid;gap:2px;justify-items:center;transition:.15s}
+.themes button span{font-size:1.4rem;line-height:1.2}
+.themes button b{font-size:.86rem;font-weight:700}
+.themes button[aria-pressed="true"]{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.hint{text-align:center;color:#d6e2f2;font-size:.9rem;margin:22px 0 10px;min-height:1.6em}
+.fan{position:relative;height:236px;margin:0 auto;max-width:520px}
+.fan button{position:absolute;left:50%;top:14px;width:104px;height:160px;margin-left:-52px;padding:0;border:0;background:none;cursor:pointer;transform-origin:50% 260%;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.fan button svg{width:100%;height:100%;display:block;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35));border-radius:10px}
+.fan button:hover,.fan button:focus-visible{z-index:5}
+.fan button:focus-visible{outline:none}
+.fan button:focus-visible svg{outline:3px solid var(--gold);outline-offset:3px}
+.fan.done button{opacity:0;pointer-events:none}
+.fan.gone{height:0;overflow:hidden}
+.fan.done button.pick{opacity:1}
+.shuffle[hidden]{display:none}
+.shuffle{display:block;margin:14px auto 0;font:inherit;font-size:.85rem;color:#d6e2f2;background:none;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 14px;cursor:pointer}
+main{max-width:560px;margin:0 auto;padding:0 16px 40px}
+.result{margin-top:-18px;background:#fff;border-radius:20px;box-shadow:0 10px 30px rgba(15,39,66,.12);padding:22px 18px 20px;position:relative}
+.result[hidden]{display:none}
+.flip{width:180px;height:277px;margin:-70px auto 10px;perspective:1000px}
+.flip .c{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,.7,.2,1)}
+.flip.on .c{transform:rotateY(180deg)}
+.flip .f,.flip .b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .f{transform:rotateY(180deg)}
+.flip svg{width:100%;height:100%;display:block;filter:drop-shadow(0 10px 18px rgba(15,39,66,.3))}
+.rt{text-align:center}
+.rt .th{display:inline-block;background:#eef3fa;color:var(--navy2);font-size:.8rem;font-weight:700;border-radius:999px;padding:2px 12px}
+.rt h2{font-family:"Gowun Batang",serif;font-size:1.7rem;margin:6px 0 2px;color:var(--navy)}
+.rt .kw{color:var(--muted);font-size:.9rem}
+.score{margin:8px 0 0;font-size:1.25rem;letter-spacing:2px;color:var(--gold)}
+.score small{font-size:.8rem;letter-spacing:0;color:var(--muted);margin-left:6px}
+.msg{font-size:1.05rem;margin:16px 0 14px;padding:14px 16px;background:var(--cream);border-radius:14px;border-left:4px solid var(--gold)}
+.lucky{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 4px}
+.lucky div{border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center}
+.lucky span{display:block;font-size:.74rem;color:var(--muted)}
+.lucky b{font-size:.95rem;color:var(--navy)}
+.lucky .wide{grid-column:1/-1}
+.brief{display:flex;align-items:center;gap:12px;margin:18px 0 12px;padding:16px;border-radius:16px;text-decoration:none;color:#fff;background:linear-gradient(135deg,var(--navy),#1f4f8f);box-shadow:0 8px 20px rgba(15,39,66,.3)}
+.brief:hover{filter:brightness(1.08)}
+.brief:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.brief .bt{flex:1;min-width:0;display:grid;gap:3px}
+.brief .bp{justify-self:start;background:var(--red);font-size:12px;font-weight:700;padding:1px 10px;border-radius:999px}
+.brief b{font-size:1.1rem;line-height:1.35}
+.brief small{font-size:.82rem;color:#d6e2f2}
+.brief .go{background:var(--red);font-weight:900;padding:10px 14px;border-radius:999px;white-space:nowrap}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts button{font:inherit;font-weight:700;font-size:.95rem;cursor:pointer;border-radius:12px;padding:12px 8px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.acts .kakao{background:var(--kakao);border-color:var(--kakao);color:#191600}
+.acts .again{grid-column:1/-1;background:var(--navy);border-color:var(--navy);color:#fff}
+.acts button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(23,32,43,.92);color:#fff;padding:8px 16px;border-radius:999px;font-size:.88rem;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.links{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin:22px 0 0;font-size:.85rem}
+.links a{color:var(--navy2)}
+.intro{margin-top:22px;font-size:.88rem;color:var(--muted)}
+.intro h3{font-size:.95rem;color:var(--ink);margin:0 0 4px}
+footer{max-width:560px;margin:0 auto;padding:0 16px 32px;font-size:.75rem;color:var(--muted);text-align:center}
+@media (max-width:420px){h1{font-size:1.8rem}.fan{height:206px}.fan button{width:86px;height:132px;margin-left:-43px}.brief .go{padding:8px 11px}}
+@media (prefers-reduced-motion:reduce){.fan button,.flip .c{transition:none}}
+/* 공유 이미지 렌더링용 */
+body.render{background:var(--navy)}
+.shot{display:none}
+body.render>*:not(.shot){display:none}
+body.render .shot{display:flex}
+</style>
+</head>
+<body>
+<header class="hero">
+  <svg class="stars" id="stars" aria-hidden="true"></svg>
+  <div class="in">
+    <div class="top"><a href="../">🏠 수도권 실거래 지도</a><span id="today"></span></div>
+    <h1>내 집 마련 <em>타로</em></h1>
+    <p class="lead">부동산 카드 한 장으로 보는 오늘의 운세. 마음속으로 질문을 떠올리고 카드를 골라보세요.</p>
+    <div class="themes" role="group" aria-label="운세 종류">
+      <button data-t="home" aria-pressed="true"><span>🏠</span><b>내 집 마련운</b></button>
+      <button data-t="cy" aria-pressed="false"><span>🎯</span><b>청약 당첨운</b></button>
+      <button data-t="today" aria-pressed="false"><span>📈</span><b>오늘의 부동산운</b></button>
+    </div>
+    <p class="hint" id="hint">끌리는 카드 한 장을 눌러주세요</p>
+    <div class="fan" id="fan"></div>
+    <button class="shuffle" id="shuffle" type="button">↻ 카드 섞기</button>
+  </div>
+</header>
+
+<main>
+  <section class="result" id="result" hidden aria-live="polite">
+    <div class="flip" id="flip"><div class="c"><div class="b" id="flipBack"></div><div class="f" id="flipFace"></div></div></div>
+    <div class="rt">
+      <span class="th" id="rTheme"></span>
+      <h2 id="rName"></h2>
+      <div class="kw" id="rKw"></div>
+      <div class="score" id="rScore"></div>
+    </div>
+    <p class="msg" id="rMsg"></p>
+    <div class="lucky">
+      <div><span>행운의 층</span><b id="lFloor"></b></div>
+      <div><span>행운의 방향</span><b id="lDir"></b></div>
+      <div><span>행운의 숫자</span><b id="lNum"></b></div>
+      <div class="wide"><span>오늘 해보면 좋은 일</span><b id="lAct"></b></div>
+    </div>
+    <a class="brief" id="brief" href="https://sudogwon-rt.blogspot.com/">
+      <span class="bt"><span class="bp">운세 다음은 현실 체크!</span><b>오늘 수도권 실거래·청약 브리핑 보기</b><small id="briefSub">전날 신고가 · 거래가 TOP 20 · 이번 주 청약 일정</small></span>
+      <span class="go">보기 ›</span>
+    </a>
+    <div class="acts">
+      <button class="kakao" id="kakao" type="button">💬 카톡 공유</button>
+      <button id="copy" type="button">🔗 링크 복사</button>
+      <button class="again" id="again" type="button">다른 운세 뽑기</button>
+    </div>
+  </section>
+
+  <nav class="links" aria-label="다른 페이지">
+    <a href="../">실거래 지도</a><a href="../cheongyak/">청약 지도</a><a href="../r/">지역별 실거래가</a><a href="https://sudogwon-rt.blogspot.com/">매일 브리핑 블로그</a>
+  </nav>
+  <div class="intro">
+    <h3>내 집 마련 타로란?</h3>
+    열쇠, 청약 통장, 모델하우스 같은 부동산 장면을 담은 12장의 카드로 보는 재미용 운세예요. 결과는 매번 무작위로 정해지며, 실제 시세나 청약 결과와는 관계가 없어요. 진짜 숫자는 매일 아침 갱신되는 실거래·청약 브리핑에서 확인하세요.
+  </div>
+</main>
+<footer>재미로 보는 운세이며 투자·청약 판단의 근거가 아닙니다. · 카드 그림은 이 사이트에서 직접 그렸습니다.</footer>
+<div class="toast" id="toast" role="status"></div>
+<div class="shot" id="shot"></div>
+
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
+<script>
+const SITE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/';
+const BLOG = 'https://sudogwon-rt.blogspot.com/';
+const KAKAO_JS_KEY = '5c5cbfcafa789f6dea48ac48d324c77c';
+const THEMES = {home: ['🏠', '내 집 마련운'], cy: ['🎯', '청약 당첨운'], today: ['📈', '오늘의 부동산운']};
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+const N = '#0f2742', G = '#c99a2e', R = '#e25555', S = '#7aa6d8';
+// 카드 그림 (직접 그린 선화, viewBox 0 0 100 100)
+const ICON = [
+  `<circle cx="34" cy="50" r="13" fill="#f6dc95" stroke="${N}" stroke-width="3.5"/><circle cx="34" cy="50" r="5" fill="#fff" stroke="${N}" stroke-width="3"/><path d="M47 50H82M74 50v9M66 50v7" fill="none" stroke="${N}" stroke-width="4" stroke-linecap="round"/><path d="M80 30l2 4 4 1-4 2-2 4-2-4-4-2 4-1z" fill="${G}"/>`,
+  `<circle cx="72" cy="24" r="9" fill="#f6dc95" stroke="${G}" stroke-width="2.5"/><path d="M72 9v-4M84 15l3-3M87 26h4" stroke="${G}" stroke-width="2.5" stroke-linecap="round"/><rect x="24" y="32" width="46" height="50" rx="5" fill="#e7f0fb" stroke="${N}" stroke-width="3.5"/><path d="M47 32v50M24 56h46" stroke="${N}" stroke-width="3"/><path d="M30 76l12-14M52 50l12-12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><rect x="20" y="82" width="54" height="5" rx="2" fill="${N}"/>`,
+  `<rect x="22" y="26" width="52" height="44" rx="5" fill="#e7f0fb" stroke="${N}" stroke-width="3.5"/><path d="M22 38h52" stroke="${N}" stroke-width="3"/><path d="M30 48h24M30 56h18M30 63h22" stroke="${S}" stroke-width="3" stroke-linecap="round"/><circle cx="70" cy="70" r="13" fill="#f6dc95" stroke="${G}" stroke-width="3"/><text x="70" y="76" text-anchor="middle" font-size="15" font-weight="900" fill="${G}" font-family="sans-serif">₩</text>`,
+  `<path d="M50 14v18" stroke="${N}" stroke-width="3"/><path d="M50 14l16 5-16 5z" fill="${R}"/><path d="M20 52L50 30l30 22" fill="none" stroke="${N}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><rect x="27" y="50" width="46" height="32" fill="#fff" stroke="${N}" stroke-width="3.5"/><rect x="44" y="62" width="12" height="20" fill="#f6dc95" stroke="${N}" stroke-width="3"/><rect x="31" y="57" width="9" height="8" fill="#e7f0fb" stroke="${N}" stroke-width="2.5"/><rect x="60" y="57" width="9" height="8" fill="#e7f0fb" stroke="${N}" stroke-width="2.5"/><path d="M14 86h72" stroke="${N}" stroke-width="3" stroke-linecap="round"/>`,
+  `<rect x="14" y="36" width="46" height="32" rx="3" fill="#fff" stroke="${N}" stroke-width="3.5"/><path d="M60 46h14l10 12v10H60z" fill="#e7f0fb" stroke="${N}" stroke-width="3.5" stroke-linejoin="round"/><path d="M65 50h7l5 7h-12z" fill="#fff" stroke="${N}" stroke-width="2"/><path d="M28 60V50l9-7 9 7v10z" fill="#f6dc95" stroke="${G}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="28" cy="72" r="7" fill="${N}"/><circle cx="72" cy="72" r="7" fill="${N}"/><circle cx="28" cy="72" r="2.5" fill="#fff"/><circle cx="72" cy="72" r="2.5" fill="#fff"/><path d="M8 82h84" stroke="${S}" stroke-width="3" stroke-dasharray="8 6"/>`,
+  `<rect x="26" y="16" width="44" height="64" rx="4" fill="#fff" stroke="${N}" stroke-width="3.5"/><path d="M34 28h28M34 37h28M34 46h20M34 55h24" stroke="${S}" stroke-width="3" stroke-linecap="round"/><circle cx="62" cy="68" r="10" fill="none" stroke="${R}" stroke-width="3"/><circle cx="62" cy="68" r="5" fill="${R}" opacity=".85"/><path d="M68 84l14-14" stroke="${N}" stroke-width="5" stroke-linecap="round"/><circle cx="86" cy="66" r="7" fill="none" stroke="${N}" stroke-width="3.5"/>`,
+  `<rect x="27" y="20" width="46" height="50" rx="12" fill="#e7f0fb" stroke="${N}" stroke-width="3.5"/><rect x="33" y="28" width="34" height="16" rx="4" fill="#fff" stroke="${N}" stroke-width="3"/><circle cx="37" cy="58" r="4" fill="#f6dc95" stroke="${N}" stroke-width="2.5"/><circle cx="63" cy="58" r="4" fill="#f6dc95" stroke="${N}" stroke-width="2.5"/><path d="M36 70l-10 16M64 70l10 16M30 80h40M27 86h46" stroke="${N}" stroke-width="3" stroke-linecap="round"/><path d="M50 12v8" stroke="${R}" stroke-width="3" stroke-linecap="round"/>`,
+  `<rect x="40" y="20" width="22" height="64" fill="#fff" stroke="${N}" stroke-width="3.5"/><rect x="20" y="42" width="20" height="42" fill="#e7f0fb" stroke="${N}" stroke-width="3.5"/><rect x="62" y="34" width="18" height="50" fill="#e7f0fb" stroke="${N}" stroke-width="3.5"/><path d="M46 30h4M54 30h4M46 40h4M54 40h4M46 50h4M54 50h4M46 60h4M54 60h4M26 52h8M26 62h8M26 72h8M67 44h8M67 54h8M67 64h8" stroke="${G}" stroke-width="3" stroke-linecap="round"/><path d="M24 22l2 4 4 1-4 2-2 4-2-4-4-2 4-1zM82 18l1.5 3 3 1-3 1.5-1.5 3-1.5-3-3-1.5 3-1z" fill="${G}"/><path d="M14 86h72" stroke="${N}" stroke-width="3" stroke-linecap="round"/>`,
+  `<rect x="20" y="20" width="44" height="60" rx="4" fill="#fff" stroke="${N}" stroke-width="3.5"/><path d="M28 32h28M28 41h28M28 50h18" stroke="${S}" stroke-width="3" stroke-linecap="round"/><path d="M28 68c5-8 8 6 13-2s6 5 12-1" fill="none" stroke="${N}" stroke-width="2.5" stroke-linecap="round"/><path d="M58 76L82 40" stroke="${N}" stroke-width="7" stroke-linecap="round"/><path d="M58 76l-3 7 6-3z" fill="${N}"/><path d="M78 46l5-8" stroke="${G}" stroke-width="7" stroke-linecap="round"/>`,
+  `<path d="M24 80l34-34" stroke="${N}" stroke-width="7" stroke-linecap="round"/><path d="M50 28l22 22-8 8-22-22z" fill="#f6dc95" stroke="${N}" stroke-width="3.5" stroke-linejoin="round"/><path d="M46 32l-6-6" stroke="${N}" stroke-width="5" stroke-linecap="round"/><path d="M76 20l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM22 36l1.5 3 3 1.5-3 1.5L22 45l-1.5-3-3-1.5 3-1.5z" fill="${G}"/><path d="M60 84h26" stroke="${S}" stroke-width="3" stroke-linecap="round"/>`,
+  `<circle cx="50" cy="38" r="20" fill="#cfe6c9" stroke="${N}" stroke-width="3.5"/><circle cx="40" cy="34" r="5" fill="#fff" opacity=".7"/><rect x="46" y="56" width="8" height="22" fill="#f6dc95" stroke="${N}" stroke-width="3"/><path d="M14 82h72" stroke="${N}" stroke-width="3" stroke-linecap="round"/><path d="M64 70h20M66 70v8M82 70v8M64 64h20" stroke="${N}" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="74" r="6" fill="#cfe6c9" stroke="${N}" stroke-width="2.5"/>`,
+  `<path d="M32 84V42a18 18 0 0 1 36 0v42z" fill="#e7f0fb" stroke="${N}" stroke-width="3.5"/><path d="M38 84V44a12 12 0 0 1 24 0v40" fill="none" stroke="${S}" stroke-width="2.5"/><rect x="54" y="56" width="12" height="11" rx="2" fill="#f6dc95" stroke="${N}" stroke-width="2.5"/><path d="M56 56v-4a4 4 0 0 1 8 0v4" fill="none" stroke="${N}" stroke-width="2.5"/><path d="M22 86h56" stroke="${N}" stroke-width="3" stroke-linecap="round"/><path d="M78 24c-6 0-9-4-9-9 4 4 10 2 12-2 1 6-1 11-3 11z" fill="${G}"/>`
+];
+const CARDS = [
+  {n:'황금 열쇠', kw:'기회 · 시작', s:[5,4,4], act:'관심 단지 최근 실거래가 확인하기',
+   home:'닫혀 있던 문이 열리는 카드예요. 미뤄두던 내 집 마련 계획을 구체적인 숫자로 적어보기 좋은 때예요.',
+   cy:'열쇠는 자격을 뜻해요. 청약 가점과 통장 납입 횟수를 한 번 점검해보면 생각보다 가까운 기회가 보일 수 있어요.',
+   today:'작은 정보 하나가 큰 문을 여는 날. 관심 있던 동네의 최근 거래를 살펴보세요.'},
+  {n:'남향 창', kw:'밝음 · 확신', s:[4,4,5], act:'햇살 좋은 남향 매물 구경하기',
+   home:'햇살이 잘 드는 창처럼 시야가 밝아지는 시기예요. 막연하던 지역 후보가 하나둘 선명해질 거예요.',
+   cy:'밝은 기운이 들어오는 카드. 이번 주 접수 단지 중 내 조건과 맞는 곳이 있는지 가볍게 살펴보세요.',
+   today:'분위기가 밝은 하루. 반가운 소식은 의외로 가까운 동네에서 들려올 수 있어요.'},
+  {n:'청약 통장', kw:'꾸준함 · 인내', s:[4,5,3], act:'청약통장 납입 내역 확인하기',
+   home:'티끌 모아 태산의 카드예요. 매달 조금씩 쌓는 습관이 결국 문을 열어줄 거예요.',
+   cy:'청약운이 가장 강한 카드! 납입을 빠뜨리지 않았는지, 1순위 조건은 채웠는지 확인해보세요.',
+   today:'서두르기보다 꾸준함이 이기는 날. 오늘은 세워둔 계획을 지키는 것만으로 충분해요.'},
+  {n:'모델하우스', kw:'탐색 · 호기심', s:[4,4,4], act:'주말 임장 동선 짜보기',
+   home:'직접 보고 비교할수록 운이 따르는 카드예요. 이번 주말 동네 둘러보기 계획을 세워보세요.',
+   cy:'분양 소식과 인연이 있는 카드. 입주자모집공고를 꼼꼼히 읽어보면 숨은 포인트가 보여요.',
+   today:'궁금한 건 직접 확인하는 날. 발품이 손품을 이겨요.'},
+  {n:'이사 트럭', kw:'변화 · 이동', s:[4,3,4], act:'살고 싶은 동네 3곳 적어보기',
+   home:'움직임의 기운이 강해요. 지금 집과 다음 집의 조건을 나란히 적어보면 방향이 잡혀요.',
+   cy:'새 보금자리로 옮겨가는 카드. 거주지역 요건과 우선공급 조건을 다시 확인해보세요.',
+   today:'변화가 반가운 날. 평소 안 가보던 동네 시세를 구경해보세요.'},
+  {n:'등기부등본', kw:'확인 · 신중', s:[3,3,4], act:'계약 전 확인할 서류 목록 만들기',
+   home:'꼼꼼함이 행운이 되는 카드예요. 마음에 드는 집일수록 서류를 한 번 더 확인하세요.',
+   cy:'작은 실수가 당첨을 흔들 수 있어요. 자격 요건과 제출 서류를 미리 챙겨두면 든든해요.',
+   today:'확인 또 확인! 조건을 다시 읽어보는 것만으로 운이 지켜지는 날이에요.'},
+  {n:'역세권', kw:'연결 · 흐름', s:[4,4,5], act:'출퇴근 30분 안쪽 동네 찾아보기',
+   home:'길이 이어지는 카드예요. 출퇴근 동선을 기준으로 후보지를 좁히면 답이 빨라져요.',
+   cy:'교통과 인연이 있는 카드. 새 노선 근처 분양 일정을 눈여겨보세요.',
+   today:'사람과 정보가 연결되는 날. 주변에서 듣는 집 이야기가 힌트가 될 수 있어요.'},
+  {n:'새 아파트', kw:'성취 · 결실', s:[5,5,5], act:'오늘의 신고가 소식 확인하기',
+   home:'결실의 카드예요! 그동안의 준비가 모양을 갖춰가는 시기, 목표 금액을 다시 계산해보세요.',
+   cy:'당첨의 기운이 반짝이는 카드. 망설였던 단지가 있다면 조건을 다시 검토해볼 만해요.',
+   today:'기분 좋은 소식이 들려올 수 있는 날. 오늘의 신고가 소식도 살펴보세요.'},
+  {n:'계약서', kw:'약속 · 결정', s:[4,4,4], act:'자금 계획표 한 장 정리하기',
+   home:'결정의 순간을 뜻하는 카드예요. 조건을 정리했다면 작은 결정부터 하나씩 실행해보세요.',
+   cy:'신청 버튼을 누를 용기가 생기는 카드. 접수 마감일을 달력에 적어두세요.',
+   today:'약속을 지키면 신뢰가 쌓이는 날. 미뤄둔 상담 예약을 잡아보세요.'},
+  {n:'리모델링', kw:'개선 · 재도약', s:[3,4,4], act:'지난번 아쉬웠던 점 메모하기',
+   home:'지금 집을 다시 보게 하는 카드예요. 꼭 새집이 아니어도 고쳐서 빛나는 선택지가 있어요.',
+   cy:'재도전의 카드. 지난번 아쉬웠던 경험이 이번엔 전략이 돼요.',
+   today:'작은 변화로 분위기를 바꾸는 날. 정리정돈이 행운을 불러요.'},
+  {n:'공원 뷰', kw:'여유 · 균형', s:[4,3,4], act:'동네 산책하며 둘러보기',
+   home:'조급함을 내려놓으라는 카드예요. 살기 좋은 동네의 기준을 천천히 정해보세요.',
+   cy:'여유가 필요한 시기. 무리한 도전보다 나에게 맞는 단지를 고르는 눈이 중요해요.',
+   today:'산책하듯 가볍게 시세를 둘러보는 날. 마음이 편해야 판단도 정확해요.'},
+  {n:'잠긴 문', kw:'기다림 · 준비', s:[3,2,3], act:'다음 달 분양 일정 미리 보기',
+   home:'아직은 준비의 시간이에요. 문이 잠긴 동안 열쇠를 다듬어두면 열릴 때 바로 들어갈 수 있어요.',
+   cy:'이번엔 쉬어가도 괜찮은 카드. 다음 기회를 위해 가점과 자금 계획을 정리해두세요.',
+   today:'무리하지 않는 게 이득인 날. 정보는 모아두고 결정은 내일로 미뤄요.'}
+];
+const DIRS = ['남향', '남동향', '남서향', '동향', '서향'];
+
+let _uid = 0;
+function backSVG(){
+  const u = 'g' + (++_uid);
+  return `<svg viewBox="0 0 130 200" role="img" aria-label="카드 뒷면"><defs><linearGradient id="bk${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c3f6b"/><stop offset="1" stop-color="#0b1d33"/></linearGradient><pattern id="dots${u}" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="1" fill="#e8b94a" opacity=".35"/></pattern></defs>
+  <rect width="130" height="200" rx="10" fill="url(#bk${u})"/><rect x="7" y="7" width="116" height="186" rx="6" fill="url(#dots${u})" stroke="#e8b94a" stroke-width="1.5"/>
+  <rect x="13" y="13" width="104" height="174" rx="4" fill="none" stroke="#e8b94a" stroke-width=".8" opacity=".6"/>
+  <circle cx="65" cy="100" r="30" fill="#0f2742" stroke="#e8b94a" stroke-width="1.5"/>
+  <path d="M48 106l17-14 17 14v14H48z" fill="none" stroke="#e8b94a" stroke-width="2.5" stroke-linejoin="round"/><rect x="61" y="108" width="8" height="12" fill="#e8b94a"/>
+  <path d="M65 76l2 4.5 4.5 1.5-4.5 1.5-2 4.5-2-4.5-4.5-1.5 4.5-1.5z" fill="#f6dc95"/>
+  <path d="M65 22l3 6 6 2-6 2-3 6-3-6-6-2 6-2zM65 162l3 6 6 2-6 2-3 6-3-6-6-2 6-2z" fill="#e8b94a" opacity=".8"/></svg>`;
+}
+function faceSVG(i){
+  const c = CARDS[i];
+  return `<svg viewBox="0 0 130 200" role="img" aria-label="${c.n} 카드"><rect width="130" height="200" rx="10" fill="#fbf6ea"/>
+  <rect x="6" y="6" width="118" height="188" rx="6" fill="none" stroke="#c99a2e" stroke-width="2"/><rect x="10" y="10" width="110" height="180" rx="4" fill="none" stroke="#c99a2e" stroke-width=".8"/>
+  <text x="65" y="30" text-anchor="middle" font-family="Gowun Batang,serif" font-weight="700" font-size="13" fill="#0f2742">${ROMAN[i]}</text>
+  <path d="M40 34h50" stroke="#c99a2e" stroke-width=".8"/>
+  <circle cx="65" cy="98" r="44" fill="#fff" stroke="#e8d3a0" stroke-width="1.5"/>
+  <g transform="translate(25 58) scale(.8)">${ICON[i]}</g>
+  <rect x="14" y="156" width="102" height="26" rx="13" fill="#0f2742"/>
+  <text x="65" y="174" text-anchor="middle" font-family="Gowun Batang,serif" font-weight="700" font-size="13.5" fill="#f6dc95">${c.n}</text></svg>`;
+}
+
+const $ = id => document.getElementById(id);
+// 주소창 갱신 (미리보기 창처럼 주소를 바꿀 수 없는 곳에서도 오류 없이 계속 동작)
+function setURL(q){ try { history.replaceState(null, '', q || location.pathname); } catch (e) {} }
+let theme = 'home', order = [], cur = null;
+const rnd = n => Math.floor(Math.random() * n);
+function shuffled(){ const a = CARDS.map((_, i) => i); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, 7); }
+
+function dealFan(){
+  order = shuffled();
+  const fan = $('fan'); fan.classList.remove('done', 'gone'); fan.innerHTML = ''; $('shuffle').hidden = false;
+  const step = 8;
+  order.forEach((ci, k) => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.setAttribute('aria-label', `${k + 1}번째 카드 뽑기`);
+    b.innerHTML = backSVG();
+    const ang = (k - 3) * step, base = `rotate(${ang}deg)`;
+    b.style.transform = base; b.dataset.base = base;
+    b.onmouseenter = b.onfocus = () => { if (!fan.classList.contains('done')) b.style.transform = base + ' translateY(-16px)'; };
+    b.onmouseleave = b.onblur = () => { if (!fan.classList.contains('done')) b.style.transform = base; };
+    b.onclick = () => pick(ci, b);
+    fan.appendChild(b);
+  });
+  $('hint').textContent = '끌리는 카드 한 장을 눌러주세요';
+}
+
+function pick(ci, btn){
+  const fan = $('fan'); if (fan.classList.contains('done')) return;
+  fan.classList.add('done'); btn.classList.add('pick');
+  btn.style.transform = 'translateY(-30px) scale(1.08)';
+  $('hint').textContent = '카드를 펼치는 중…';
+  setTimeout(() => show(ci, {floor: 2 + rnd(28), dir: DIRS[rnd(DIRS.length)], num: 1 + rnd(9)}, true), 450);
+}
+
+function show(ci, luck, scroll){
+  cur = {ci, luck};
+  const c = CARDS[ci], ti = ['home', 'cy', 'today'].indexOf(theme), sc = c.s[ti];
+  $('flipBack').innerHTML = backSVG(); $('flipFace').innerHTML = faceSVG(ci);
+  const flip = $('flip'); flip.classList.remove('on');
+  $('rTheme').textContent = THEMES[theme].join(' ');
+  $('rName').textContent = c.n; $('rKw').textContent = c.kw;
+  $('rScore').innerHTML = '★'.repeat(sc) + '<span style="color:#d9dee5">' + '★'.repeat(5 - sc) + '</span><small>' + ['', '조심조심', '쉬어가기', '무난해요', '좋아요', '최고예요'][sc] + '</small>';
+  $('rMsg').textContent = c[theme];
+  $('lFloor').textContent = luck.floor + '층'; $('lDir').textContent = luck.dir; $('lNum').textContent = luck.num;
+  $('lAct').textContent = c.act;
+  $('result').hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => flip.classList.add('on')));
+  $('fan').classList.add('gone'); $('shuffle').hidden = true;
+  $('hint').textContent = '결과가 나왔어요 👇';
+  const q = new URLSearchParams({t: theme, c: ci + 1, f: luck.floor, d: DIRS.indexOf(luck.dir), n: luck.num});
+  setURL('?' + q);
+  if (scroll) setTimeout(() => $('result').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'}), 250);
+}
+
+function setTheme(t){
+  theme = t;
+  document.querySelectorAll('.themes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t));
+}
+document.querySelectorAll('.themes button').forEach(b => b.onclick = () => { setTheme(b.dataset.t); $('result').hidden = true; setURL(''); dealFan(); });
+$('shuffle').onclick = () => { $('result').hidden = true; setURL(''); dealFan(); };
+let shared = false;
+$('again').onclick = () => {
+  const ts = ['home', 'cy', 'today'];
+  if (shared) { shared = false; $('again').textContent = '다른 운세 뽑기'; } else setTheme(ts[(ts.indexOf(theme) + 1) % 3]);
+  $('result').hidden = true; setURL(''); dealFan();
+  scrollTo({top: 0, behavior: 'smooth'});
+};
+
+// 공유
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 1800); }
+function shareURL(){ return SITE + 'unse/' + location.search; }
+async function copyLink(){
+  try { await navigator.clipboard.writeText(shareURL()); toast('링크를 복사했어요'); }
+  catch (e) { prompt('아래 링크를 복사하세요', shareURL()); }
+}
+$('copy').onclick = copyLink;
+$('kakao').onclick = async () => {
+  if (!cur) return;
+  const c = CARDS[cur.ci], url = shareURL();
+  try {
+    if (!window.Kakao) throw 0;
+    if (!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY);
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {title: `내 집 마련 타로 · ${THEMES[theme][1]}: ${c.n}`, description: c[theme].split('.')[0] + '.',
+                imageUrl: SITE + 'unse/cards/' + (cur.ci + 1) + '.png', imageWidth: 800, imageHeight: 800,
+                link: {mobileWebUrl: url, webUrl: url}},
+      buttons: [{title: '내 결과 보기', link: {mobileWebUrl: url, webUrl: url}},
+                {title: '나도 뽑아보기', link: {mobileWebUrl: SITE + 'unse/', webUrl: SITE + 'unse/'}}]
+    });
+  } catch (e) {
+    if (navigator.share) { try { await navigator.share({title: '내 집 마련 타로', text: `${THEMES[theme][1]}: ${c.n}`, url}); return; } catch (_) { return; } }
+    copyLink();
+  }
+};
+
+// 오늘 브리핑 링크 (블로그의 오늘 글로 바로 연결)
+(async () => {
+  const sub = [];
+  try {
+    const s = await (await fetch('../summary.json?t=' + Date.now())).json();
+    if (s.blog_url) $('brief').href = s.blog_url;
+    const n = (s.new_highs || []).length;
+    const d = new Date(s.day + 'T00:00:00');
+    sub.push(`${d.getMonth() + 1}월 ${d.getDate()}일 ` + (n ? `신고가 ${n}건` : `매매 ${s.trade_count}건`));
+  } catch (e) {}
+  try {
+    const c = await (await fetch('../cheongyak/summary.json?t=' + Date.now())).json();
+    if (c.rank1) sub.push(`이번 주 청약 ${c.rank1.length}곳`);
+  } catch (e) {}
+  if (sub.length) $('briefSub').textContent = sub.join(' · ') + ' · 부동산 뉴스';
+})();
+
+// 별 배경
+(() => {
+  const sv = $('stars'), w = 600, h = 500; sv.setAttribute('viewBox', `0 0 ${w} ${h}`); sv.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  let s = ''; for (let i = 0; i < 70; i++) s += `<circle cx="${rnd(w)}" cy="${rnd(h)}" r="${(Math.random() * 1.4 + .3).toFixed(1)}" fill="#fff" opacity="${(Math.random() * .6 + .2).toFixed(2)}"/>`;
+  sv.innerHTML = s;
+})();
+const td = new Date(); $('today').textContent = `${td.getMonth() + 1}월 ${td.getDate()}일 ${'일월화수목금토'[td.getDay()]}요일`;
+
+// 공유 이미지 렌더링 모드 (?render=카드번호 / ?render=og) — 사이트 운영자가 이미지 만들 때만 사용
+const P = new URLSearchParams(location.search);
+if (P.has('render')) {
+  document.body.classList.add('render');
+  const shot = $('shot'), r = P.get('render');
+  const bg = 'background:radial-gradient(120% 90% at 50% 0%,#24497a 0%,#0f2742 60%,#0a1a2e 100%);color:#fff;font-family:"Noto Sans KR",sans-serif;align-items:center;justify-content:center;position:relative;overflow:hidden';
+  if (r === 'og') {
+    shot.style.cssText = `width:1200px;height:630px;gap:60px;${bg}`;
+    shot.innerHTML = `<div style="display:flex;gap:18px;align-items:flex-end"><div style="width:170px;height:262px;transform:rotate(-8deg) translateY(10px)">${faceSVG(0)}</div><div style="width:200px;height:308px">${faceSVG(7)}</div><div style="width:170px;height:262px;transform:rotate(8deg) translateY(10px)">${faceSVG(2)}</div></div>
+      <div><div style="font-family:Gowun Batang,serif;font-weight:700;font-size:76px;line-height:1.15">내 집 마련<br><span style="color:#e8b94a">타로</span></div><div style="font-size:30px;color:#d6e2f2;margin-top:18px">카드 한 장으로 보는<br>오늘의 부동산 운세</div></div>`;
+  } else {
+    const i = Math.max(1, Math.min(12, +r)) - 1;
+    shot.style.cssText = `width:800px;height:800px;flex-direction:column;gap:22px;${bg}`;
+    shot.innerHTML = `<div style="font-family:Gowun Batang,serif;font-weight:700;font-size:44px">내 집 마련 <span style="color:#e8b94a">타로</span></div><div style="width:360px;height:554px">${faceSVG(i)}</div>`;
+  }
+} else if (P.has('c')) {
+  // 공유받은 결과 링크로 들어온 경우: 그 결과를 바로 보여줌
+  const t = P.get('t'), ci = (+P.get('c') || 1) - 1;
+  if (THEMES[t] && CARDS[ci]) {
+    setTheme(t); dealFan();
+    $('fan').classList.add('done');
+    show(ci, {floor: +P.get('f') || 7, dir: DIRS[+P.get('d')] || '남향', num: +P.get('n') || 7}, false);
+    shared = true; $('again').textContent = '🔮 나도 카드 뽑기';
+    $('hint').textContent = '친구가 뽑은 카드예요 👇';
+  } else dealFan();
+} else dealFan();
+</script>
+</body>
+</html>
