@@ -165,7 +165,7 @@ open(os.path.join(OUT, 'r', 'index.html'), 'w', encoding='utf-8').write(
     page(f'수도권 시군구별 아파트 실거래가 ({last.month}월 {last.day}일 기준) | 수도권 실거래 지도',
          '서울·인천·경기 76개 시군구의 아파트 매매·전세 실거래가, 신고가, 최근 30일 변동을 매일 정리합니다.', f'{SITE}r/', body))
 
-urls = [(SITE, 'daily', '1.0'), (SITE + 'r/', 'daily', '0.9'), (SITE + 'cheongyak/', 'daily', '0.8')] + \
+urls = [(SITE, 'daily', '1.0'), (SITE + 'r/', 'daily', '0.9'), (SITE + 'cheongyak/', 'daily', '0.8'), (SITE + 'unse/', 'weekly', '0.6')] + \
        [(f'{SITE}r/{c}.html', 'daily', '0.7') for c in codes] + [(SITE + 'privacy.html', 'monthly', '0.2')]
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + \
      ''.join(f'  <url><loc>{u}</loc><lastmod>{asof}</lastmod><changefreq>{f}</changefreq><priority>{p}</priority></url>\n' for u, f, p in urls) + '</urlset>\n'
