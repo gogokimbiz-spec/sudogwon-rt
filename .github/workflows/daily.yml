@@ -9,6 +9,11 @@ on:
         description: '청약 주간 블로그 글·카톡도 지금 보내기'
         type: boolean
         default: false
+      fin_post:
+        description: '기업재무 글·카톡 지금 보내기 (rank=순위, value=저평가 지표)'
+        type: choice
+        options: ['none', 'rank', 'value']
+        default: 'none'
 
 permissions:
   contents: write   # 카드 이미지 보관용
@@ -77,6 +82,47 @@ jobs:
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/index.html -o site/cheongyak/index.html || true
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json -o site/cheongyak/summary.json || true
           fi
+      - name: 상장사 시세·재무 수집 (시총 상위 500)
+        id: fin
+        continue-on-error: true
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: |
+          python fetch_fin.py
+          # 재무 캐시를 저장소에 보관 (다음 실행부터는 새 회사만 조회)
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fin_cache.json
+          if ! git diff --cached --quiet; then
+            git commit -q -m "재무 캐시 $(TZ=Asia/Seoul date +%F)"
+            git pull -q --rebase --autostash && git push -q
+          fi
+      - name: 기업 재무 페이지 만들기
+        continue-on-error: true
+        env:
+          FIN_POST: ${{ inputs.fin_post }}
+        run: |
+          if [ -f fin_data.json ]; then
+            python build_fin.py fin_data.json site
+          else
+            echo '::warning::상장사 수집 실패 - 어제 재무 페이지를 그대로 둡니다'
+            mkdir -p site/fin
+            curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/index.html -o site/fin/index.html || true
+            curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/summary.json -o site/fin/summary.json || true
+          fi
+      - name: 기업재무 카드 이미지 만들기 (화·금)
+        if: steps.fin.outcome == 'success'
+        continue-on-error: true
+        run: |
+          (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk) > /dev/null 2>&1 || true
+          if ! ls /usr/share/fonts/**/NotoSansCJK* /usr/share/fonts/*/*/NotoSansCJK* > /dev/null 2>&1; then
+            sudo mkdir -p /usr/share/fonts/noto-kr
+            for w in Black Bold Medium Regular; do
+              sudo curl -sfL -o /usr/share/fonts/noto-kr/NotoSansCJKkr-$w.otf "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-$w.otf"
+            done
+          fi
+          pip install -q pillow
+          python make_cards_fin.py site/fin/summary.json site/fin/cards
       - name: 이번 주 청약 카드 이미지 만들기
         continue-on-error: true
         run: |
@@ -94,7 +140,10 @@ jobs:
         continue-on-error: true
         run: |
           D=$(python -c "import json;print(json.load(open('site/summary.json'))['day'])")
-          mkdir -p cards/rt cards/cy
+          mkdir -p cards/rt cards/cy cards/fin
+          if [ -f site/fin/cards/single.png ]; then
+            FD=$(python -c "import json;print(json.load(open('site/fin/summary.json'))['day'])") && cp site/fin/cards/single.png "cards/fin/$FD.png"
+          fi
           [ -f site/cards/single.png ] && cp site/cards/single.png "cards/rt/$D.png"
           if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
             W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''
@@ -124,6 +173,17 @@ jobs:
           else
             echo '월요일이 아니라 청약 주간 글은 건너뜁니다'
           fi
+      - name: 기업재무 블로그 글 (화·금)
+        if: steps.fin.outcome == 'success'
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger_fin.py site/fin/summary.json
       - name: 오늘의 부동산 뉴스 고르기
         run: python fetch_news.py site/summary.json || echo '뉴스 단계 실패 - 뉴스 없이 계속'
       - name: 블로거에 오늘 글 올리기
@@ -186,3 +246,14 @@ jobs:
           else
             echo '월요일이 아니라 청약 카톡은 건너뜁니다'
           fi
+      - name: 기업재무 카톡 (화·금)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "${{ needs.deploy.outputs.page_url }}fin/summary.json?t=$(date +%s)" -o fin_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/fin/summary.json?t=$(date +%s)" -o fin_summary.json
+          python3 kakao_send_fin.py fin_summary.json
