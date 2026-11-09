@@ -95,6 +95,11 @@ parts.append(f"<h3>최근 30일 3.3㎡당 매매가 변동 (직전 30일 대비)
 # 8. 출처·고지
 parts.append('<hr><p><small>자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 해제 신고된 거래는 제외했습니다. '
              '이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+# 대표 이미지 (블로그 목록 썸네일·공유 미리보기용) – daily.yml 이 저장소 cards/ 에 보관한 날짜별 이미지
+_key = S['day']
+if os.path.exists(f'cards/rt/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'):
+    _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/rt/{_key}.png"
+    parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
 content = ''.join(parts)
 
 if DRY:

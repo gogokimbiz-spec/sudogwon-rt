@@ -87,6 +87,11 @@ if lw:
                  '<p><small>1순위 접수 건수 ÷ 일반공급 세대수(특별공급 제외). 2순위까지 일반공급에 못 미친 주택형이 있으면 미달로 표시합니다.</small></p>')
 parts.append('<hr><p><small>자료: 한국부동산원 청약홈 APT 분양정보·경쟁률, 국토교통부 실거래가 공개시스템. '
              '청약 신청 전에는 반드시 입주자모집공고를 확인하세요. 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+# 대표 이미지 (블로그 목록 썸네일·공유 미리보기용) – daily.yml 이 저장소 cards/ 에 보관한 날짜별 이미지
+_key = S['week'][0]
+if os.path.exists(f'cards/cy/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'):
+    _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/cy/{_key}.png"
+    parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
 content = ''.join(parts)
 
 if DRY:
