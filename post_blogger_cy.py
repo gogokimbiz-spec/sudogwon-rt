@@ -91,7 +91,16 @@ parts.append('<hr><p><small>자료: 한국부동산원 청약홈 APT 분양정�
 _key = S['week'][0]
 if os.path.exists(f'cards/cy/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'):
     _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/cy/{_key}.png"
+    _has_img = True
     parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
+# 이번 주 청약 당첨운 타로 (대표 이미지 바로 아래)
+try:
+    from tarot import today_card, blog_html
+    _t = today_card(w0, 'cy')
+    parts.insert((1 if news else 0) + (1 if '_has_img' in globals() else 0),
+                 blog_html(_t, f'{w0.month}.{w0.day}~{w1.month}.{w1.day} 이번 주 청약 당첨운 타로'))
+except Exception as _e:
+    print('타로 칸 건너뜀:', _e)
 content = ''.join(parts)
 
 if DRY:
