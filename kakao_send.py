@@ -2,7 +2,7 @@
 필요한 Secret: KAKAO_REST_KEY, KAKAO_CLIENT_SECRET, KAKAO_REFRESH_TOKEN
 선택 Secret: GH_PAT (카카오가 새 refresh_token 을 주면 KAKAO_REFRESH_TOKEN Secret 을 자동으로 바꿔 둠)
 """
-import os, sys, json, datetime, subprocess, urllib.request, urllib.parse
+import os, sys, json, datetime, subprocess, urllib.request, urllib.parse, urllib.error
 
 K = {k: os.environ.get(k, '').strip() for k in ['KAKAO_REST_KEY', 'KAKAO_CLIENT_SECRET', 'KAKAO_REFRESH_TOKEN']}
 if not all(K.values()):
@@ -59,6 +59,30 @@ res = json.load(urllib.request.urlopen(req))
 print('카카오 전송 결과:', res)
 if res.get('result_code') != 0:
     sys.exit('카카오 전송 실패')
+
+# 오늘의 신고가 이미지 (사이트에 올라간 cards/latest.png) 를 피드 메시지로 한 번 더
+card = SITE.rstrip('/') + '/cards/latest.png'
+try:
+    ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD'), timeout=20).status == 200
+except Exception:
+    ok_img = False
+if ok_img:
+    nhn = len(S.get('new_highs') or [])
+    feed = {'object_type': 'feed',
+            'content': {'title': f"{d.month}월 {d.day}일({wd}) 수도권 아파트 " + (f"신고가 {nhn}건" if nhn else '거래가 TOP'),
+                        'description': '이미지를 눌러 크게 보기 · 인스타그램에도 그대로 올릴 수 있어요',
+                        'image_url': f"{card}?d={S.get('asof', S['day'])}", 'image_width': 1080, 'image_height': 1350,
+                        'link': {'web_url': link, 'mobile_web_url': link}},
+            'buttons': [{'title': '자세히 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+    req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+                                 data=urllib.parse.urlencode({'template_object': json.dumps(feed, ensure_ascii=False)}).encode(),
+                                 headers={'Authorization': 'Bearer ' + tok['access_token']})
+    try:
+        print('카카오 이미지 전송 결과:', json.load(urllib.request.urlopen(req)))
+    except urllib.error.HTTPError as e:
+        print('::warning::카카오 이미지 전송 실패:', e.read().decode('utf-8', 'replace')[:200])
+else:
+    print('오늘의 카드 이미지가 없어 이미지 메시지는 건너뜁니다.')
 
 new_rt = tok.get('refresh_token')
 if new_rt:
