@@ -3,7 +3,7 @@
 선택 Secret: GH_PAT (새 refresh_token 을 Secret 에 자동 저장)
 같은 작업에서 kakao_send.py 가 먼저 토큰을 바꿨다면 .kakao_rt 파일의 새 값을 씁니다.
 """
-import os, sys, json, datetime, subprocess, urllib.request, urllib.parse
+import os, sys, json, datetime, subprocess, urllib.request, urllib.parse, urllib.error
 
 K = {k: os.environ.get(k, '').strip() for k in ['KAKAO_REST_KEY', 'KAKAO_CLIENT_SECRET', 'KAKAO_REFRESH_TOKEN']}
 if os.path.exists('.kakao_rt'):
@@ -63,6 +63,25 @@ res = json.load(urllib.request.urlopen(req))
 print('카카오 전송 결과:', res)
 if res.get('result_code') != 0:
     sys.exit('카카오 전송 실패')
+# 이번 주 청약 카드 이미지 (인스타그램용) 도 같이 보냅니다
+card = SITE + 'cards/latest.png'
+try: ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD'), timeout=20).status == 200
+except Exception: ok_img = False
+if ok_img:
+    feed = {'object_type': 'feed', 'content': {'title': f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})",
+            'description': '이미지를 눌러 크게 보기 · 인스타그램에도 그대로 올릴 수 있어요',
+            'image_url': f"{card}?d={S.get('asof', '')}", 'image_width': 1080, 'image_height': 1350,
+            'link': {'web_url': link, 'mobile_web_url': link}},
+            'buttons': [{'title': '청약 일정 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+    try:
+        r2 = json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+             data=urllib.parse.urlencode({'template_object': json.dumps(feed, ensure_ascii=False)}).encode(),
+             headers={'Authorization': 'Bearer ' + tok['access_token']})))
+        print('청약 이미지 전송 결과:', r2)
+    except urllib.error.HTTPError as err:
+        print('::warning::청약 이미지 전송 실패:', err.read().decode('utf-8', 'replace')[:300])
+else:
+    print('청약 카드 이미지가 없어 이미지 메시지는 건너뜁니다')
 new_rt = tok.get('refresh_token')
 if new_rt:
     open('.kakao_rt', 'w').write(new_rt)

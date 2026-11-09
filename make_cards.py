@@ -147,6 +147,7 @@ d.text((W - 64 - d.textlength(cnt, font=F(110, 'Black')), 128), cnt, font=F(110,
 d.text((64, 248), '같은 단지·같은 면적 최근 6개월 최고가 경신' if nh else '이 날 거래가 높은 순', font=F(28, 'Medium'), fill=MUTED)
 rows_ = items[:7]
 top, bottom = 330, SH - 170
+if nh and len(nh) > len(rows_): bottom -= 40          # '외 N건' 안내 자리
 rh = min(128, (bottom - top) // max(1, len(rows_)))
 y = top
 for k, t in enumerate(rows_):
@@ -168,7 +169,7 @@ for k, t in enumerate(rows_):
         d.text((W - 64 - d.textlength(sub, font=sf), cy + 4), sub, font=sf, fill=RED)
     y += rh
 more = (len(nh) - len(rows_)) if nh else 0
-if more > 0: d.text((64, y - 4), f'외 {more}건은 프로필 링크에서', font=F(28, 'Medium'), fill=INK2)
+if more > 0: d.text((64, y + 2), f'외 {more}건은 프로필 링크에서', font=F(28, 'Medium'), fill=INK2)
 rr(d, (40, SH - 150, W - 40, SH - 60), 45, fill=NAVY)
 msg = '우리 동네 실거래가 → 프로필 링크'
 d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 136), msg, font=F(38), fill=WHITE)
