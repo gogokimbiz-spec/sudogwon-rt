@@ -76,21 +76,13 @@ jobs:
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/index.html -o site/cheongyak/index.html || true
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json -o site/cheongyak/summary.json || true
           fi
-      - name: 상장사 시세·재무 수집 (시총 상위 500)
+      - name: 상장사 재무 데이터 확인 (PC 실행기가 04:31 에 올린 것)
         id: fin
         continue-on-error: true
-        env:
-          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: |
-          python fetch_fin.py
-          # 재무 캐시를 저장소에 보관 (다음 실행부터는 새 회사만 조회)
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add fin_cache.json
-          if ! git diff --cached --quiet; then
-            git commit -q -m "재무 캐시 $(TZ=Asia/Seoul date +%F)"
-            git pull -q --rebase --autostash && git push -q
-          fi
+          # 금융위원회 API 는 해외 접속이 막혀 있어 fin_fetch.yml 이 사장님 PC 에서 받아 저장소에 올립니다.
+          python -c "import json,datetime,sys;d=json.load(open('fin_data.json',encoding='utf-8'));t=(datetime.datetime.utcnow()+datetime.timedelta(hours=9)).date().isoformat();print('재무 데이터 기준', d['asof'], '/ 오늘', t);sys.exit(0 if d['asof']==t else 1)" \
+            || { echo '::warning::오늘 재무 데이터가 없습니다 (PC 꺼짐 등) - 어제 재무 페이지를 그대로 두고 재무 글·카톡은 건너뜁니다'; rm -f fin_data.json; exit 1; }
       - name: 기업 재무 페이지 만들기
         continue-on-error: true
         env:
