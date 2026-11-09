@@ -1,0 +1,37 @@
+name: 상장사 재무 수집 (내 PC)
+
+# 금융위원회 API 는 해외 접속을 막아서, 이 작업만 사장님 PC(한국 IP)의 실행기에서 돌립니다.
+# 결과(fin_data.json, fin_cache.json)를 저장소에 올리면 05:11 daily.yml 이 그걸로 페이지·글·카톡을 만듭니다.
+# PC 가 꺼져 있으면 이 작업만 대기하고, daily.yml 은 재무 없이 그대로 돌아갑니다.
+
+on:
+  schedule:
+    - cron: '31 19 * * *'   # 매일 04:31 KST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fin-fetch
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 40
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+    steps:
+      - uses: actions/checkout@v4
+      - name: 상장사 시세·재무 수집 (시총 상위 500)
+        shell: powershell
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: python fetch_fin.py
+      - name: 결과를 저장소에 올리기
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python save_fin.py
