@@ -45,7 +45,14 @@ jobs:
       - name: 오늘의 신고가 카드 이미지 만들기
         continue-on-error: true
         run: |
-          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
+          # 한글 폰트: apt 로 설치하고, 실패하면 Noto 공식 저장소에서 직접 받기
+          (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk) > /dev/null 2>&1 || true
+          if ! ls /usr/share/fonts/**/NotoSansCJK* /usr/share/fonts/*/*/NotoSansCJK* > /dev/null 2>&1; then
+            sudo mkdir -p /usr/share/fonts/noto-kr
+            for w in Black Bold Medium Regular; do
+              sudo curl -sfL -o /usr/share/fonts/noto-kr/NotoSansCJKkr-$w.otf "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-$w.otf"
+            done
+          fi
           pip install -q pillow
           python make_cards.py site/summary.json site/cards
           cp site/cards/single.png site/cards/latest.png
@@ -72,7 +79,14 @@ jobs:
       - name: 이번 주 청약 카드 이미지 만들기
         continue-on-error: true
         run: |
-          sudo apt-get install -y -qq fonts-noto-cjk > /dev/null
+          # 한글 폰트: apt 로 설치하고, 실패하면 Noto 공식 저장소에서 직접 받기
+          (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk) > /dev/null 2>&1 || true
+          if ! ls /usr/share/fonts/**/NotoSansCJK* /usr/share/fonts/*/*/NotoSansCJK* > /dev/null 2>&1; then
+            sudo mkdir -p /usr/share/fonts/noto-kr
+            for w in Black Bold Medium Regular; do
+              sudo curl -sfL -o /usr/share/fonts/noto-kr/NotoSansCJKkr-$w.otf "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-$w.otf"
+            done
+          fi
           pip install -q pillow
           python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
       - name: 카드 이미지 보관 (블로그 대표 이미지용)
