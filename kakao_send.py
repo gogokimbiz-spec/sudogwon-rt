@@ -55,10 +55,17 @@ tpl = {'object_type': 'text', 'text': text, 'link': {'web_url': link, 'mobile_we
 req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
                              data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(),
                              headers={'Authorization': 'Bearer ' + tok['access_token']})
-res = json.load(urllib.request.urlopen(req))
-print('카카오 전송 결과:', res)
-if res.get('result_code') != 0:
-    sys.exit('카카오 전송 실패')
+# 이미지가 있으면 글 메시지는 보내지 않고 이미지만 보냅니다 (이미지를 못 만든 날만 글로 대신 보냄)
+_card = SITE.rstrip('/') + '/cards/latest.png'
+try: _has_card = urllib.request.urlopen(urllib.request.Request(_card, method='HEAD'), timeout=20).status == 200
+except Exception: _has_card = False
+if not _has_card:
+    res = json.load(urllib.request.urlopen(req))
+    print('카카오 전송 결과:', res)
+    if res.get('result_code') != 0:
+        sys.exit('카카오 전송 실패')
+else:
+    print('카드 이미지가 있어 글 메시지는 생략합니다')
 
 # 오늘의 신고가 이미지 (사이트에 올라간 cards/latest.png) 를 피드 메시지로 한 번 더
 card = SITE.rstrip('/') + '/cards/latest.png'
