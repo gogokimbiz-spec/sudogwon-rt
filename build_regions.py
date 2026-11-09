@@ -75,6 +75,13 @@ td.n,th.n{text-align:right}td.n{white-space:nowrap;font-variant-numeric:tabular-
 .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.cta{flex:1 1 240px;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;text-decoration:none;border:2px solid #1f5fbf;background:var(--panel);color:#1f5fbf;box-shadow:0 3px 10px rgba(31,95,191,.15)}
 .cta.pri{background:linear-gradient(135deg,#1f5fbf,#3b82f6);color:#fff;box-shadow:0 4px 14px rgba(31,95,191,.35)}.cta .i{font-size:28px;line-height:1}.cta .tx{flex:1;min-width:0}.cta b{display:block;font-size:16px;line-height:1.3}
 .cta small{display:block;font-size:12.5px;opacity:.85;margin-top:2px}.cta .go{font-weight:800;white-space:nowrap}.cta:focus-visible{outline:3px solid #f0b44c;outline-offset:2px}
+.brief{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#0f2742,#1f4f8f);box-shadow:0 6px 18px rgba(15,39,66,.28)}
+.brief:hover{filter:brightness(1.08)}.brief:focus-visible{outline:3px solid #f0b44c;outline-offset:2px}
+.brief .bi{font-size:30px;line-height:1}.brief .bt{flex:1;min-width:0;display:grid;gap:3px}
+.brief .bp{justify-self:start;background:#ff5c5c;color:#fff;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px}
+.brief b{font-size:18px;line-height:1.3;color:#fff}.brief small{font-size:13px;color:#d6e2f2}
+.brief .bg{background:#ff5c5c;color:#fff;font-weight:800;padding:10px 16px;border-radius:999px;white-space:nowrap}
+@media (max-width:520px){.brief{padding:14px}.brief .bi{display:none}.brief b{font-size:16px}.brief .bg{padding:8px 12px}}
 .regs{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.88rem}footer{font-size:.78rem;color:var(--muted)}
 """
 def page(title, desc, canon, body):
@@ -82,6 +89,7 @@ def page(title, desc, canon, body):
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{canon}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}"><meta property="og:url" content="{canon}"><meta property="og:type" content="website">
 <style>{CSS}</style></head><body><div class="w">{body}
+<script>(async()=>{{try{{const s=await(await fetch('../summary.json?t='+Date.now())).json();const d=new Date(s.day+'T00:00:00'),w='일월화수목금토'[d.getDay()],n=(s.new_highs||[]).length;for(const a of document.querySelectorAll('a.brief')){{if(s.blog_url)a.href=s.blog_url;a.querySelector('b').textContent=`${{d.getMonth()+1}}월 ${{d.getDate()}}일(${{w}}) 실거래 브리핑 보기`;a.querySelector('small').textContent=(n?`신고가 ${{n}}건 · `:'')+`매매 ${{s.trade_count}}건 · 거래가 TOP 20`+(s.news?' · 오늘의 뉴스':'');}}}}catch(e){{}}}})();</script>
 <footer>자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 해제 신고 거래 제외, 계약일 기준. 실거래는 계약 후 30일 안에 신고되므로 최근 거래는 더 늘어날 수 있습니다. 참고용 정보이며 투자 권유가 아닙니다. · <a href="{SITE}privacy.html">개인정보처리방침</a></footer>
 </div></body></html>"""
 
@@ -130,6 +138,7 @@ for c in codes:
     desc = ' '.join(s)[:150]
     body = f"""<nav><a href="{SITE}">수도권 실거래 지도</a> › <a href="index.html">지역별</a> › {esc(nm)}</nav>
 <header><h1>{esc(fn)} 아파트 실거래가</h1><div class="s">{last.year}년 {last.month}월 {last.day}일 계약분까지 · 매일 아침 갱신</div></header>
+<a class="brief" href="https://sudogwon-rt.blogspot.com/"><span class="bi">📝</span><span class="bt"><span class="bp">매일 아침 업데이트</span><b>오늘 블로그 브리핑 보기</b><small>전날 신고가 · 거래가 TOP 20 · 오늘의 부동산 뉴스</small></span><span class="bg">보기 ›</span></a>
 <section class="p"><div class="k">
 <div><span class="s">최근 30일 매매</span><b>{len(cur):,}건</b></div>
 <div><span class="s">3.3㎡당 매매 중앙값</span><b>{man(m1)}</b><span class="s">직전 30일 대비 {chg_html or '-'}</span></div>
@@ -137,17 +146,19 @@ for c in codes:
 <div><span class="s">전세가율</span><b>{f'{ratio:.0f}%' if ratio else '-'}</b></div>
 <div><span class="s">신고가 (30일)</span><b>{len(nh)}건</b></div></div>
 <p>{esc(' '.join(s))}</p>
-<div class="ctas"><a class="cta pri" href="{SITE}"><span class="i">🗺️</span><span class="tx"><b>지역별 지도로 보기</b><small>76개 시군구 가격·변동을 한눈에</small></span><span class="go">보기 ›</span></a><a class="cta" href="{BLOG}"><span class="i">📝</span><span class="tx"><b>오늘의 실거래 브리핑</b><small>전날 신고가·거래 TOP 20·뉴스</small></span><span class="go">보기 ›</span></a></div></section>
+<div class="ctas"><a class="cta pri" href="{SITE}"><span class="i">🗺️</span><span class="tx"><b>지역별 지도로 보기</b><small>76개 시군구 가격·변동을 한눈에</small></span><span class="go">보기 ›</span></a><a class="cta" href="{SITE}cheongyak/"><span class="i">🏗️</span><span class="tx"><b>이번 주 청약 일정</b><small>수도권 1순위 접수·분양가 비교</small></span><span class="go">보기 ›</span></a></div></section>
 {f'<section class="p"><h2>최근 30일 신고가 {len(nh)}건</h2><p class="s">같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래</p><div class="t"><table><tr><th>계약일</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>{nh_html}</table></div></section>' if nh else ''}
 {f'<section class="p"><h2>최근 30일 거래 많은 단지</h2><div class="t"><table><tr><th>단지</th><th class="n">거래</th><th class="n">거래가 중앙값</th><th class="n">3.3㎡당</th></tr>{top_html}</table></div></section>' if top else ''}
 <section class="p"><h2>월별 추이</h2><div class="t"><table><tr><th>월</th><th class="n">매매</th><th class="n">3.3㎡당 매매</th><th class="n">전세</th><th class="n">3.3㎡당 전세</th></tr>{mrows}</table></div><p class="s">이번 달은 아직 신고 중이라 건수가 적게 보입니다.</p></section>
 <section class="p"><h2>최근 거래 {len(recent)}건</h2><div class="t"><table><tr><th>계약일</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>{rec_html}</table></div></section>
+<a class="brief" href="https://sudogwon-rt.blogspot.com/"><span class="bi">📝</span><span class="bt"><span class="bp">놓치지 마세요</span><b>오늘 블로그 브리핑 보기</b><small>전날 신고가 · 거래가 TOP 20 · 오늘의 부동산 뉴스</small></span><span class="bg">보기 ›</span></a>
 <section class="p"><h2>다른 지역 실거래가</h2>{region_links(c)}</section>"""
     open(os.path.join(OUT, 'r', f'{c}.html'), 'w', encoding='utf-8').write(page(title, desc, f'{SITE}r/{c}.html', body))
     index_rows.append(f'<tr><td><a href="{c}.html">{esc(nm)}</a></td><td class="n">{len(cur):,}</td><td class="n">{man(m1)}</td><td class="n">{"" if chg is None else f"<span class=\"{"up" if chg > 0 else "down"}\">{chg:+.1f}%</span>"}</td><td class="n">{len(nh)}</td></tr>')
 
 body = f"""<nav><a href="{SITE}">수도권 실거래 지도</a> › 지역별</nav>
 <header><h1>수도권 시군구별 아파트 실거래가</h1><div class="s">{last.year}년 {last.month}월 {last.day}일 계약분까지 · 매일 아침 갱신</div></header>
+<a class="brief" href="https://sudogwon-rt.blogspot.com/"><span class="bi">📝</span><span class="bt"><span class="bp">매일 아침 업데이트</span><b>오늘 블로그 브리핑 보기</b><small>전날 신고가 · 거래가 TOP 20 · 오늘의 부동산 뉴스</small></span><span class="bg">보기 ›</span></a>
 <section class="p">{region_links()}</section>
 <section class="p"><h2>최근 30일 한눈에 보기</h2><div class="t"><table><tr><th>지역</th><th class="n">매매</th><th class="n">3.3㎡당</th><th class="n">직전 30일 대비</th><th class="n">신고가</th></tr>{''.join(index_rows)}</table></div></section>"""
 open(os.path.join(OUT, 'r', 'index.html'), 'w', encoding='utf-8').write(

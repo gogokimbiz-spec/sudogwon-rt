@@ -111,6 +111,13 @@ footer{color:var(--muted);font-size:.76rem;line-height:1.6}
 .chip.nhc{border-color:var(--up);color:var(--up)}
 .chip.nhc b{color:var(--up)}
 .sec{font-size:.74rem;color:var(--muted);letter-spacing:.06em;margin:6px 0 -6px}
+.brief{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#0f2742,#1f4f8f);box-shadow:0 6px 18px rgba(15,39,66,.28)}
+.brief:hover{filter:brightness(1.08)}.brief:focus-visible{outline:3px solid #f0b44c;outline-offset:2px}
+.brief .bi{font-size:30px;line-height:1}.brief .bt{flex:1;min-width:0;display:grid;gap:3px}
+.brief .bp{justify-self:start;background:#ff5c5c;color:#fff;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px}
+.brief b{font-size:18px;line-height:1.3;color:#fff}.brief small{font-size:13px;color:#d6e2f2}
+.brief .bg{background:#ff5c5c;color:#fff;font-weight:800;padding:10px 16px;border-radius:999px;white-space:nowrap}
+@media (max-width:520px){.brief{padding:14px}.brief .bi{display:none}.brief b{font-size:16px}.brief .bg{padding:8px 12px}}
 </style>
 
 <div class="wrap">
@@ -125,6 +132,9 @@ footer{color:var(--muted);font-size:.76rem;line-height:1.6}
       <span class="chip">매매 <b id="ntrade"></b>건 · 전세 <b id="njeonse"></b>건</span>
     </div>
   </header>
+
+  <a class="brief" href="https://sudogwon-rt.blogspot.com/"><span class="bi">📝</span><span class="bt"><span class="bp">매일 아침 업데이트</span><b>오늘 블로그 브리핑 보기</b><small>전날 신고가 · 거래가 TOP 20 · 오늘의 부동산 뉴스</small></span><span class="bg">보기 ›</span></a>
+  <script>(async()=>{try{const s=await(await fetch('summary.json?t='+Date.now())).json();const d=new Date(s.day+'T00:00:00'),w='일월화수목금토'[d.getDay()],n=(s.new_highs||[]).length;for(const a of document.querySelectorAll('a.brief')){if(s.blog_url)a.href=s.blog_url;a.querySelector('b').textContent=`${d.getMonth()+1}월 ${d.getDate()}일(${w}) 실거래 브리핑 보기`;a.querySelector('small').textContent=(n?`신고가 ${n}건 · `:'')+`매매 ${s.trade_count}건 · 거래가 TOP 20`+(s.news?' · 오늘의 뉴스':'');}}catch(e){}})();</script>
 
   <div class="topbar">
     <div class="seg" id="kind"><button id="k-T" data-k="T" aria-pressed="true">매매</button><button id="k-J" data-k="J" aria-pressed="false">전세</button></div>
@@ -193,6 +203,7 @@ footer{color:var(--muted);font-size:.76rem;line-height:1.6}
     </section>
   </div>
 
+  <a class="brief" href="https://sudogwon-rt.blogspot.com/"><span class="bi">📝</span><span class="bt"><span class="bp">놓치지 마세요</span><b>오늘 블로그 브리핑 보기</b><small>전날 신고가 · 거래가 TOP 20 · 오늘의 부동산 뉴스</small></span><span class="bg">보기 ›</span></a>
   <footer>
     변동률은 선택한 기간과 바로 앞 같은 길이 기간의 3.3㎡당 가격 중앙값을 비교합니다. 두 기간 모두 거래가 10건 이상인 곳만 색을 칠하고, ±1% 이내는 보합으로 봅니다.
     해제 신고된 매매는 뺐고, 전세는 월세 없는 계약만 셉니다. 한 단지에서 여러 채가 한꺼번에 거래되면 중앙값이 흔들릴 수 있습니다.
