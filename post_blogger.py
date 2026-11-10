@@ -22,7 +22,34 @@ d = datetime.date.fromisoformat(S['day']); wd = '월화수목금토일'[d.weekda
 LB = S.get('label') or f"{d.month}월 {d.day}일({wd})"   # 월요일은 '11월 7~8일(주말)'
 nh = S.get('new_highs', [])
 bs = S['by_sido']
-title = f"[수도권 아파트 실거래] {S.get('label_full') or f'{d.year}년 {LB}'} 매매 {S['trade_count']}건" + (f" · 신고가 {len(nh)}건" if nh else '')
+LBF = S.get('label_full') or f'{d.year}년 {LB}'
+
+# 지역 이름 (검색어용): '서울 강남구'→'강남', '성남 분당구'→'성남 분당', '광명시'→'광명', '인천 서구'→'인천 서구'
+def area_name(r):
+    p = r.split(' ')
+    if len(p) == 1: return p[0][:-1] if p[0][-1] in '시군' and len(p[0]) > 2 else p[0]
+    g = p[1][:-1] if len(p[1]) > 2 else p[1]
+    return g if p[0] == '서울' else f'{p[0]} {g}'
+def label_name(r):  # 블로그 라벨(지역별 모아보기): '강남구 아파트', '인천 서구 아파트', '용인 아파트'
+    p = r.split(' ')
+    if len(p) == 1: return (p[0][:-1] if p[0][-1] in '시군' and len(p[0]) > 2 else p[0]) + ' 아파트'
+    return (p[1] if p[0] == '서울' else f'인천 {p[1]}' if p[0] == '인천' else p[0]) + ' 아파트'
+from collections import Counter
+def ga(w):  # 받침에 따라 '이/가'
+    c = w[-1]
+    return w + ('이' if '가' <= c <= '힣' and (ord(c) - 0xAC00) % 28 else '가')
+_base = nh or S.get('day_trades') or []
+_cnt = Counter(area_name(t['region']) for t in _base)
+top_areas = [a for a, _ in sorted(_cnt.items(), key=lambda x: (-x[1], [area_name(t['region']) for t in _base].index(x[0])))][:3]
+areas_txt = '·'.join(top_areas)
+# 2. 검색어 중심 제목 – 그날 신고가가 많이 나온 지역 이름을 제목에 넣음
+title = (f"[수도권 실거래] {LBF} 신고가 {len(nh)}건" if nh else f"[수도권 실거래] {LBF} 매매 {S['trade_count']}건") + \
+        (f" | {areas_txt} 아파트 실거래가" if areas_txt else '')
+# 4. 지역 라벨 (지역별 모아보기 페이지가 생겨 검색에 걸림)
+labels = ['실거래', '수도권 실거래가', '아파트 실거래'] + (['신고가'] if nh else [])
+for t in _base:
+    ln = label_name(t['region'])
+    if ln not in labels and len(labels) < 10: labels.append(ln)
 
 T = 'style="border-collapse:collapse;width:100%;font-size:14px"'
 TH = 'style="text-align:left;border-bottom:2px solid #ccc;padding:6px 4px"'
@@ -49,6 +76,22 @@ def trade_rows(rows, with_prev=False):
     return ''.join(out)
 
 parts = []
+# 3. 맨 위 요약 문장 (검색엔진·독자가 글 내용을 바로 알 수 있게)
+_s = [f"{LB} 계약된 수도권 아파트 매매는 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세는 {S['jeonse_count']}건입니다."]
+if nh:
+    _a, _k = _cnt.most_common(1)[0]
+    _s.append(f"이 가운데 같은 단지·같은 전용면적에서 최근 6개월 최고가를 넘긴 신고가 거래는 {len(nh)}건이며, {_a}에서 {_k}건으로 가장 많았습니다.")
+_dt = S.get('day_trades') or []
+if _dt:
+    t0 = _dt[0]
+    _e, _m = divmod(int(round(t0['price_man'])), 10000)
+    _won = (f'{_e}억 {_m:,}만 원' if _m else f'{_e}억 원') if _e else f'{_m:,}만 원'
+    _s.append(f"가장 비싸게 거래된 아파트는 {t0['region']} {t0['apt']} 전용 {t0['area']}㎡로 {_won}이었습니다.")
+_u, _dn = (S.get('up5') or [None])[0], (S.get('down5') or [None])[0]
+if _u and _dn:
+    _s.append(f"최근 30일 3.3㎡당 매매가는 직전 30일보다 {ga(area_name(_u['region']))} {_u['chg']:+.1f}%로 가장 많이 올랐고, "
+              f"{ga(area_name(_dn['region']))} {_dn['chg']:+.1f}%로 가장 많이 내렸습니다.")
+summary_html = '<p style="font-size:16px;line-height:1.75;margin:0 0 18px">' + esc(' '.join(_s)) + '</p>'
 # 1. 오늘의 부동산 뉴스 (맨 위)
 news = S.get('news')
 if news:
@@ -118,10 +161,11 @@ try:
         '<div style="font-size:11px;color:#93a6bf;margin-top:10px">재미로 보는 운세이며 투자 판단의 근거가 아닙니다</div></div>')
 except Exception as _e:
     print('타로 칸 건너뜀:', _e)
+parts.insert(1 if news else 0, summary_html)
 content = ''.join(parts)
 
 if DRY:
-    open('post_preview.html', 'w', encoding='utf-8').write(f'<h1>{esc(title)}</h1>' + content); print(title); sys.exit(0)
+    open('post_preview.html', 'w', encoding='utf-8').write(f'<h1>{esc(title)}</h1>' + content); print(title); print('라벨:', labels); sys.exit(0)
 
 tok = json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token', urllib.parse.urlencode({
     'client_id': env['BLOGGER_CLIENT_ID'], 'client_secret': env['BLOGGER_CLIENT_SECRET'],
@@ -133,8 +177,8 @@ API = f"https://www.googleapis.com/blogger/v3/blogs/{env['BLOGGER_BLOG_ID']}/pos
 key = (S.get('label_full') or f"{d.year}년 {d.month}월 {d.day}일").split('(')[0]
 q = urllib.request.Request(API + '/search?' + urllib.parse.urlencode({'q': key, 'fetchBodies': 'false'}), headers=H)
 items = json.load(urllib.request.urlopen(q)).get('items', [])
-same = [p for p in items if key in p.get('title', '') and '수도권 아파트 실거래' in p.get('title', '')]
-body = json.dumps({'title': title, 'content': content, 'labels': ['수도권 실거래가', '아파트 실거래', '신고가']}).encode()
+same = [p for p in items if key in p.get('title', '') and ('수도권 아파트 실거래' in p.get('title', '') or '[수도권 실거래]' in p.get('title', ''))]
+body = json.dumps({'title': title, 'content': content, 'labels': labels}).encode()
 if same:
     r = urllib.request.urlopen(urllib.request.Request(f"{API}/{same[0]['id']}", data=body, headers=H, method='PUT'))
 else:
