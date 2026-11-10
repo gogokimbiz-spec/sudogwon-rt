@@ -49,9 +49,16 @@ def won(v):
     return f'{s}{round(v / 1e8):,}억'
 fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
        'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%', 'op': won, 'sales': won, 'ni': won}
-Fm = lambda k, v: '-' if v is None else fmt[k](v)
-LAB = {'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출', 'opg': '영업이익', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
-THEME = {'opm': ('영업이익률 TOP', 'opm', 'op', '매출 대비 영업이익 비율'),
+Fm = lambda k, v: '-' if v is None else fmt[k.replace('q_', '')](v)
+LAB = {'q_sales': '누적 매출', 'q_op': '누적 영업이익', 'q_opm': '영업이익률', 'q_dr': '부채비율',
+       'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출', 'opg': '영업이익', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
+QP, QS = S.get('qp') or '', S.get('qspan') or ''
+THEME = {'q_gr': ('매출 증가율 TOP', 'q_gr', 'q_sales', f'{QS} · 전년 동기 대비'),
+         'q_opg': ('영업이익 증가율', 'q_opg', 'q_op', f'{QS} · 전년 동기 대비'),
+         'q_opm': ('영업이익률 TOP', 'q_opm', 'q_op', f'{QS} 매출 대비 영업이익'),
+         'q_turn': ('흑자전환 기업', 'q_op', 'q_opm', f'{QS} · 전년 동기 영업적자 → 흑자'),
+         'q_low_debt': ('부채비율 낮은 기업', 'q_dr', 'q_opm', f'{QP}말 부채총계 ÷ 자본총계'),
+         'opm': ('영업이익률 TOP', 'opm', 'op', '매출 대비 영업이익 비율'),
          'roe': ('ROE TOP', 'roe', 'ni', '자기자본 대비 순이익 비율'),
          'growth': ('매출 성장률 TOP', 'gr', 'sales', '직전 연도 대비 매출 증가율'),
          'opg': ('영업이익 증가율 TOP', 'opg', 'op', '직전 연도 대비 영업이익 증가율'),
@@ -66,7 +73,7 @@ INK, INK2, RED, BLUE = C.INK, C.INK2, C.UP, C.DOWN
 bd = datetime.date.fromisoformat(S['basDt'][:10]) if S.get('basDt') else datetime.date.today()
 if P['kind'] == 'rank':
     key = P['keys'][0]; t, k1, k2, sub = THEME[key]
-    pill = f"{S['fy']} 사업연도 · 상장사 매출 상위 500"
+    pill = (f"{QP} 실적" if key.startswith('q_') else f"{S['fy']} 사업연도") + " · 상장사 매출 상위 500"
     head, big = t, '' if key == 'turn' else str(min(10, len(R[key])))
     if len(head) > 10: big = ''
 else:
@@ -82,11 +89,11 @@ def row(y, rh, i, x, k1, k2):
     bs = int(28 * z) + 4
     C.badge(d, F, 60, cy, i, bs, i <= 3)
     v1 = Fm(k1, x[k1]); vf = F(int(46 * z), 'Black'); vw = d.textlength(v1, font=vf)
-    d.text((W - 64 - vw, cy - int(32 * z)), v1, font=vf, fill=RED if k1 in ('opm', 'gr', 'op') else BLUE)
+    d.text((W - 64 - vw, cy - int(32 * z)), v1, font=vf, fill=RED if k1.replace('q_', '') in ('opm', 'gr', 'op', 'opg', 'roe') else BLUE)
     mk = '코스피' if x['market'] == 'KOSPI' else '코스닥'
     nx = 60 + 2 * bs + 22; nf = F(int(40 * z), 'Black')
     d.text((nx, cy - int(42 * z)), fit(d, x['name'], nf, W - 64 - vw - 40 - nx), font=nf, fill=INK)
-    d.text((nx, cy + int(6 * z)), f"{mk} · 매출 {won(x['sales'])}" + ('' if k2 == 'sales' else f" · {LAB[k2]} {Fm(k2, x[k2])}"), font=F(int(26 * z), 'Medium'), fill=INK2)
+    d.text((nx, cy + int(6 * z)), f"{mk} · " + (f"{LAB[k2]} {Fm(k2, x[k2])}" if k2.endswith('sales') else f"매출 {won(x.get('q_sales') or x['sales'])} · {LAB[k2]} {Fm(k2, x[k2])}"), font=F(int(26 * z), 'Medium'), fill=INK2)
 
 
 top, bottom = 340, SH - 170
@@ -105,7 +112,7 @@ else:
         for i, x in enumerate(R[key][:5], 1):
             row(y, rh, i, x, k1, k2); y += rh
 C.cta(d, F, '500곳 전체 순위 → 프로필 링크')
-C.footer(d, F, '자료 금융위원회 · 참고용 데이터이며 투자 권유가 아닙니다')
+C.footer(d, F, '자료 DART·금융위원회 · 참고용 데이터이며 투자 권유가 아닙니다')
 im.save(os.path.join(OUT, 'single.png'))
 shutil.copy(os.path.join(OUT, 'single.png'), os.path.join(OUT, 'latest.png'))
 print('기업재무 카드 →', os.path.join(OUT, 'single.png'))

@@ -38,8 +38,9 @@ def won(v):
 
 fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
        'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%', 'op': won, 'sales': won, 'ni': won}
-F = lambda k, v: '-' if v is None else fmt[k](v)
-HEAD = {'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출 증가율', 'opg': '영업이익 증가율', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
+F = lambda k, v: '-' if v is None else fmt[k.replace('q_', '')](v)
+HEAD = {'q_sales': '누적 매출', 'q_op': '누적 영업이익', 'q_opm': '영업이익률', 'q_gr': '매출 증가율', 'q_opg': '영업이익 증가율', 'q_dr': '부채비율',
+        'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출 증가율', 'opg': '영업이익 증가율', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
 T = 'style="border-collapse:collapse;width:100%;font-size:14px"'
 TH = 'style="text-align:left;border-bottom:2px solid #ccc;padding:6px 4px"'
 THR = 'style="text-align:right;border-bottom:2px solid #ccc;padding:6px 4px"'
@@ -48,15 +49,23 @@ TDR = 'style="border-bottom:1px solid #eee;padding:6px 4px;text-align:right;whit
 
 
 def table(rows, cols):
-    head = f'<tr><th {TH}>#</th><th {TH}>기업</th>' + ''.join(f'<th {THR}>{HEAD[c]}</th>' for c in cols) + (f'<th {THR}>매출</th>' if 'sales' not in cols else '') + '</tr>'
-    body = ''.join(f"<tr><td {TD}>{i}</td><td {TD}><b>{esc(x['name'])}</b> <small style=\"color:#888\">{'코스피' if x['market'] == 'KOSPI' else '코스닥'}</small></td>"
+    head = f'<tr><th {TH}>#</th><th {TH}>기업</th>' + ''.join(f'<th {THR}>{HEAD[c]}</th>' for c in cols) + (f'<th {THR}>매출</th>' if not any(c.endswith('sales') for c in cols) else '') + '</tr>'
+    body = ''.join(f"<tr><td {TD}>{i}</td><td {TD}><b>{NM(x)}</b> <small style=\"color:#888\">{'코스피' if x['market'] == 'KOSPI' else '코스닥'}</small></td>"
                    + ''.join(f'<td {TDR}>{"<b>" if j == 0 else ""}{F(c, x[c])}{"</b>" if j == 0 else ""}</td>' for j, c in enumerate(cols))
-                   + (f'<td {TDR}>{won(x["sales"])}</td>' if 'sales' not in cols else '') + '</tr>' for i, x in enumerate(rows, 1))
+                   + (f'<td {TDR}>{won(x.get("q_sales") or x["sales"])}</td>' if not any(c.endswith('sales') for c in cols) else '') + '</tr>' for i, x in enumerate(rows, 1))
     return f'<table {T}>{head}{body}</table>'
 
 
 R = S['rank']
-THEMES = [('opm', ['opm', 'op'], '영업이익률 높은 기업 TOP 20', '매출 대비 영업이익 비율이 높은 순서입니다. 매출 500억 원 이상, 금융업 제외.'),
+NAVER = 'https://finance.naver.com/item/main.naver?code='
+NM = lambda x: f'<a href="{NAVER}{x["stock"]}">{esc(x["name"])}</a>' if x.get('stock') else esc(x['name'])
+QP, QS = S.get('qp') or '', S.get('qspan') or ''
+THEMES = [('q_gr', ['q_gr', 'q_sales'], f'{QP} 누적 매출 증가율 TOP 20', f'{QS} 매출을 전년 같은 기간과 비교했습니다. 전년 동기 매출 100억 원 이상, 금융업 제외.'),
+          ('q_opg', ['q_opg', 'q_op'], f'{QP} 누적 영업이익 증가율 TOP 20', f'{QS} 영업이익을 전년 같은 기간과 비교했습니다. 전년 동기 영업이익 50억 원 이상, 금융업 제외.'),
+          ('q_opm', ['q_opm', 'q_op'], f'{QP} 누적 영업이익률 TOP 20', f'{QS} 매출 대비 영업이익 비율입니다. 금융업 제외.'),
+          ('q_turn', ['q_op', 'q_opm'], f'{QP} 누적 흑자전환 기업', f'전년 같은 기간 영업적자에서 올해 {QS} 영업흑자로 돌아선 기업입니다. 금융업 제외.'),
+          ('q_low_debt', ['q_dr', 'q_opm'], f'{QP}말 부채비율 낮은 기업 TOP 20', '부채총계 ÷ 자본총계. 낮을수록 재무구조가 안정적입니다. 금융업 제외.'),
+          ('opm', ['opm', 'op'], '영업이익률 높은 기업 TOP 20', '매출 대비 영업이익 비율이 높은 순서입니다. 매출 500억 원 이상, 금융업 제외.'),
           ('roe', ['roe', 'ni'], 'ROE 높은 기업 TOP 20', 'ROE(자기자본이익률) = 당기순이익 ÷ 자본총계. 자기 돈으로 얼마나 이익을 냈는지 보여 줍니다. 매출 500억 원 이상, 금융업 제외.'),
           ('growth', ['gr', 'sales'], '매출 성장률 높은 기업 TOP 20', f'{FY}년 매출을 직전 연도와 비교했습니다. 직전 연도 매출 100억 원 이상, 금융업 제외.'),
           ('low_debt', ['dr', 'opm'], '부채비율 낮은 기업 TOP 20', '부채총계 ÷ 자본총계. 낮을수록 재무구조가 안정적입니다. 매출 500억 원 이상, 금융업 제외.'),
@@ -64,10 +73,10 @@ THEMES = [('opm', ['opm', 'op'], '영업이익률 높은 기업 TOP 20', '매출
           ('turn', ['op', 'opm'], '영업이익 흑자전환 기업', f'직전 연도 영업적자에서 {FY}년 영업흑자로 돌아선 기업입니다. 금융업 제외.')]
 parts = []
 key, cols, name, note = next(t for t in THEMES if t[0] == P['keys'][0])
-title = f'[기업재무] {name} – 상장사 매출 상위 500 ({FY} 사업연도)'
+title = f'[기업재무] {name} – 상장사 매출 상위 500' + ('' if key.startswith('q_') else f' ({FY} 사업연도)')
 label = '기업재무'
 rows = R[key]
-parts.append(f'<p>코스피·코스닥 상장사 중 {FY} 사업연도 매출 상위 500개 기업의 재무제표로 정리한 <b>{name}</b>입니다. {note}</p>')
+parts.append(f'<p>코스피·코스닥 상장사 중 매출 상위 500개 기업의 ' + (f'{QP} 보고서(DART)' if key.startswith('q_') else f'{FY} 사업연도 재무제표') + f'로 정리한 <b>{name}</b>입니다. {note} 기업명을 누르면 네이버 증권에서 현재 주가를 볼 수 있습니다.</p>')
 if rows:
     x = rows[0]
     parts.append(f"<p>1위는 <b>{esc(x['name'])}</b>({F(cols[0], x[cols[0]])})이고, 상위 {len(rows)}곳 중 코스피 {sum(r['market'] == 'KOSPI' for r in rows)}곳, 코스닥 {sum(r['market'] != 'KOSPI' for r in rows)}곳입니다.</p>")
@@ -76,14 +85,14 @@ key_title = f'[기업재무] {name}'
 
 parts.insert(0, f'<div style="margin:8px 0 20px"><a href="{SITE}fin/" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;text-decoration:none;'
                 'background:linear-gradient(135deg,#1f5fbf,#3b82f6);color:#fff"><span style="font-size:26px">📊</span><span style="flex:1"><b style="display:block;font-size:16px">상장사 매출 상위 500 전체 표 보기</b>'
-                '<small style="color:#e8f0ff">영업이익률·ROE·부채비율·성장률 · 검색·정렬</small></span><b>보기 ›</b></a></div>')
+                '<small style="color:#e8f0ff">최신 분기 실적 · 영업이익률 · 부채비율 · 검색·정렬</small></span><b>보기 ›</b></a></div>')
 ad_client, ad_slot = os.environ.get('ADSENSE_CLIENT', '').strip(), os.environ.get('ADSENSE_SLOT', '').strip()
 if ad_client and ad_slot:
     parts.insert(3, f'<div style="margin:24px 0"><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ad_client}" crossorigin="anonymous"></script>'
                     f'<ins class="adsbygoogle" style="display:block" data-ad-client="{ad_client}" data-ad-slot="{ad_slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>'
                     '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
 parts.append('<hr><p><small>계산: 연결재무제표 우선(없으면 별도), 당기순이익·자본총계에 비지배지분 포함이라 증권사 발표 수치와 다를 수 있습니다. 대상은 코스피·코스닥 상장사 중 매출 상위 500곳. '
-             '자료: 금융위원회 기업 재무정보·기업기본정보(공공데이터포털). '
+             '자료: 금융감독원 DART 오픈API, 금융위원회 기업 재무정보·기업기본정보(공공데이터포털). '
              '이 글은 공개 데이터를 정리한 참고 자료이며 특정 종목의 매수·매도를 권유하지 않습니다. 투자 판단과 책임은 본인에게 있습니다.</small></p>')
 # 대표 이미지 (daily.yml 이 저장소 cards/fin/ 에 보관한 카드)
 if os.path.exists(f"cards/fin/{S['day']}.png") and os.environ.get('GITHUB_REPOSITORY'):

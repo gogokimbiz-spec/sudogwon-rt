@@ -39,6 +39,21 @@ for x in C:
     x['turn'] = bool(fp.get('op') is not None and f.get('op') is not None and fp['op'] < 0 < f['op'])
     x['sales'], x['op'], x['ni'] = f.get('sales'), f.get('op'), f.get('ni')
 
+# 최신 분기 (DART) – 가장 많은 회사가 낸 보고서 기간으로만 순위
+from collections import Counter
+qps = Counter(x['q']['period'] for x in C if x.get('q'))
+QP = qps.most_common(1)[0][0] if qps else None
+QSPAN = next((x['q']['span'] for x in C if x.get('q') and x['q']['period'] == QP), '')
+for x in C:
+    q = x.get('q') if x.get('q') and x['q']['period'] == QP else {}
+    x['q_sales'], x['q_op'] = q.get('sales'), q.get('op')
+    x['q_opm'] = round(q['op'] / q['sales'] * 100, 1) if q.get('op') is not None and q.get('sales') and q['sales'] > 0 else None
+    x['q_gr'] = round((q['sales'] / q['sales_p'] - 1) * 100, 1) if q.get('sales') and q.get('sales_p') and q['sales_p'] >= 1e10 else None
+    x['q_opg'] = round((q['op'] / q['op_p'] - 1) * 100, 1) if q.get('op') is not None and q.get('op_p') and q['op_p'] >= 5e9 else None
+    x['q_turn'] = bool(q.get('op_p') is not None and q.get('op') is not None and q['op_p'] < 0 < q['op'])
+    x['q_dr'] = round(q['debt'] / q['equity'] * 100, 1) if q.get('debt') is not None and q.get('equity') and q['equity'] > 0 else None
+    x['stock'] = x.get('stock')
+
 FY = raw.get('fy') or '-'
 nonfin = [x for x in C if not x['financial'] and x['sales'] and x['sales'] >= 5e10]
 
@@ -57,8 +72,14 @@ R = {
     'low_debt': top(nonfin, 'dr', False),
     'turn': sorted([x for x in nonfin if x['turn']], key=lambda x: -x['op'])[:20],
 }
-TITLES = {'sales': '매출 TOP 20', 'opm': '영업이익률 TOP 20', 'roe': 'ROE TOP 20', 'growth': '매출 성장률 TOP 20',
-          'opg': '영업이익 증가율 TOP 20', 'low_debt': '부채비율 낮은 20곳', 'turn': '영업이익 흑자전환 기업'}
+if QP:
+    qn = [x for x in C if not x['financial'] and (x['q_sales'] or 0) >= 2e10]
+    R = {'q_gr': top(qn, 'q_gr', True), 'q_opg': top(qn, 'q_opg', True), 'q_opm': top([x for x in qn if (x['q_opm'] or 0) <= 100], 'q_opm', True),
+         'q_turn': sorted([x for x in qn if x['q_turn']], key=lambda x: -x['q_op'])[:20], 'q_low_debt': top(qn, 'q_dr', False), **R}
+QT = {'q_gr': f'{QP} 누적 매출 증가율 TOP 20', 'q_opg': f'{QP} 누적 영업이익 증가율 TOP 20', 'q_opm': f'{QP} 누적 영업이익률 TOP 20',
+      'q_turn': f'{QP} 누적 흑자전환 기업', 'q_low_debt': f'{QP}말 부채비율 낮은 20곳'} if QP else {}
+TITLES = {**QT, 'sales': f'{FY}년 매출 TOP 20', 'opm': f'{FY}년 영업이익률 TOP 20', 'roe': f'{FY}년 ROE TOP 20', 'growth': f'{FY}년 매출 성장률 TOP 20',
+          'opg': f'{FY}년 영업이익 증가율 TOP 20', 'low_debt': f'{FY}년말 부채비율 낮은 20곳', 'turn': f'{FY}년 영업이익 흑자전환 기업'}
 
 
 def won(v):
@@ -72,12 +93,12 @@ def won(v):
 
 fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
        'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%', 'sales': won, 'op': won, 'ni': won}
-F = lambda k, v: '-' if v is None else fmt[k](v)
-slim = lambda x: {k: x[k] for k in ('rank', 'name', 'market', 'sales', 'op', 'ni', 'opm', 'roe', 'dr', 'gr', 'opg', 'fy', 'financial')}
+F = lambda k, v: '-' if v is None else fmt[k.replace('q_', '')](v)
+slim = lambda x: {k: x.get(k) for k in ('rank', 'name', 'market', 'stock', 'sales', 'op', 'ni', 'opm', 'roe', 'dr', 'gr', 'opg', 'fy', 'financial', 'q_sales', 'q_op', 'q_opm', 'q_gr', 'q_opg', 'q_dr')}
 # 오늘 올릴 글: 화·금요일, 주제를 돌아가며 (수동 실행 FIN_POST=none 이 아니면 오늘 주제로 게시)
 KST = datetime.timezone(datetime.timedelta(hours=9))
 today = datetime.datetime.now(KST).date()
-THEMES = ['opm', 'roe', 'growth', 'low_debt', 'opg', 'turn']
+THEMES = ['q_gr', 'q_opg', 'q_opm', 'q_turn', 'q_low_debt', 'roe'] if QP and sum(1 for x in C if x['q_sales']) >= 300 else ['opm', 'roe', 'growth', 'low_debt', 'opg', 'turn']
 fp_env = os.environ.get('FIN_POST', '').strip()
 slot = {1: 0, 4: 1}.get(today.weekday())
 if slot is None and fp_env and fp_env != 'none': slot = 0
@@ -89,7 +110,7 @@ if slot is not None:
         i = (today.isocalendar()[1] * 2 + slot) % len(THEMES)
         key = next((THEMES[(i + k) % len(THEMES)] for k in range(len(THEMES)) if R[THEMES[(i + k) % len(THEMES)]]), None)
         post = {'kind': 'rank', 'keys': [key]} if key else None
-summary = {'post': post, 'day': today.isoformat(), 'asof': raw['asof'], 'fy': FY, 'count': len(C),
+summary = {'post': post, 'day': today.isoformat(), 'asof': raw['asof'], 'fy': FY, 'qp': QP, 'qspan': QSPAN, 'count': len(C),
            'with_fin': sum(1 for x in C if x['f']), 'rank': {k: [slim(x) for x in v] for k, v in R.items()}}
 json.dump(summary, open(os.path.join(OUT, 'summary.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
@@ -112,47 +133,51 @@ th[data-k]{cursor:pointer}th[data-k]:hover{color:var(--accent)}input{width:100%;
 .brief b{font-size:17px;color:#fff;display:block}.brief small{font-size:13px;color:#d6e2f2}.brief .bg{margin-left:auto;background:#ff5c5c;color:#fff;font-weight:800;padding:8px 14px;border-radius:999px;white-space:nowrap}
 footer{font-size:.78rem;color:var(--muted)}
 """
-COLS = {'sales': ['sales', 'opm'], 'opm': ['opm', 'op'], 'roe': ['roe', 'ni'], 'growth': ['gr', 'sales'], 'opg': ['opg', 'op'],
+COLS = {'q_gr': ['q_gr', 'q_sales'], 'q_opg': ['q_opg', 'q_op'], 'q_opm': ['q_opm', 'q_op'], 'q_turn': ['q_op', 'q_opm'], 'q_low_debt': ['q_dr', 'q_opm'],
+        'sales': ['sales', 'opm'], 'opm': ['opm', 'op'], 'roe': ['roe', 'ni'], 'growth': ['gr', 'sales'], 'opg': ['opg', 'op'],
         'low_debt': ['dr', 'opm'], 'turn': ['op', 'opm']}
-HEAD = {'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출 증가', 'opg': '영업이익 증가', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
+HEAD = {'q_sales': '누적 매출', 'q_op': '누적 영업이익', 'q_opm': '영업이익률', 'q_gr': '매출 증가(전년 동기)', 'q_opg': '영업이익 증가(전년 동기)', 'q_dr': '부채비율',
+        'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출 증가', 'opg': '영업이익 증가', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
 MK = lambda m: '코스피' if m == 'KOSPI' else '코스닥'
+NAVER = 'https://finance.naver.com/item/main.naver?code='
+NM = lambda x: f'<a href="{NAVER}{x["stock"]}" rel="nofollow noopener" target="_blank">{esc(x["name"])}</a>' if x.get('stock') else esc(x['name'])
 
 
 def rank_table(key):
     rows = R[key]
     if not rows: return '<p class="s">해당 기업이 없습니다.</p>'
     c1, c2 = COLS[key]
-    tr = ''.join(f"<tr><td>{i}</td><td>{esc(x['name'])}<span class=m>{MK(x['market'])}</span></td>"
+    tr = ''.join(f"<tr><td>{i}</td><td>{NM(x)}<span class=m>{MK(x['market'])}</span></td>"
                  f"<td class=n><b>{F(c1, x[c1])}</b></td><td class=n>{F(c2, x[c2])}</td></tr>" for i, x in enumerate(rows, 1))
     return f'<div class=t><table><tr><th>#</th><th>기업</th><th class=n>{HEAD[c1]}</th><th class=n>{HEAD[c2]}</th></tr>{tr}</table></div>'
 
 
-data_js = json.dumps([[x['rank'], x['name'], x['market'][:4], x['sales'], x['op'], x['opm'], x['roe'], x['dr'], x['gr']] for x in C], ensure_ascii=False)
+data_js = json.dumps([[x['rank'], x['name'], x['market'][:4], x['q_sales'], x['q_op'], x['q_opm'], x['q_gr'], x['q_opg'], x['q_dr'], x['roe'], x.get('stock') or ''] for x in C], ensure_ascii=False)
 sections = ''.join(f'<section class=p id={k}><h2>{TITLES[k]}</h2>{rank_table(k)}</section>' for k in TITLES)
 med = lambda k: statistics.median([x[k] for x in C if x[k] is not None]) if any(x[k] is not None for x in C) else None
-title = f'상장사 매출 상위 500 영업이익률·ROE·부채비율 순위 ({FY} 사업연도)'
+title = f'상장사 매출 상위 500 실적 순위 ({QP or FY} 기준) – 매출·영업이익 증가율, 영업이익률, 부채비율'
 desc = f'코스피·코스닥 상장사 중 매출 상위 500곳의 {FY} 사업연도 영업이익률, ROE, 부채비율, 매출 성장률, 흑자전환 기업을 금융위원회 재무 데이터로 정리합니다.'
 body = f"""<nav><a href="{SITE}">수도권 실거래 지도</a> · <a href="{SITE}cheongyak/">청약 지도</a> · <b>기업 재무</b></nav>
-<header><h1>상장사 매출 상위 500 재무 순위</h1><div class=s>{FY} 사업연도 재무제표 · {raw['asof']} 갱신</div></header>
+<header><h1>상장사 매출 상위 500 재무 순위</h1><div class=s>{('최신 실적 ' + QP + ' (' + QSPAN + ', DART) · ') if QP else ''}{FY} 사업연도 재무제표 · {raw['asof']} 갱신</div></header>
 <a class="brief" href="{BLOG}search/label/%EA%B8%B0%EC%97%85%EC%9E%AC%EB%AC%B4"><span><b>블로그에서 주간 순위 글 보기</b><small>영업이익률 · ROE · 매출 성장률 · 부채비율 · 흑자전환</small></span><span class=bg>보기 ›</span></a>
 <section class=p><div class=k><div><span class=s>대상 기업</span><b>{len(C)}곳</b></div>
 <div><span class=s>영업이익률 중앙값</span><b>{F('opm', med('opm'))}</b></div><div><span class=s>ROE 중앙값</span><b>{F('roe', med('roe'))}</b></div>
 <div><span class=s>부채비율 중앙값</span><b>{F('dr', med('dr'))}</b></div></div>
 <div class=tabs style="margin-top:12px">{''.join(f'<a href="#{k}">{TITLES[k]}</a>' for k in TITLES)} <a href="#all">전체 500곳</a></div></section>
 <div class=g>{sections}</div>
-<section class=p id=all><h2>전체 500곳 (제목을 누르면 정렬)</h2><input id=q placeholder="기업명 검색" aria-label="기업명 검색"><div class=t><table id=tb><thead><tr>
-<th data-k=0>#</th><th data-k=1>기업</th><th class=n data-k=3>매출</th><th class=n data-k=4>영업이익</th><th class=n data-k=5>영업이익률</th><th class=n data-k=6>ROE</th><th class=n data-k=7>부채비율</th><th class=n data-k=8>매출증가</th>
+<section class=p id=all><h2>전체 500곳 – {QP or FY} {QSPAN} 기준 (제목을 누르면 정렬, 기업명을 누르면 네이버 증권)</h2><input id=q placeholder="기업명 검색" aria-label="기업명 검색"><div class=t><table id=tb><thead><tr>
+<th data-k=0>#</th><th data-k=1>기업</th><th class=n data-k=3>매출</th><th class=n data-k=4>영업이익</th><th class=n data-k=5>영업이익률</th><th class=n data-k=6>매출증가</th><th class=n data-k=7>영업이익증가</th><th class=n data-k=8>부채비율</th><th class=n data-k=9>ROE({FY})</th>
 </tr></thead><tbody></tbody></table></div></section>
 <footer>계산 방법: 영업이익률 = 영업이익 ÷ 매출, ROE = 당기순이익 ÷ 자본총계, 부채비율 = 부채총계 ÷ 자본총계 (연결재무제표 우선, 없으면 별도). 비지배지분이 포함되어 증권사 발표 수치와 다를 수 있습니다.
 대상은 코스피·코스닥 상장사 중 {FY} 사업연도 매출 상위 500곳입니다. 금융업은 재무 구조가 달라 비율 순위에서 제외했습니다.<br>
-자료: 금융위원회 기업 재무정보·기업기본정보 (공공데이터포털). 참고용 데이터 정리이며 투자 권유가 아닙니다. · <a href="{SITE}privacy.html">개인정보처리방침</a></footer>"""
+자료: 금융감독원 DART 오픈API(분기 실적), 금융위원회 기업 재무정보·기업기본정보(공공데이터포털). 분기 실적은 누적 기준이며 전년 동기와 비교합니다. 참고용 데이터 정리이며 투자 권유가 아닙니다. · <a href="{SITE}privacy.html">개인정보처리방침</a></footer>"""
 script = """<script>
 const D=__DATA__;const tb=document.querySelector('#tb tbody'),q=document.getElementById('q');let sk=0,sd=1;
 const w=v=>{if(v==null)return'-';const a=Math.abs(v),s=v<0?'-':'';if(a>=1e12){const j=Math.floor(a/1e12),e=Math.round(a%1e12/1e8);return s+j.toLocaleString()+'조'+(e?' '+e.toLocaleString()+'억':'')}return s+Math.round(a/1e8).toLocaleString()+'억'};
-const p=(v,d)=>v==null?'-':v.toFixed(d)+'%';
+const p=(v,d)=>v==null?'-':v.toFixed(d)+'%';const g=v=>v==null?'-':(v>0?'+':'')+v.toFixed(1)+'%';
 function draw(){const t=q.value.trim();const r=D.filter(x=>!t||x[1].includes(t)).sort((a,b)=>{const x=a[sk],y=b[sk];if(x==null)return 1;if(y==null)return-1;return(x>y?1:x<y?-1:0)*sd});
-tb.innerHTML=r.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}<span class=m>${x[2]=='KOSP'?'코스피':'코스닥'}</span></td><td class=n>${w(x[3])}</td><td class="n ${x[4]<0?'down':''}">${w(x[4])}</td><td class=n>${p(x[5],1)}</td><td class=n>${p(x[6],1)}</td><td class=n>${p(x[7],0)}</td><td class=n>${x[8]==null?'-':(x[8]>0?'+':'')+x[8].toFixed(1)+'%'}</td></tr>`).join('')}
-document.querySelectorAll('th[data-k]').forEach(h=>h.onclick=()=>{const k=+h.dataset.k;sd=sk===k?-sd:(k>=3&&k!==7?-1:1);sk=k;draw()});q.oninput=draw;draw();
+tb.innerHTML=r.map(x=>`<tr><td>${x[0]}</td><td>${x[10]?`<a href="https://finance.naver.com/item/main.naver?code=${x[10]}" rel="nofollow noopener" target="_blank">${x[1]}</a>`:x[1]}<span class=m>${x[2]=='KOSP'?'코스피':'코스닥'}</span></td><td class=n>${w(x[3])}</td><td class="n ${x[4]<0?'down':''}">${w(x[4])}</td><td class=n>${p(x[5],1)}</td><td class=n>${g(x[6])}</td><td class=n>${g(x[7])}</td><td class=n>${p(x[8],0)}</td><td class=n>${p(x[9],1)}</td></tr>`).join('')}
+document.querySelectorAll('th[data-k]').forEach(h=>h.onclick=()=>{const k=+h.dataset.k;sd=sk===k?-sd:(k>=3&&k!==8?-1:1);sk=k;draw()});q.oninput=draw;draw();
 </script>""".replace('__DATA__', data_js)
 page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}"><link rel="canonical" href="{SITE}fin/">

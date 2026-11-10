@@ -4,8 +4,8 @@
 같은 작업에서 kakao_send.py 등이 먼저 토큰을 바꿨다면 .kakao_rt 파일의 새 값을 씁니다.
 """
 import os, sys, json, datetime, subprocess, urllib.request, urllib.parse, urllib.error
-
 VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))  # 카카오가 같은 주소의 이미지를 캐시하므로 실행마다 다른 주소
+
 S = json.load(open(sys.argv[1], encoding='utf-8'))
 P = S.get('post')
 if not P:
@@ -23,14 +23,17 @@ cut = lambda s, n=9: s if len(s) <= n else s[:n] + '…'
 fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
        'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%',
        'op': lambda v: f'{v / 1e12:,.1f}조' if abs(v) >= 1e12 else f'{v / 1e8:,.0f}억'}
-NAME = {'opm': ('영업이익률 TOP', 'opm'), 'roe': ('ROE TOP', 'roe'), 'growth': ('매출 성장률 TOP', 'gr'),
+QP = S.get('qp') or ''
+NAME = {'q_gr': (f'{QP} 매출 증가율 TOP', 'q_gr'), 'q_opg': (f'{QP} 영업이익 증가율 TOP', 'q_opg'), 'q_opm': (f'{QP} 영업이익률 TOP', 'q_opm'),
+        'q_turn': (f'{QP} 흑자전환', 'q_op'), 'q_low_debt': (f'{QP}말 부채비율 낮은 기업', 'q_dr'),
+        'opm': ('영업이익률 TOP', 'opm'), 'roe': ('ROE TOP', 'roe'), 'growth': ('매출 성장률 TOP', 'gr'),
         'opg': ('영업이익 증가율 TOP', 'opg'), 'low_debt': ('부채비율 낮은 기업', 'dr'), 'turn': ('흑자전환 기업', 'op')}
 
 
 def compose(n):
     t, k = NAME[P['keys'][0]]
-    L = [f"📊 기업재무 | {t}", f"{S['fy']} 사업연도 · 상장사 매출 상위 500", '']
-    L += [f"{i}. {cut(x['name'])} {fmt[k](x[k])}" for i, x in enumerate(R[P['keys'][0]][:n], 1)]
+    L = [f"📊 기업재무 | {t}", (f"{S.get('qspan')} 실적" if P['keys'][0].startswith('q_') else f"{S['fy']} 사업연도") + " · 상장사 매출 상위 500", '']
+    L += [f"{i}. {cut(x['name'])} {fmt[k.replace('q_', '')](x[k])}" for i, x in enumerate(R[P['keys'][0]][:n], 1)]
     L += ['', f'👉 {link}']
     return '\n'.join(L)
 
