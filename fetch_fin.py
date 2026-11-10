@@ -4,7 +4,7 @@
 대상: 코스피+코스닥 보통주 시가총액 상위 500 (스팩 제외)
 결과: fin_data.json (build_fin.py 입력), fin_cache.json (재무 캐시, 저장소에 커밋해서 다음 실행에 재사용)
 """
-import os, sys, json, time, datetime, urllib.request, urllib.parse
+import os, sys, json, time, datetime, urllib.request, urllib.parse, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 
 KEY = os.environ['DATA_GO_KR_KEY'].strip()
@@ -20,18 +20,37 @@ RETRY_EMPTY_DAYS = 14         # 재무가 비어 있던 회사는 2주 뒤 다�
 FIN_KW = ('금융', '은행', '보험', '증권', '생명', '화재', '캐피탈', '카드', '손해', '투자', '신탁', '리츠')
 
 
+UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+      'Accept': 'application/json, */*'}
+
+
+def raw_get(url, **p):
+    """(HTTP 상태, 본문 앞부분) - 진단용. 키는 찍지 않음"""
+    q = urllib.parse.urlencode({'serviceKey': KEY, 'resultType': 'json', **p})
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url + '?' + q, headers=UA), timeout=60) as r:
+            return r.status, r.read()[:300].decode('utf-8', 'replace')
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()[:300].decode('utf-8', 'replace')
+    except Exception as e:
+        return 0, f'{type(e).__name__} {e}'
+
+
 def call(url, **p):
     """한 페이지 호출 → (items, totalCount). 실패 시 None"""
     q = urllib.parse.urlencode({'serviceKey': KEY, 'resultType': 'json', **p})
-    for a in range(6):
+    for a in range(4):
         try:
-            with urllib.request.urlopen(url + '?' + q, timeout=60) as r:
+            with urllib.request.urlopen(urllib.request.Request(url + '?' + q, headers=UA), timeout=60) as r:
                 body = json.loads(r.read().decode('utf-8', 'replace'))['response']
             if body['header'].get('resultCode') not in ('00', '0', '000'):
                 raise RuntimeError(body['header'].get('resultMsg'))
             b = body.get('body') or {}
             items = (b.get('items') or {}).get('item') or []
             return ([items] if isinstance(items, dict) else items), int(b.get('totalCount') or 0)
+        except urllib.error.HTTPError as e:
+            err = e
+            if e.code in (401, 403): break      # 권한 문제는 재시도해도 같음
         except Exception as e:
             err = e
         time.sleep(1 + a)
@@ -52,6 +71,13 @@ def call_all(url, **p):
 
 num = lambda v: None if v in (None, '', '-') else int(float(str(v).replace(',', '')))
 code6 = lambda s: (s or '')[-6:]
+
+# 0. 진단: API 3종에 한 번씩 호출해서 응답 상태를 남김 (403 이면 본문에 이유가 있음)
+_d = (today - datetime.timedelta(days=4)).strftime('%Y%m%d')
+for _name, _url, _p in [('주식시세', PRICE, {'basDt': _d}), ('상장종목', LIST, {'basDt': _d}), ('재무', SUMM, {'crno': '1301110006246', 'bizYear': str(today.year - 1)}),
+                        ('(비교) 국토부 실거래', 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev', {'LAWD_CD': '11110', 'DEAL_YMD': today.strftime('%Y%m')})]:
+    _c, _b = raw_get(_url, numOfRows=1, pageNo=1, **_p)
+    print(f'[진단] {_name}: HTTP {_c} | {" ".join(_b.split())[:160]}')
 
 # 1. 최근 영업일 시세 (전 영업일 자료는 다음 영업일 오후에 올라오므로 며칠 거슬러 찾기)
 basDt = None
