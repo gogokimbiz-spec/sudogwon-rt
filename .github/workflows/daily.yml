@@ -111,6 +111,9 @@ jobs:
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
+      - name: 인스타 게시용 페이지 만들기 (/insta/)
+        continue-on-error: true
+        run: python build_insta.py site
       - name: 카드 이미지 보관 (블로그 대표 이미지용)
         continue-on-error: true
         run: |
@@ -178,11 +181,18 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment2.outputs.page_url }}
     outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }}
+      page_url: ${{ steps.deployment.outputs.page_url || steps.deployment2.outputs.page_url }}
     steps:
+      # GitHub Pages 쪽 일시 오류("Deployment failed, try again later")가 가끔 나서, 실패하면 1분 뒤 한 번 더 시도
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment2
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
   notify:
     needs: [build, deploy]
