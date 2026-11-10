@@ -30,6 +30,7 @@ WHITE = (255, 255, 255)
 INK, INK2, LINE, ORANGE = T['ink'], T['ink2'], T['line'], T['accent']
 UP, DOWN = T.get('up', (240, 68, 82)), T.get('down', (49, 130, 246))
 BRAND = '데이터로 보는 재테크'
+IG = '@data_jaetech'   # 모든 카드 하단 오른쪽에 들어가는 인스타 아이디
 
 
 def canvas():
@@ -85,4 +86,9 @@ def cta(d, F, msg):
 
 
 def footer(d, F, text):
-    d.text((64, SH - 46), f'{BRAND} · {text}', font=F(22, 'Regular'), fill=T['ink2'])
+    """하단 한 줄: 왼쪽 '브랜드 · 출처', 오른쪽 인스타 아이디. 겹치면 왼쪽 글씨를 줄임"""
+    hf = F(24); hw = d.textlength(IG, font=hf)
+    d.text((W - 64 - hw, SH - 48), IG, font=hf, fill=T['ink'])
+    left = f'{BRAND} · {text}'; size = 22
+    while size > 16 and d.textlength(left, font=F(size, 'Regular')) > W - 64 - 64 - hw - 24: size -= 1
+    d.text((64, SH - 46 + (22 - size) // 2), left, font=F(size, 'Regular'), fill=T['ink2'])

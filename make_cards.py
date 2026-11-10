@@ -55,7 +55,7 @@ total = len(items) + 2
 
 def footer(d, i, dark=True):
     c = MUTED if dark else INK2
-    d.text((72, H - 78), BRAND, font=F(28, 'Medium'), fill=c)
+    d.text((72, H - 78), f'{BRAND} · @data_jaetech', font=F(28, 'Medium'), fill=c)
     t = f'{i} / {total}'
     d.text((W - 72 - d.textlength(t, font=F(28, 'Medium')), H - 78), t, font=F(28, 'Medium'), fill=c)
 
