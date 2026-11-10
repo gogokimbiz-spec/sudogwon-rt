@@ -51,16 +51,13 @@ r1 = S.get('rank1') or []
 done = [x for x in (S.get('last_week') or []) if 'rate' in x]
 done.sort(key=lambda x: -x['rate'])
 
-im = Image.new('RGB', (W, SH), CREAM); d = ImageDraw.Draw(im)
-d.rectangle((0, 0, W, 300), fill=NAVY)
-lab = f'{w0.month}.{w0.day} ~ {w1.month}.{w1.day} 1순위 접수'; lw = d.textlength(lab, font=F(32))
-rr(d, (64, 56, 64 + lw + 44, 110), 27, fill=RED); d.text((86, 62), lab, font=F(32), fill=WHITE)
-d.text((64, 136), '이번 주 수도권 청약', font=F(78, 'Black'), fill=WHITE)
-cnt = f'{len(r1)}곳'
-d.text((W - 64 - d.textlength(cnt, font=F(110, 'Black')), 128), cnt, font=F(110, 'Black'), fill=RED)
-d.text((64, 248), '분양가 3.3㎡당 · 주변 신축 대비 비싸면 빨강, 싸면 파랑', font=F(28, 'Medium'), fill=MUTED)
+import card_style as C                                 # 공통 디자인 (밝은 화이트·오렌지형)
+im, d = C.canvas()
+INK, INK2, RED, BLUE = C.INK, C.INK2, C.UP, C.DOWN
+C.header(d, F, f'{w0.month}.{w0.day} ~ {w1.month}.{w1.day} 1순위 접수', '이번 주 수도권 청약', f'{len(r1)}곳',
+         '분양가 3.3㎡당 · 주변 신축 대비 비싸면 빨강, 싸면 파랑')
 
-top, bottom = 330, SH - 170
+top, bottom = 340, SH - 170
 n_last = min(3, len(done)) if len(r1) <= 4 else 0       # 접수 단지가 적으면 지난주 결과도 같이
 rows_ = r1[:7 - n_last] if r1 else []
 if len(r1) > len(rows_): bottom -= 40                 # '외 N곳' 안내 자리
@@ -70,11 +67,10 @@ y = top
 if not rows_:
     d.text((64, y + 20), '이번 주 1순위 접수 단지가 없어요', font=F(44, 'Black'), fill=INK); y += 110
 for x in rows_:
-    rr(d, (40, y, W - 40, y + rh - 14), 22, fill=WHITE)
+    C.row_box(d, y, rh - 14)
     cy = y + (rh - 14) // 2
-    reg = city(x['region']); pf = F(26); pw = d.textlength(reg, font=pf)
-    rr(d, (64, cy - 50, 64 + pw + 28, cy - 12), 19, fill=NAVY); d.text((78, cy - 49), reg, font=pf, fill=WHITE)
-    nmf = F(38, 'Black'); nx = 64 + pw + 44
+    cw = C.chip(d, F, 64, cy - 52, city(x['region']))
+    nmf = F(38, 'Black'); nx = 64 + cw + 14
     d.text((nx, cy - 57), fit(d, x['name'], nmf, W - 64 - nx - 280), font=nmf, fill=INK)
     sub = f"{md(x['date'])} 접수 · 일반 {x.get('general') or x.get('units') or '-'}세대" + (f" · {x['kind']}" if x.get('kind') else '')
     d.text((64, cy + 2), sub, font=F(27, 'Medium'), fill=INK2)
@@ -89,23 +85,20 @@ if n_last:
     d.text((64, y + 6), '지난주 1순위 경쟁률', font=F(34, 'Black'), fill=INK)
     y += 70
     for x in done[:n_last]:
-        rr(d, (40, y, W - 40, y + rh - 14), 22, fill=WHITE)
+        C.row_box(d, y, rh - 14)
         cy = y + (rh - 14) // 2
-        reg = city(x['region']); pf = F(26); pw = d.textlength(reg, font=pf)
-        rr(d, (64, cy - 19, 64 + pw + 28, cy + 19), 19, fill=NAVY); d.text((78, cy - 18), reg, font=pf, fill=WHITE)
+        cw = C.chip(d, F, 64, cy - 20, city(x['region']))
         rt = f"{x['rate']:.1f} : 1"; rf = F(44, 'Black'); rw = d.textlength(rt, font=rf)
         st = x.get('status', ''); sf = F(26, 'Medium'); sw = d.textlength(st, font=sf)
-        nx = 64 + pw + 44
+        nx = 64 + cw + 14
         d.text((nx, cy - 26), fit(d, x['name'], F(34, 'Black'), W - 64 - nx - rw - sw - 40), font=F(34, 'Black'), fill=INK)
         d.text((W - 64 - rw, cy - 32), rt, font=rf, fill=BLUE if st == '미달' else RED)
         d.text((W - 64 - rw - 20 - sw, cy - 14), st, font=sf, fill=INK2)
         y += rh
 more = len(r1) - len(rows_)
 if more > 0: d.text((64, y + 2), f'외 {more}곳은 프로필 링크에서', font=F(28, 'Medium'), fill=INK2)
-rr(d, (40, SH - 150, W - 40, SH - 60), 45, fill=NAVY)
-msg = '청약 일정·지도 → 프로필 링크'
-d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 136), msg, font=F(38), fill=WHITE)
-d.text((64, SH - 46), f'{BRAND} · 자료 청약홈 · 분양가 단위 만원 · 청약 전 모집공고 확인', font=F(22, 'Regular'), fill=INK2)
+C.cta(d, F, '청약 일정·지도 → 프로필 링크')
+C.footer(d, F, '자료 청약홈 · 분양가 단위 만원 · 청약 전 모집공고 확인')
 im.save(os.path.join(OUT, 'single.png'))
 shutil.copy(os.path.join(OUT, 'single.png'), os.path.join(OUT, 'latest.png'))
 

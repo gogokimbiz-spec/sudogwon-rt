@@ -137,44 +137,37 @@ cap += ['', '※ 신고가: 같은 단지·같은 면적의 최근 6개월 거�
 open(os.path.join(OUT, 'caption.txt'), 'w', encoding='utf-8').write('\n'.join(cap))
 print(f'카드 {total}장 생성 → {OUT}')
 
-# ── 한 장 요약 이미지 (1080×1350, 인스타 세로 4:5) – 남색 기본 디자인 ─────────────────
-SH = 1350
-im = Image.new('RGB', (W, SH), CREAM); d = ImageDraw.Draw(im)
-d.rectangle((0, 0, W, 300), fill=NAVY)
-lab = f'{LBS} 계약'; lw = d.textlength(lab, font=F(32))
-rr(d, (64, 56, 64 + lw + 44, 110), 27, fill=RED); d.text((86, 62), lab, font=F(32), fill=WHITE)
-d.text((64, 136), f'수도권 아파트 {title_word}', font=F(78, 'Black'), fill=WHITE)
+# ── 한 장 요약 이미지 (1080×1350, 인스타 세로 4:5) – card_style.py 공통 디자인 ─────────────────
+import card_style as C
+im, d = C.canvas(); SH = C.SH
 cnt = f"{len(nh) if nh else len(items)}건"
-d.text((W - 64 - d.textlength(cnt, font=F(110, 'Black')), 128), cnt, font=F(110, 'Black'), fill=RED)
-d.text((64, 248), '같은 단지·같은 면적 최근 6개월 최고가 경신' if nh else '이 날 거래가 높은 순', font=F(28, 'Medium'), fill=MUTED)
+C.header(d, F, f'{LBS} 계약', f'수도권 아파트 {title_word}', cnt,
+         '같은 단지·같은 면적 최근 6개월 최고가 경신' if nh else '이 날 거래가 높은 순')
 rows_ = items[:7]
-top, bottom = 330, SH - 170
+top, bottom = 340, SH - 170
 if nh and len(nh) > len(rows_): bottom -= 40          # '외 N건' 안내 자리
 rh = min(128, (bottom - top) // max(1, len(rows_)))
 y = top
 for k, t in enumerate(rows_):
-    rr(d, (40, y, W - 40, y + rh - 14), 22, fill=WHITE)
+    C.row_box(d, y, rh - 14)
     cy = y + (rh - 14) // 2
     reg = t['region'].split(' ')[-1] if t['region'].split(' ')[0] in ('서울', '인천') else t['region'].split(' ')[0]
-    pf = F(26); pw = d.textlength(reg, font=pf)
-    rr(d, (64, cy - 50, 64 + pw + 28, cy - 12), 19, fill=NAVY); d.text((78, cy - 49), reg, font=pf, fill=WHITE)
-    nmf = F(40, 'Black'); maxw = W - 64 - (64 + pw + 44) - 300   # 가격과 겹치지 않도록
+    cw = C.chip(d, F, 64, cy - 52, reg)
+    nmf = F(40, 'Black'); nx = 64 + cw + 14; maxw = W - 64 - nx - 300   # 가격과 겹치지 않도록
     nm = t['apt']
     while d.textlength(nm, font=nmf) > maxw and len(nm) > 4: nm = nm.rstrip('…')[:-1] + '…'
-    d.text((64 + pw + 44, cy - 58), nm, font=nmf, fill=INK)
-    d.text((64, cy + 2), f"전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년", font=F(27, 'Medium'), fill=INK2)
+    d.text((nx, cy - 58), nm, font=nmf, fill=C.INK)
+    d.text((64, cy + 4), f"전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년", font=F(27, 'Medium'), fill=C.INK2)
     pr = man(t['price_man']); pfnt = F(50, 'Black')
-    d.text((W - 64 - d.textlength(pr, font=pfnt), cy - 60), pr, font=pfnt, fill=RED if t.get('new_high') else INK)
+    d.text((W - 64 - d.textlength(pr, font=pfnt), cy - 60), pr, font=pfnt, fill=C.INK)
     if t.get('new_high'):
         diff = t['price_man'] - t['prev_high_man']; pct = diff / t['prev_high_man'] * 100
         sub = f"▲{man_unit(diff)} (+{pct:.1f}%)"; sf = F(28)
-        d.text((W - 64 - d.textlength(sub, font=sf), cy + 4), sub, font=sf, fill=RED)
+        d.text((W - 64 - d.textlength(sub, font=sf), cy + 4), sub, font=sf, fill=C.UP)
     y += rh
 more = (len(nh) - len(rows_)) if nh else 0
-if more > 0: d.text((64, y + 2), f'외 {more}건은 프로필 링크에서', font=F(28, 'Medium'), fill=INK2)
-rr(d, (40, SH - 150, W - 40, SH - 60), 45, fill=NAVY)
-msg = '우리 동네 실거래가 → 프로필 링크'
-d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 136), msg, font=F(38), fill=WHITE)
-d.text((64, SH - 46), f'{BRAND} · 자료 국토교통부 실거래가 공개시스템 · 가격 단위 만원', font=F(22, 'Regular'), fill=INK2)
+if more > 0: d.text((64, y + 2), f'외 {more}건은 프로필 링크에서', font=F(28, 'Medium'), fill=C.INK2)
+C.cta(d, F, '우리 동네 실거래가 → 프로필 링크')
+C.footer(d, F, '자료 국토교통부 실거래가 공개시스템 · 가격 단위 만원')
 im.save(os.path.join(OUT, 'single.png'))
 print('한 장 요약 이미지 → single.png')

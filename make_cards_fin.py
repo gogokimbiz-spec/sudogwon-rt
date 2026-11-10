@@ -60,8 +60,10 @@ THEME = {'opm': ('영업이익률 TOP', 'opm', 'op', '매출 대비 영업이익
 
 R = S['rank']
 
-im = Image.new('RGB', (W, SH), CREAM); d = ImageDraw.Draw(im)
-d.rectangle((0, 0, W, 300), fill=NAVY)
+import card_style as C                                 # 공통 디자인 (밝은 화이트·오렌지형)
+im, d = C.canvas()
+INK, INK2, RED, BLUE = C.INK, C.INK2, C.UP, C.DOWN
+bd = datetime.date.fromisoformat(S['basDt'][:10]) if S.get('basDt') else datetime.date.today()
 if P['kind'] == 'rank':
     key = P['keys'][0]; t, k1, k2, sub = THEME[key]
     pill = f"{S['fy']} 사업연도 · 상장사 매출 상위 500"
@@ -70,23 +72,15 @@ if P['kind'] == 'rank':
 else:
     pill = f'{bd.month}.{bd.day} 종가 · 시총 상위 500'
     head, big, sub = '저평가 지표', 'PER·PBR', '숫자가 낮을수록 이익·자산 대비 주가가 낮음'
-lw = d.textlength(pill, font=F(32))
-rr(d, (64, 56, 64 + lw + 44, 110), 27, fill=RED); d.text((86, 62), pill, font=F(32), fill=WHITE)
-d.text((64, 136), head, font=F(78, 'Black'), fill=WHITE)
-if big:
-    bf = F(110 if len(big) <= 3 else 72, 'Black')
-    d.text((W - 64 - d.textlength(big, font=bf), 128 if len(big) <= 3 else 150), big, font=bf, fill=GOLD)
-d.text((64, 248), sub + (' · 금융업 제외' if P['kind'] == 'rank' else ''), font=F(28, 'Medium'), fill=MUTED)
+C.header(d, F, pill, head, big, sub + (' · 금융업 제외' if P['kind'] == 'rank' else ''))
 
 
 def row(y, rh, i, x, k1, k2):
     z = min(1.0, rh / 116)                      # 줄이 많으면 글자를 조금 작게
-    rr(d, (40, y, W - 40, y + rh - 10), 20, fill=WHITE)
+    C.row_box(d, y, rh - 10)
     cy = y + (rh - 10) // 2
-    n = str(i); bs = int(28 * z) + 4
-    rr(d, (60, cy - bs, 60 + 2 * bs, cy + bs), 14, fill=NAVY if i > 3 else RED)
-    nf2 = F(int(32 * z), 'Black')
-    d.text((60 + bs - d.textlength(n, font=nf2) / 2, cy - int(24 * z)), n, font=nf2, fill=WHITE)
+    bs = int(28 * z) + 4
+    C.badge(d, F, 60, cy, i, bs, i <= 3)
     v1 = Fm(k1, x[k1]); vf = F(int(46 * z), 'Black'); vw = d.textlength(v1, font=vf)
     d.text((W - 64 - vw, cy - int(32 * z)), v1, font=vf, fill=RED if k1 in ('opm', 'gr', 'op') else BLUE)
     mk = '코스피' if x['market'] == 'KOSPI' else '코스닥'
@@ -95,7 +89,7 @@ def row(y, rh, i, x, k1, k2):
     d.text((nx, cy + int(6 * z)), f"{mk} · 매출 {won(x['sales'])}" + ('' if k2 == 'sales' else f" · {LAB[k2]} {Fm(k2, x[k2])}"), font=F(int(26 * z), 'Medium'), fill=INK2)
 
 
-top, bottom = 330, SH - 170
+top, bottom = 340, SH - 170
 if P['kind'] == 'rank':
     rows = R[key][:10]
     rh = (bottom - top) // max(7, len(rows))
@@ -110,10 +104,8 @@ else:
         d.text((64, y), t, font=F(34, 'Black'), fill=INK); y += 58
         for i, x in enumerate(R[key][:5], 1):
             row(y, rh, i, x, k1, k2); y += rh
-rr(d, (40, SH - 150, W - 40, SH - 60), 45, fill=NAVY)
-msg = '500곳 전체 순위 → 프로필 링크'
-d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 136), msg, font=F(38), fill=WHITE)
-d.text((64, SH - 46), f'{BRAND} · 자료 금융위원회 · 참고용 데이터이며 투자 권유가 아닙니다', font=F(22, 'Regular'), fill=INK2)
+C.cta(d, F, '500곳 전체 순위 → 프로필 링크')
+C.footer(d, F, '자료 금융위원회 · 참고용 데이터이며 투자 권유가 아닙니다')
 im.save(os.path.join(OUT, 'single.png'))
 shutil.copy(os.path.join(OUT, 'single.png'), os.path.join(OUT, 'latest.png'))
 print('기업재무 카드 →', os.path.join(OUT, 'single.png'))
