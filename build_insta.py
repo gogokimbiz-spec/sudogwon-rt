@@ -54,18 +54,21 @@ if S:
                              images=imgs('cards', car), alt=imgs('cards', ['single.png']),
                              caption=trim_tags(cap, 7, '아파트')))
 
-# ── 2. 청약 (월: 이번 주 / 수: 이번 주 남은 청약 / 금: 다음 주 청약)
+# ── 2. 청약 (월: 이번 주 청약 1장 / 수: 줍줍·로또·결과 캐러셀 cards_wed / 금: 단지분석 캐러셀 cards_sat)
 CY = load('cheongyak/summary.json')
-CYV = {0: ('이번 주 청약', 'single.png', 'caption.txt'), 2: ('이번 주 남은 청약', 'mid.png', 'caption_mid.txt'),
-       4: ('다음 주 청약', 'next.png', 'caption_next.txt')}
+CYV = {0: ('이번 주 청약', 'cheongyak/cards', ['single.png']),
+       2: ('줍줍·로또 청약', 'cheongyak/cards_wed', None),
+       4: ('청약 단지분석', 'cheongyak/cards_sat', None)}
 if CY:
     order = ([WD] if WD in CYV else []) + ([0] if WD != 0 else [])   # 오늘 것, 없으면 월요일 것을 미리보기로
     for wd in order:
-        title, img, capf = CYV[wd]
-        c_ = read(f'cheongyak/cards/{capf}'); im_ = imgs('cheongyak/cards', [img])
+        title, folder, names = CYV[wd]
+        if names is None:
+            names = sorted(os.path.basename(x) for x in glob.glob(os.path.join(SITE, folder, '[0-9][0-9].png')))
+        c_ = read(f'{folder}/caption.txt'); im_ = imgs(folder, names)
         if c_ and im_:
             sections.append(dict(key='cy', title=title, when='월·수·금', today=(wd == WD),
-                                 guide='사진 1장 선택 → 캡션 붙여넣기', images=im_, alt=[], caption=trim_tags(c_, 7)))
+                                 guide=f'사진 {len(im_)}장 선택 → 캡션 붙여넣기', images=im_, alt=[], caption=trim_tags(c_, 7)))
             break
 
 # ── 3. 기업재무 (화·금, 재무 글이 있는 날)
@@ -79,15 +82,20 @@ if FN and FN.get('post') and fin_img:
            'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%',
            'op': lambda v: f'{v / 1e12:,.1f}조' if abs(v) >= 1e12 else f'{v / 1e8:,.0f}억'}
     key = FN['post']['keys'][0]
-    t, k, tag = NAME.get(key, (key, key, '기업분석'))
+    q = key.startswith('q_')                      # 분기(누적) 순위: q_opm, q_gr … → 값도 q_ 필드
+    t, k, tag = NAME.get(key[2:] if q else key, (key, key, '기업분석'))
+    vk = ('q_' + k) if q else k
     rows = (FN.get('rank') or {}).get(key, [])[:10]
-    L = [f"📊 {t} 10 | {FN.get('fy', '')} 사업연도", '상장사 매출 상위 500곳 기준', '']
+    if q:
+        L = [f"📊 {FN.get('qp', '')} {t} 10", f"{FN.get('qspan', '')} 기준 · 상장사 매출 상위 500곳", '']
+    else:
+        L = [f"📊 {t} 10 | {FN.get('fy', '')} 사업연도", '상장사 매출 상위 500곳 기준', '']
     for i, x in enumerate(rows, 1):
-        try: L.append(f"{i}. {x['name']} {fmt[k](x[k])}")
+        try: L.append(f"{i}. {x['name']} {fmt[k](x[vk])}")
         except Exception: L.append(f"{i}. {x.get('name', '')}")
-    L += ['', '※ 금융업은 비율 순위에서 제외', '자료: 금융위원회 기업 재무정보 · 참고용 정보이며 투자 권유가 아닙니다',
+    L += ['', '※ 금융업은 비율 순위에서 제외', ('자료: 금융감독원 DART 정기보고서' if q else '자료: 금융위원회 기업 재무정보') + ' · 참고용 정보이며 투자 권유가 아닙니다',
           '', '500곳 전체 표는 프로필 링크에서 👆', '',
-          ' '.join([BRAND_TAG, '#기업분석', '#재테크', f'#{tag}', '#상장사'])]
+          ' '.join(dict.fromkeys([BRAND_TAG, '#기업분석', '#재테크', f'#{tag}', '#상장사']))]
     sections.append(dict(key='fin', title='기업재무 순위', when='화·금', today=WD in (1, 4),
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=fin_img, alt=[], caption='\n'.join(L)))
 

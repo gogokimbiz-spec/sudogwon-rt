@@ -1,6 +1,6 @@
 """인스타그램 자동 게시 (GitHub Actions insta.yml, 매일 07:55 KST – 새벽 daily 가 만든 posts.json 사용).
 - build_insta.py 가 만든 insta/posts.json(오늘 올릴 게시물, JPEG 주소, 캡션)을 사이트에서 받아 올립니다.
-  실거래: 매일 캐러셀 / 청약: 월·수·토 / 기업재무: 화·금
+  실거래: 매일 캐러셀 / 청약: 월·수·금 / 기업재무: 화·금
 - 같은 게시물이 이미 올라가 있으면(최근 게시물 캡션 첫 줄이 같으면) 건너뜁니다 → 수동 재실행해도 중복 없음
 - 토큰 자동 갱신: 실행할 때마다 장기 토큰(60일)을 새로 받아 IG_TOKEN Secret 에 저장 (GH_TOKEN 필요)
 필요한 Secret: IG_USER_ID, IG_TOKEN / 선택: GH_PAT(GH_TOKEN 으로 전달)
