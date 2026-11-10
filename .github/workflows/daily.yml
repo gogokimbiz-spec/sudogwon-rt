@@ -97,7 +97,7 @@ jobs:
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/index.html -o site/fin/index.html || true
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/summary.json -o site/fin/summary.json || true
           fi
-      - name: 기업재무 카드 이미지 만들기 (화·금)
+      - name: 기업재무 카드 이미지 만들기 (화·목)
         if: steps.fin.outcome == 'success'
         continue-on-error: true
         run: |
@@ -166,7 +166,7 @@ jobs:
           if [ "$M" = "none" ]; then echo '오늘은 청약 글이 없는 요일입니다'; exit 0; fi
           [ "$M" = "mon" ] && { python fetch_news_cy.py site/cheongyak/summary.json || echo '청약 뉴스 단계 실패 - 뉴스 없이 계속'; }
           python post_blogger_cy.py site/cheongyak/summary.json --mode=$M
-      - name: 기업재무 블로그 글 (화·금)
+      - name: 기업재무 블로그 글 (화·목)
         if: steps.fin.outcome == 'success'
         continue-on-error: true
         env:
@@ -230,7 +230,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python3 telegram_send.py summary.json
-      - name: 청약 카톡 (월·수)
+      - name: 청약 카톡 (월·수·금)
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
@@ -241,18 +241,18 @@ jobs:
         run: |
           M="${{ inputs.cy_post }}"
           if [ -z "$M" ] || [ "$M" = "none" ]; then
-            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 3) M=wed;; *) M=none;; esac
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 3) M=wed;; 5) M=fri;; *) M=none;; esac
           fi
-          if [ "$M" = "mon" ] || [ "$M" = "wed" ]; then
+          if [ "$M" = "mon" ] || [ "$M" = "wed" ] || [ "$M" = "fri" ]; then
             curl -sf "${{ needs.deploy.outputs.page_url }}cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json
             python3 kakao_send_cy.py cy_summary.json --mode=$M
             if [ "$M" = "mon" ]; then
               TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}" python3 telegram_send.py cy_summary.json --cy || echo '청약 텔레그램 실패'
             fi
           else
-            echo '월·수가 아니라 청약 카톡은 건너뜁니다'
+            echo '월·수·금이 아니라 청약 카톡은 건너뜁니다'
           fi
-      - name: 기업재무 카톡 (화·금)
+      - name: 기업재무 카톡 (화·목)
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
