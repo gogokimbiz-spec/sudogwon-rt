@@ -41,21 +41,23 @@ def region(a, ar):
 # 실거래 시세 (최근 180일, 해제 제외): 법정동, 시군구 전체, 시군구 신축(10년 이내 준공)
 tr = [r for r in rt['trade'] if r[8] != 'O' and r[4] > 0 and r[6] > 0 and r[0] in codes]
 last = max(r[1] for r in tr)
-cut = (datetime.date.fromisoformat(last) - datetime.timedelta(180)).isoformat()
+cut_d = (datetime.date.fromisoformat(last) - datetime.timedelta(180)).isoformat()
 NEWY = datetime.date.fromisoformat(today).year - 10
 byU, byR, byN = {}, {}, {}
 for code, date, apt, umd, area, fl, price, by, cd in tr:
-    if date < cut: continue
+    if date < cut_d: continue
     pp = price / area * PY; ri = codes.index(code)
     byU.setdefault((ri, umd), []).append(pp); byR.setdefault(ri, []).append(pp)
     if by >= NEWY: byN.setdefault(ri, []).append(pp)
 med = lambda a: round(statistics.median(a)) if a and len(a) >= 10 else None
 
 P, skip = [], []
+RAW = {}
 for c in cy['items']:
     rg = region(c.get('addr'), c['area'])
     if rg not in NM: skip.append(c['nm']); continue
     ri = NM.index(rg)
+    RAW[c['pb']] = c
     umd = next((t for t in re.findall(r'[가-힣]+\d?(?:동|가)\d?', c.get('addr') or '') if (ri, t) in byU), None)
     ty = [dict(ty=t[0], ex=float(t[0][:7]) if re.match(r'\d{3}\.', t[0]) else None, g=t[2], s=t[3], p=t[4], a1=t[5], a2=t[6], gp=t[7], res=t[8]) for t in c['ty']]
     pw = [(t['p'], t['ex'], t['g'] + t['s']) for t in ty if t['p'] and t['ex']]
@@ -104,16 +106,75 @@ def card(p, extra=None):
     return d
 inw = lambda s: s and w0 <= s[:10] <= w1
 first = lambda p: (p['r1'] or p['sp'] or '')[:10]
-n0, n1 = (W0 + datetime.timedelta(7)).isoformat(), (W0 + datetime.timedelta(13)).isoformat()   # 다음 주 월~일 (금요일 인스타용)
-inn = lambda s: s and n0 <= s[:10] <= n1
 summary = {'asof': today, 'week': [w0, w1],
            'rank1': [card(p, {'date': p['r1'][:10], 'sp_date': (p['sp'] or '')[:10]}) for p in sorted([p for p in P if inw(p['r1']) or inw(p['sp'])], key=first)],
            'winners': [card(p, {'date': p['win'][:10]}) for p in sorted([p for p in P if inw(p['win'])], key=lambda p: p['win'])],
            'contracts': [card(p, {'date': p['ct'][:10]}) for p in P if inw(p['ct'])],
            'last_week': [card(p, {'date': p['r1'][:10]}) for p in sorted([p for p in P if p['r1'] and p0 <= p['r1'][:10] < w0 and p['hasc']],
                                                                           key=lambda p: -(p['a1'] / p['g'] if p['g'] else 0))],
-           'next_week': [card(p, {'date': (p['r1'] or p['sp'])[:10], 'sp_date': (p['sp'] or '')[:10]}) for p in sorted([p for p in P if inn(p['r1']) or (not p['r1'] and inn(p['sp']))], key=first)],
-           'next_range': [n0, n1],
            'total': len(P)}
+# ── 요일별 글 재료 (수: 줍줍·로또·결과 / 금·토: 단지분석)
+DD = datetime.timedelta
+WED = W0 + DD(2); WED = WED if T0 >= WED else WED - DD(7)        # 기준 수요일 (월·화는 지난 수요일)
+FRI = W0 + DD(4); FRI = FRI if T0 >= FRI else FRI - DD(7)        # 기준 금요일 (월~목은 지난 금요일)
+iso = lambda d: d.isoformat()
+zw0, zw1 = iso(WED), iso(WED + DD(6))                            # 줍줍: 수요일 ~ 다음 주 화요일 접수
+def base_name(n): return re.sub(r'\(.*?\)|\s*\d+차$|조합원\s*취소분', '', n).strip()
+def orig_of(nm):
+    b = base_name(nm)
+    return next((p for p in sorted(P, key=lambda p: p['ann'], reverse=True) if b and (b in p['nm'] or base_name(p['nm']) in b) and len(base_name(p['nm'])) >= 4), None)
+zz = []
+for r in cy.get('remndr') or []:
+    if not (r['r1'] >= zw0 and r['r0'] <= zw1): continue
+    o = orig_of(r['nm'])
+    rg = region(r.get('addr'), r['area'])
+    prices = [t[2] for t in r['ty'] if t[2]]
+    zz.append({'name': r['nm'], 'region': rg if rg in NM else r['area'], 'kind': r['kind'], 'units': r['size'], 'r0': r['r0'], 'r1': r['r1'], 'win': r['win'],
+               'p_min': min(prices) if prices else None, 'p_max': max(prices) if prices else None,
+               'areas': sorted({round(float(t[0][:7])) for t in r['ty'] if re.match(r'\d{3}\.', t[0])}),
+               'orig_pp': o['unit'] if o else None, 'orig_gap': gap(o) if o else None, 'url': r.get('url') or ''})
+zz.sort(key=lambda x: (x['r0'], x['r1']))
+c6 = iso(T0 - DD(182))
+cheap = sorted([p for p in P if p['ann'] >= c6 and p['k'] == '민영' and gap(p) is not None], key=gap)[:5]
+cut = {}
+for p in P:
+    c = RAW[p['pb']]
+    if p['ann'] < c6 or p['k'] != '민영': continue
+    for t in c['ty']:
+        if not t[7] or not t[7][0] or not re.match(r'\d{3}\.', t[0]): continue
+        e = float(t[0][:7]); bnd = '60㎡ 이하' if e < 60 else '60~85㎡' if e < 86 else None
+        if bnd: cut.setdefault(c['area'], {}).setdefault(bnd, []).append(t[7])
+cutline = {a: {b: {'min_med': round(statistics.median(x[0] for x in v)), 'avg': round(statistics.mean(x[2] for x in v)), 'n': len(v)} for b, v in d.items()} for a, d in cut.items()}
+res0, res1 = iso(WED - DD(7)), iso(WED - DD(1))
+results = [card(p, {'date': p['r1'][:10]}) for p in sorted([p for p in P if p['r1'] and res0 <= p['r1'][:10] <= res1 and p['hasc'] and p['g']],
+                                                       key=lambda p: -(p['a1'] / p['g']))]
+results = [x for x in results if 'rate' in x]
+# 단지분석: 기준 금요일 전 7일 안에 당첨자 발표(가점 공개)가 난 민영 단지 중 1순위 접수가 가장 많은 곳
+def pick_from(lo, hi, key, gmin):
+    cs = [p for p in P if p['k'] == '민영' and p['hasc'] and p['g'] >= gmin and p.get(key) and lo <= p[key][:10] <= hi]
+    return max(cs, key=lambda p: p['a1']) if cs else None
+pk = pick_from(iso(FRI - DD(7)), iso(FRI - DD(1)), 'win', 100) or pick_from(iso(FRI - DD(14)), iso(FRI - DD(1)), 'r1', 50) \
+     or pick_from(iso(FRI - DD(30)), iso(FRI - DD(1)), 'r1', 1)
+pick = None
+if pk:
+    c = RAW[pk['pb']]
+    near = {}
+    for code, date, apt, umd, area, fl, price, by, cd in tr:
+        if code != codes[pk['r']] or umd != pk['umd'] or by < NEWY or date < cut_d: continue
+        n = near.setdefault(apt, {'apt': apt, 'built': by, 'n': 0, 'p59': [], 'p84': []}); n['n'] += 1
+        if 57 <= area < 61: n['p59'].append(price)
+        if 82 <= area < 86: n['p84'].append(price)
+    near = sorted(near.values(), key=lambda x: -x['n'])[:5]
+    for n in near:
+        n['m59'], n['n59'] = (round(statistics.median(n['p59'])) if n['p59'] else None), len(n['p59'])
+        n['m84'], n['n84'] = (round(statistics.median(n['p84'])) if n['p84'] else None), len(n['p84'])
+        del n['p59'], n['p84']
+    pick = card(pk, {'pb': pk['pb'], 'addr': pk['ad'], 'ann': pk['ann'], 'sp': pk['sp'], 'r1': pk['r1'], 'r2': pk['r2'], 'win': pk['win'], 'ct': pk['ct'],
+                     'move': pk['mv'], 'note': pk['nt'], 'ref_new': pk['refN'], 'ref_umd': pk['refU'],
+                     'types': [[t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]] for t in c['ty']],   # 주택형, 공급면적, 일반, 특공, 분양가, 1순위, 2순위, [가점 최저·최고·평균]
+                     'sp_stat': c.get('sp_stat'), 'near': near})
+summary.update({'wed': iso(WED), 'zz_range': [zw0, zw1], 'zz': zz, 'cheap5': [card(p, {'ann': p['ann']}) for p in cheap],
+                'cutline': cutline, 'results': results, 'results_range': [res0, res1], 'fri': iso(FRI), 'pick': pick})
+print('수요일 줍줍', len(zz), '· 로또', len(cheap), '· 결과', len(results), '/ 금요일 단지분석:', pick and pick['name'])
 json.dump(summary, open(out_sum, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print('built', out_html, len(html), 'bytes; 이번 주 접수', len(summary['rank1']), '당첨발표', len(summary['winners']), '지난주 결과', len(summary['last_week']))

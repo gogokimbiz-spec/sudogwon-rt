@@ -1,7 +1,8 @@
-"""청약 주간 요약(cheongyak/summary.json)으로 구글 블로거에 주간 글을 올립니다 (GitHub Actions 용).
+"""청약 요약(cheongyak/summary.json)으로 구글 블로거에 요일별 청약 글을 올립니다 (GitHub Actions 용).
+  --mode=mon 월: 이번 주 청약 일정 / --mode=wed 수: 줍줍·로또 청약 + 결과 / --mode=fri 금: 단지분석
 필요한 환경변수: BLOGGER_BLOG_ID, BLOGGER_CLIENT_ID, BLOGGER_CLIENT_SECRET, BLOGGER_REFRESH_TOKEN (실거래 글과 같은 값)
 선택: SITE_URL (사이트 주소), ADSENSE_CLIENT, ADSENSE_SLOT
-사용법: python post_blogger_cy.py site/cheongyak/summary.json [--dry]
+사용법: python post_blogger_cy.py site/cheongyak/summary.json --mode=mon|wed|fri [--dry]
 """
 import os, sys, json, datetime, urllib.request, urllib.parse, html
 
@@ -11,6 +12,7 @@ if not DRY and not all(env.values()):
     print('블로거 설정값이 없어 게시를 건너뜁니다.'); sys.exit(0)
 SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/cheongyak/'
 S = json.load(open(sys.argv[1], encoding='utf-8'))
+MODE = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--mode=')), 'mon')
 esc = html.escape
 
 def man(v):
@@ -81,20 +83,32 @@ if ad_client and ad_slot:
                  f'<ins class="adsbygoogle" style="display:block" data-ad-client="{ad_client}" data-ad-slot="{ad_slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>'
                  '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
 lw = S['last_week']
-if lw:
+if lw and MODE == 'mon' and os.environ.get('CY_MON_LASTWEEK'):  # 결과는 수요일 글로 옮김
     rows = ''.join(f"<tr><td {TD}>{esc(x['region'])}</td><td {TD}>{name(x)}</td><td {TDR}>{rate(x)}<br><small>{x.get('apps', 0):,}건</small></td><td {TDR}>{man(x['pp_man'])}{gap(x)}</td></tr>" for x in lw)
     parts.append(f"<h3>지난주 1순위 결과 {len(lw)}곳</h3><table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>1순위 경쟁률</th><th {THR}>3.3㎡당</th></tr>{rows}</table>"
                  '<p><small>1순위 접수 건수 ÷ 일반공급 세대수(특별공급 제외). 2순위까지 일반공급에 못 미친 주택형이 있으면 미달로 표시합니다.</small></p>')
+parts.append('<p style="background:#f3f6fb;border-radius:8px;padding:10px 12px;font-size:14px">📅 이번 주 청약 시리즈 · <b>수요일</b> 줍줍·로또 청약과 결과 · <b>금요일</b> 단지분석이 이어서 올라옵니다.</p>')
 parts.append('<hr><p><small>자료: 한국부동산원 청약홈 APT 분양정보·경쟁률, 국토교통부 실거래가 공개시스템. '
              '청약 신청 전에는 반드시 입주자모집공고를 확인하세요. 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+LABELS = ['수도권 청약', '아파트 분양', '청약 경쟁률']
+if MODE in ('wed', 'fri'):
+    import cy_posts                                          # 수·금 글 본문 (같은 폴더)
+    title, parts, LABELS = cy_posts.build(MODE, S, dict(T=T, TH=TH, THR=THR, TD=TD, TDR=TDR, man=man, md=md, esc=esc, name=name, rate=rate, gap=gap, cta=cta,
+                                                        SITE=SITE, RT_SITE=RT_SITE))
+    if ad_client and ad_slot:                                 # 광고는 본문 중간(두 번째 표 앞)
+        parts.insert(min(4, len(parts) - 1), f'<div style="margin:24px 0"><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ad_client}" crossorigin="anonymous"></script>'
+                     f'<ins class="adsbygoogle" style="display:block" data-ad-client="{ad_client}" data-ad-slot="{ad_slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>'
+                     '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
+    news = []
 # 대표 이미지 (블로그 목록 썸네일·공유 미리보기용) – daily.yml 이 저장소 cards/ 에 보관한 날짜별 이미지
-_key = S['week'][0]
+_key = {'mon': S['week'][0], 'wed': f"{S.get('wed')}_wed", 'fri': f"{S.get('fri')}_fri"}[MODE]
 if os.path.exists(f'cards/cy/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'):
     _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/cy/{_key}.png"
     _has_img = True
     parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
-# 이번 주 청약 당첨운 타로 (대표 이미지 바로 아래)
+# 이번 주 청약 당첨운 타로 (대표 이미지 바로 아래, 월요일 글만)
 try:
+    if MODE != 'mon': raise RuntimeError('월요일 글에만 넣음')
     from tarot import today_card, blog_html
     _t = today_card(w0, 'cy')
     parts.insert((1 if news else 0) + (1 if '_has_img' in globals() else 0),
@@ -104,23 +118,29 @@ except Exception as _e:
 content = ''.join(parts)
 
 if DRY:
-    open('post_preview_cy.html', 'w', encoding='utf-8').write(f'<meta charset="utf-8"><h1>{esc(title)}</h1>' + content); print(title); sys.exit(0)
+    open(f'post_preview_cy_{MODE}.html', 'w', encoding='utf-8').write(f'<meta charset="utf-8"><h1>{esc(title)}</h1>' + content); print(title); sys.exit(0)
 
 tok = json.load(urllib.request.urlopen('https://oauth2.googleapis.com/token', urllib.parse.urlencode({
     'client_id': env['BLOGGER_CLIENT_ID'], 'client_secret': env['BLOGGER_CLIENT_SECRET'],
     'refresh_token': env['BLOGGER_REFRESH_TOKEN'], 'grant_type': 'refresh_token'}).encode()))['access_token']
 H = {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json; charset=utf-8'}
 API = f"https://www.googleapis.com/blogger/v3/blogs/{env['BLOGGER_BLOG_ID']}/posts"
-key = f"({w0.month}.{w0.day}~"
+# 같은 글이 이미 있으면 새로 만들지 않고 고칩니다 (월: 주간 날짜 / 수: '줍줍' + 주차 / 금: 단지명)
+if MODE == 'mon':
+    key, tag = f"({w0.month}.{w0.day}~", '청약 일정'
+elif MODE == 'wed':
+    key, tag = title.split(' 줍줍')[0], '줍줍'
+else:
+    key, tag = (S.get('pick') or {}).get('name', title), '단지분석'
 q = urllib.request.Request(API + '/search?' + urllib.parse.urlencode({'q': '수도권 청약', 'fetchBodies': 'false'}), headers=H)
 items = json.load(urllib.request.urlopen(q)).get('items', [])
-same = [p for p in items if key in p.get('title', '') and '[수도권 청약]' in p.get('title', '') and p.get('published', '')[:4] == str(w0.year)]
-body = json.dumps({'title': title, 'content': content, 'labels': ['수도권 청약', '아파트 분양', '청약 경쟁률']}).encode()
+same = [p for p in items if key in p.get('title', '') and tag in p.get('title', '') and '[수도권 청약' in p.get('title', '') and p.get('published', '')[:4] == str(w0.year)]
+body = json.dumps({'title': title, 'content': content, 'labels': LABELS}).encode()
 if same:
     r = urllib.request.urlopen(urllib.request.Request(f"{API}/{same[0]['id']}", data=body, headers=H, method='PUT'))
 else:
     r = urllib.request.urlopen(urllib.request.Request(API, data=body, headers=H, method='POST'))
 post = json.load(r)
 print('게시 완료:', post.get('url'))
-S['blog_url'] = post.get('url')
+S[{'mon': 'blog_url', 'wed': 'blog_url_wed', 'fri': 'blog_url_fri'}[MODE]] = post.get('url')
 json.dump(S, open(sys.argv[1], 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

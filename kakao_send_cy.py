@@ -14,6 +14,7 @@ if not DRY and not all(K.values()):
 SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/cheongyak/'
 VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))  # 카카오가 같은 주소의 이미지를 캐시하므로 실행마다 다른 주소
 S = json.load(open(sys.argv[1], encoding='utf-8'))
+MODE = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--mode=')), 'mon')   # mon: 이번 주 청약 / wed: 줍줍·로또·결과
 
 D = lambda s: datetime.date.fromisoformat(s[:10])
 WD = '월화수목금토일'
@@ -28,7 +29,7 @@ def city(r):
     return p[0]
 cut = lambda s, n=11: s if len(s) <= n else s[:n] + '…'
 w0, w1 = D(S['week'][0]), D(S['week'][1])
-link = S.get('blog_url') or SITE
+link = (S.get('blog_url_wed') if MODE == 'wed' else S.get('blog_url')) or SITE
 r1, lw = S['rank1'], S['last_week']
 def compose(nshow, with_news, with_last=True):
     L = [f"🏗 수도권 청약 | {w0.month}.{w0.day}~{w1.month}.{w1.day}", f"접수 {len(r1)}곳 · 당첨발표 {len(S['winners'])}곳"]
@@ -46,8 +47,35 @@ def compose(nshow, with_news, with_last=True):
         L += ['', f"🏆 지난주 최고 {city(top['region'])} {cut(top['name'], 9)} {top['rate']:.1f}:1" + (f" · 미달 {mi}곳" if mi else '')]
     L += ['', f'👉 {link}']
     return '\n'.join(L)
+def shortn(n, c):
+    import re as _r
+    n = _r.sub(r'^(서울|인천|경기)\s*', '', n)
+    return n[len(c):].strip() if n.startswith(c) else n
+def compose_wed(nshow, with_cheap=True, with_res=True):
+    zz, z0, z1 = S.get('zz') or [], *[D(x) for x in S['zz_range']]
+    L = [f"🔥 수도권 줍줍 | {z0.month}.{z0.day}~{z1.month}.{z1.day}", f"무순위·임의공급 {len(zz)}곳"]
+    if zz:
+        L.append('')
+        for x in zz[:nshow]:
+            c = city(x['region']); n = shortn(x['name'], c)
+            L.append(f"· {md(x['r0'])[:-3]} {c} {cut(n, 10)} {x['units']}세대")
+        if len(zz) > nshow: L.append(f"  외 {len(zz) - nshow}곳")
+    c5 = S.get('cheap5') or []
+    if with_cheap and c5:
+        L += ['', f"💰 시세보다 싼 분양 1위 {city(c5[0]['region'])} {cut(shortn(c5[0]['name'], city(c5[0]['region'])), 9)} {c5[0]['gap_new']}%"]
+    rs = S.get('results') or []
+    if with_res and rs:
+        mi = sum(1 for x in rs if x.get('status') == '미달')
+        L += ['', f"🏆 최고 경쟁률 {city(rs[0]['region'])} {cut(shortn(rs[0]['name'], city(rs[0]['region'])), 9)} {rs[0]['rate']:.1f}:1" + (f" · 미달 {mi}곳" if mi else '')]
+    L += ['', f'👉 {link}']
+    return '\n'.join(L)
+if MODE == 'wed':
+    compose = compose_wed
+    OPTS = [(3,), (2,), (2, True, False), (1, True, False), (1, False, False), (0, False, False)]
+else:
+    OPTS = [(3, True), (2, True), (1, True), (2, True, False), (1, True, False), (2, False), (1, False), (0, False, False)]
 # 카카오 텍스트 메시지는 200자 안팎이 넘으면 잘릴 수 있어 짧아질 때까지 줄입니다
-for opt in [(3, True), (2, True), (1, True), (2, True, False), (1, True, False), (2, False), (1, False), (0, False, False)]:
+for opt in OPTS:
     text = compose(*opt)
     if len(text) <= 200: break
 print(text, f'\n({len(text)}자)')
@@ -56,12 +84,13 @@ if DRY: sys.exit(0)
 tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', urllib.parse.urlencode({
     'grant_type': 'refresh_token', 'client_id': K['KAKAO_REST_KEY'], 'client_secret': K['KAKAO_CLIENT_SECRET'],
     'refresh_token': K['KAKAO_REFRESH_TOKEN']}).encode()))
-tpl = {'object_type': 'text', 'text': text, 'link': {'web_url': link, 'mobile_web_url': link}, 'button_title': '청약 일정 보기'}
+BTN = '줍줍 일정 보기' if MODE == 'wed' else '청약 일정 보기'
+tpl = {'object_type': 'text', 'text': text, 'link': {'web_url': link, 'mobile_web_url': link}, 'button_title': BTN}
 req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
                              data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(),
                              headers={'Authorization': 'Bearer ' + tok['access_token']})
 # 이미지가 있으면 글 메시지는 보내지 않고 이미지만 보냅니다 (이미지를 못 만든 날만 글로 대신 보냄)
-_card = SITE + 'cards/latest.png'
+_card = SITE + ('cards_wed/' if MODE == 'wed' else 'cards/') + 'latest.png'
 try: _has_card = urllib.request.urlopen(urllib.request.Request(_card, method='HEAD'), timeout=20).status == 200
 except Exception: _has_card = False
 if not _has_card:
@@ -72,15 +101,15 @@ if not _has_card:
 else:
     print('카드 이미지가 있어 글 메시지는 생략합니다')
 # 이번 주 청약 카드 이미지 (인스타그램용) 도 같이 보냅니다
-card = SITE + 'cards/latest.png'
+card = SITE + ('cards_wed/' if MODE == 'wed' else 'cards/') + 'latest.png'
 try: ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD'), timeout=20).status == 200
 except Exception: ok_img = False
 if ok_img:
-    feed = {'object_type': 'feed', 'content': {'title': f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})",
+    feed = {'object_type': 'feed', 'content': {'title': (f"이번 주 수도권 줍줍 {len(S.get('zz') or [])}곳" if MODE == 'wed' else f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})"),
             'description': '이미지를 눌러 크게 보기',
             'image_url': f"{card}?v={VER}", 'image_width': 1080, 'image_height': 1350,
             'link': {'web_url': link, 'mobile_web_url': link}},
-            'buttons': [{'title': '청약 일정 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+            'buttons': [{'title': BTN, 'link': {'web_url': link, 'mobile_web_url': link}}]}
     try:
         r2 = json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
              data=urllib.parse.urlencode({'template_object': json.dumps(feed, ensure_ascii=False)}).encode(),
