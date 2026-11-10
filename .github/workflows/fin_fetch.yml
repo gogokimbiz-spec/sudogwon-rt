@@ -29,9 +29,15 @@ jobs:
         shell: powershell
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
-        run: python fetch_fin.py
+        run: |
+          $py = @('C:\Program Files\Python314\python.exe','C:\Program Files\Python313\python.exe','C:\Program Files\Python312\python.exe','C:\Program Files\Python311\python.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1; if (-not $py) { $py = 'python' }; Write-Host "python: $py"
+          & $py fetch_fin.py
+          exit $LASTEXITCODE
       - name: 결과를 저장소에 올리기
         shell: powershell
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python save_fin.py
+        run: |
+          $py = @('C:\Program Files\Python314\python.exe','C:\Program Files\Python313\python.exe','C:\Program Files\Python312\python.exe','C:\Program Files\Python311\python.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1; if (-not $py) { $py = 'python' }; Write-Host "python: $py"
+          & $py save_fin.py
+          exit $LASTEXITCODE
