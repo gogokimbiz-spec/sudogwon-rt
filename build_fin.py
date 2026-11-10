@@ -50,7 +50,7 @@ def top(rows, key, rev, n=20):
 
 R = {
     'sales': top(C, 'sales', True),
-    'opm': top(nonfin, 'opm', True),
+    'opm': top([x for x in nonfin if (x['opm'] or 0) <= 100], 'opm', True),   # 지분법 이익이 큰 지주사(영업이익>매출) 제외
     'roe': top([x for x in nonfin if (x['ni'] or 0) > 0], 'roe', True),
     'growth': top(nonfin, 'gr', True),
     'opg': top(nonfin, 'opg', True),
