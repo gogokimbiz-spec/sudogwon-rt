@@ -26,18 +26,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 상장사 시세·재무 수집 (시총 상위 500)
-        shell: powershell
+        shell: cmd
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: |
-          $py = @('C:\Program Files\Python314\python.exe','C:\Program Files\Python313\python.exe','C:\Program Files\Python312\python.exe','C:\Program Files\Python311\python.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1; if (-not $py) { $py = 'python' }; Write-Host "python: $py"
-          & $py fetch_fin.py
-          exit $LASTEXITCODE
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          echo python: %PY%
+          "%PY%" fetch_fin.py
       - name: 결과를 저장소에 올리기
-        shell: powershell
+        shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $py = @('C:\Program Files\Python314\python.exe','C:\Program Files\Python313\python.exe','C:\Program Files\Python312\python.exe','C:\Program Files\Python311\python.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1; if (-not $py) { $py = 'python' }; Write-Host "python: $py"
-          & $py save_fin.py
-          exit $LASTEXITCODE
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          echo python: %PY%
+          "%PY%" save_fin.py
