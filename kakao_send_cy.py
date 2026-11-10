@@ -12,6 +12,7 @@ DRY = '--dry' in sys.argv
 if not DRY and not all(K.values()):
     print('카카오 설정값이 없어 전송을 건너뜁니다.'); sys.exit(0)
 SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/cheongyak/'
+VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))  # 카카오가 같은 주소의 이미지를 캐시하므로 실행마다 다른 주소
 S = json.load(open(sys.argv[1], encoding='utf-8'))
 
 D = lambda s: datetime.date.fromisoformat(s[:10])
@@ -77,7 +78,7 @@ except Exception: ok_img = False
 if ok_img:
     feed = {'object_type': 'feed', 'content': {'title': f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})",
             'description': '이미지를 눌러 크게 보기',
-            'image_url': f"{card}?d={S.get('asof', '')}", 'image_width': 1080, 'image_height': 1350,
+            'image_url': f"{card}?v={VER}", 'image_width': 1080, 'image_height': 1350,
             'link': {'web_url': link, 'mobile_web_url': link}},
             'buttons': [{'title': '청약 일정 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
     try:

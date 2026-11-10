@@ -8,6 +8,7 @@ K = {k: os.environ.get(k, '').strip() for k in ['KAKAO_REST_KEY', 'KAKAO_CLIENT_
 if not all(K.values()):
     print('카카오 설정값이 없어 전송을 건너뜁니다.'); sys.exit(0)
 SITE = os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/'
+VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))  # 카카오가 같은 주소의 이미지를 캐시하므로 실행마다 다른 주소
 S = json.load(open(sys.argv[1], encoding='utf-8'))
 
 def man(v):
@@ -79,7 +80,7 @@ if ok_img:
     feed = {'object_type': 'feed',
             'content': {'title': f"{LB} 수도권 아파트 " + (f"신고가 {nhn}건" if nhn else '거래가 TOP'),
                         'description': '이미지를 눌러 크게 보기',
-                        'image_url': f"{card}?d={S.get('asof', S['day'])}", 'image_width': 1080, 'image_height': 1350,
+                        'image_url': f"{card}?v={VER}", 'image_width': 1080, 'image_height': 1350,
                         'link': {'web_url': link, 'mobile_web_url': link}},
             'buttons': [{'title': '자세히 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
     req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',

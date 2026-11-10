@@ -5,6 +5,7 @@
 """
 import os, sys, json, datetime, subprocess, urllib.request, urllib.parse, urllib.error
 
+VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))  # 카카오가 같은 주소의 이미지를 캐시하므로 실행마다 다른 주소
 S = json.load(open(sys.argv[1], encoding='utf-8'))
 P = S.get('post')
 if not P:
@@ -63,7 +64,7 @@ try: ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD')
 except Exception: ok_img = False
 if ok_img:
     feed = {'object_type': 'feed', 'content': {'title': S.get('title') or text.split('\n')[0],
-            'description': '이미지를 눌러 크게 보기', 'image_url': f"{card}?d={S.get('day', '')}", 'image_width': 1080, 'image_height': 1350,
+            'description': '이미지를 눌러 크게 보기', 'image_url': f"{card}?v={VER}", 'image_width': 1080, 'image_height': 1350,
             'link': {'web_url': link, 'mobile_web_url': link}},
             'buttons': [{'title': '500곳 전체 표', 'link': {'web_url': SITE, 'mobile_web_url': SITE}}]}
     try:
