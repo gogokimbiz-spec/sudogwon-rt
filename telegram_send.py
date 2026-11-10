@@ -34,9 +34,10 @@ D = datetime.date.fromisoformat
 
 if not CY:
     d = D(S['day']); wd = '월화수목금토일'[d.weekday()]
+    LB = S.get('label') or f"{d.month}월 {d.day}일({wd})"
     blog = S.get('blog_url') or SITE
     bs = S['by_sido']
-    L = [f"<b>🏠 수도권 아파트 실거래 | {d.month}월 {d.day}일({wd})</b>",
+    L = [f"<b>🏠 수도권 아파트 실거래 | {LB}</b>",
          f"매매 {S['trade_count']}건 (서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}) · 전세 {S['jeonse_count']}건"]
     if S.get('news'):
         n = S['news']; L += ['', f"📰 <a href=\"{e(n['link'])}\">{e(n['title'])}</a> ({e(n.get('source', ''))})"]

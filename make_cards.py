@@ -44,6 +44,8 @@ def wrap(d, text, font, maxw):
 def rr(d, box, r, fill=None, outline=None, width=1): d.rounded_rectangle(box, r, fill=fill, outline=outline, width=width)
 
 day = datetime.date.fromisoformat(S['day']); wd = '월화수목금토일'[day.weekday()]
+LB = S.get('label') or f"{day.month}월 {day.day}일({wd})"
+LBS = LB.replace('(', ' (')
 nh = S.get('new_highs') or []
 items = nh[:8]
 title_word = '신고가' if nh else '거래가 TOP'
@@ -61,8 +63,8 @@ def footer(d, i, dark=True):
 im = Image.new('RGB', (W, H), NAVY); d = ImageDraw.Draw(im)
 for k in range(0, H, 6):  # 은은한 대각 그라데이션
     a = k / H; d.line([(0, k), (W, k)], fill=(int(NAVY[0] + (NAVY2[0] - NAVY[0]) * a), int(NAVY[1] + (NAVY2[1] - NAVY[1]) * a), int(NAVY[2] + (NAVY2[2] - NAVY[2]) * a)), width=6)
-rr(d, (72, 96, 72 + d.textlength(f'{day.month}월 {day.day}일 ({wd}) 계약', font=F(34)) + 48, 156), 30, fill=RED)
-d.text((96, 104), f'{day.month}월 {day.day}일 ({wd}) 계약', font=F(34), fill=WHITE)
+rr(d, (72, 96, 72 + d.textlength(f'{LBS} 계약', font=F(34)) + 48, 156), 30, fill=RED)
+d.text((96, 104), f'{LBS} 계약', font=F(34), fill=WHITE)
 d.text((72, 210), '수도권 아파트', font=F(64, 'Medium'), fill=(220, 230, 245))
 d.text((72, 290), f'오늘의 {title_word}', font=F(118, 'Black'), fill=WHITE)
 d.text((72, 430), f"{len(nh) if nh else len(items)}건", font=F(150, 'Black'), fill=RED)
@@ -128,7 +130,7 @@ im.save(os.path.join(OUT, f'{total:02d}.png'))
 # ── 게시 문구
 tags = ' '.join('#' + x for x in ['아파트실거래가', '신고가', '수도권아파트', '부동산', '아파트', '내집마련', '부동산정보'] +
                 list(dict.fromkeys(t['region'].split(' ')[-1] for t in items))[:5])
-cap = [f"🔺 {day.month}월 {day.day}일({wd}) 수도권 아파트 {title_word} {len(nh) if nh else len(items)}건", '']
+cap = [f"🔺 {LB} 수도권 아파트 {title_word} {len(nh) if nh else len(items)}건", '']
 cap += [f"· {t['region']} {t['apt']} {t['area']}㎡ {man_unit(t['price_man'])}원" + (f" (이전 {man_unit(t['prev_high_man'])})" if t.get('new_high') else '') for t in items]
 cap += ['', '※ 신고가: 같은 단지·같은 면적의 최근 6개월 거래 중 최고가 경신', '※ 계약 후 30일 안에 신고되므로 건수는 늘어날 수 있어요',
         '자료: 국토교통부 실거래가 공개시스템', '', '지역별 지도·전체 거래는 프로필 링크에서 👆', '', tags]
@@ -139,7 +141,7 @@ print(f'카드 {total}장 생성 → {OUT}')
 SH = 1350
 im = Image.new('RGB', (W, SH), CREAM); d = ImageDraw.Draw(im)
 d.rectangle((0, 0, W, 300), fill=NAVY)
-lab = f'{day.month}월 {day.day}일 ({wd}) 계약'; lw = d.textlength(lab, font=F(32))
+lab = f'{LBS} 계약'; lw = d.textlength(lab, font=F(32))
 rr(d, (64, 56, 64 + lw + 44, 110), 27, fill=RED); d.text((86, 62), lab, font=F(32), fill=WHITE)
 d.text((64, 136), f'수도권 아파트 {title_word}', font=F(78, 'Black'), fill=WHITE)
 cnt = f"{len(nh) if nh else len(items)}건"

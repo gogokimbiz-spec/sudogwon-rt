@@ -19,9 +19,10 @@ def man(v):
 short = lambda r: r.split(' ')[-1]
 esc = html.escape
 d = datetime.date.fromisoformat(S['day']); wd = '월화수목금토일'[d.weekday()]
+LB = S.get('label') or f"{d.month}월 {d.day}일({wd})"   # 월요일은 '11월 7~8일(주말)'
 nh = S.get('new_highs', [])
 bs = S['by_sido']
-title = f"[수도권 아파트 실거래] {d.year}년 {d.month}월 {d.day}일({wd}) 매매 {S['trade_count']}건" + (f" · 신고가 {len(nh)}건" if nh else '')
+title = f"[수도권 아파트 실거래] {S.get('label_full') or f'{d.year}년 {LB}'} 매매 {S['trade_count']}건" + (f" · 신고가 {len(nh)}건" if nh else '')
 
 T = 'style="border-collapse:collapse;width:100%;font-size:14px"'
 TH = 'style="text-align:left;border-bottom:2px solid #ccc;padding:6px 4px"'
@@ -83,7 +84,7 @@ if ad_client and ad_slot:
                  '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
 # 5. 전날 거래가 높은 순 20건
 parts.append(f"<h3>전날 거래가 높은 순 {min(20, len(S['day_trades']))}건</h3>"
-             f"<p><small>{d.month}월 {d.day}일 계약 매매 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세 {S['jeonse_count']}건. "
+             f"<p><small>{LB} 계약 매매 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세 {S['jeonse_count']}건. "
              "실거래는 계약 후 30일 안에 신고하므로 건수는 앞으로 늘어납니다.</small></p>")
 parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(S['day_trades'])}</table>")
 # 6. 최근 30일 상승·하락 5곳
@@ -129,7 +130,7 @@ H = {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json; charse
 API = f"https://www.googleapis.com/blogger/v3/blogs/{env['BLOGGER_BLOG_ID']}/posts"
 
 # 같은 날짜 글이 이미 있으면 새로 만들지 않고 고칩니다
-key = f"{d.year}년 {d.month}월 {d.day}일"
+key = (S.get('label_full') or f"{d.year}년 {d.month}월 {d.day}일").split('(')[0]
 q = urllib.request.Request(API + '/search?' + urllib.parse.urlencode({'q': key, 'fetchBodies': 'false'}), headers=H)
 items = json.load(urllib.request.urlopen(q)).get('items', [])
 same = [p for p in items if key in p.get('title', '') and '수도권 아파트 실거래' in p.get('title', '')]

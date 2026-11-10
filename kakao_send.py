@@ -28,8 +28,9 @@ def man2(v):  # 3.3㎡당 가격: 1억 2,768만 / 7,460만
     v = int(round(v)); e, m = divmod(v, 10000)
     return (f'{e}억 {m:,}만' if m else f'{e}억') if e else f'{m:,}만'
 d = datetime.date.fromisoformat(S['day']); wd = '월화수목금토일'[d.weekday()]
+LB = S.get('label') or f"{d.month}월 {d.day}일({wd})"
 link = S.get('blog_url') or SITE
-L = [f"🏠 수도권 아파트 실거래 | {d.month}월 {d.day}일({wd})", f"매매 {S['trade_count']}건 · 전세 {S['jeonse_count']}건", '']
+L = [f"🏠 수도권 아파트 실거래 | {LB}", f"매매 {S['trade_count']}건 · 전세 {S['jeonse_count']}건", '']
 if S.get('news'):
     L += [f"📰 {S['news']['title']}", '']
 nh = S.get('new_highs') or []
@@ -76,7 +77,7 @@ except Exception:
 if ok_img:
     nhn = len(S.get('new_highs') or [])
     feed = {'object_type': 'feed',
-            'content': {'title': f"{d.month}월 {d.day}일({wd}) 수도권 아파트 " + (f"신고가 {nhn}건" if nhn else '거래가 TOP'),
+            'content': {'title': f"{LB} 수도권 아파트 " + (f"신고가 {nhn}건" if nhn else '거래가 TOP'),
                         'description': '이미지를 눌러 크게 보기',
                         'image_url': f"{card}?d={S.get('asof', S['day'])}", 'image_width': 1080, 'image_height': 1350,
                         'link': {'web_url': link, 'mobile_web_url': link}},

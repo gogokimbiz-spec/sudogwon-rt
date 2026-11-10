@@ -45,9 +45,24 @@ open(out_html, 'w', encoding='utf-8').write(html)
 
 # 카카오 메시지용 요약: 마지막 계약일 거래 + 최근 30일 vs 직전 30일 변동
 maxd = max(x[1] for x in T)
-day = (d0 + datetime.timedelta(maxd)).isoformat()
-dayT = [x for x in T if x[1] == maxd]
-dayJ = [x for x in J if x[1] == maxd]
+WD = '월화수목금토일'
+# 월요일 실행이면 토·일 거래를 합친 '주말' 글 (일요일 실행에서 토요일 글을 이미 올리므로, 월요일에도 새 글이 생기도록)
+asof_d = datetime.date.fromisoformat(asof[:10])
+lo = hi = maxd
+if asof_d.weekday() == 0:
+    sat, sun = asof_d - datetime.timedelta(2), asof_d - datetime.timedelta(1)
+    if maxd >= di(sat.isoformat()):
+        lo, hi = di(sat.isoformat()), di(sun.isoformat())
+dfrom, dto = d0 + datetime.timedelta(lo), d0 + datetime.timedelta(hi)
+day = dto.isoformat()
+if lo == hi:
+    label = f"{dto.month}월 {dto.day}일({WD[dto.weekday()]})"
+elif dfrom.month == dto.month:
+    label = f"{dfrom.month}월 {dfrom.day}~{dto.day}일(주말)"
+else:
+    label = f"{dfrom.month}월 {dfrom.day}일~{dto.month}월 {dto.day}일(주말)"
+dayT = [x for x in T if lo <= x[1] <= hi]
+dayJ = [x for x in J if lo <= x[1] <= hi]
 by_sido = {s: sum(1 for x in dayT if codes[x[0]].startswith(s)) for s in ('11', '28', '41')}
 top = sorted(dayT, key=lambda x: -x[3])[:3]
 def chg(rows, a, b, pa, pb):
@@ -109,7 +124,7 @@ else:
     wcodes = list(dict.fromkeys(wcodes))
 watch = [{'region': names[c], 'pp_man': round(elig[c][0]), 'n': elig[c][1], 'chg': round(elig[c][2], 1)} for c in wcodes]
 period_start = datetime.date.fromordinal(period * watch_days)
-summary = {'asof': asof, 'day': day, 'trade_count': len(dayT), 'jeonse_count': len(dayJ), 'by_sido': by_sido,
+summary = {'asof': asof, 'day': day, 'day_from': dfrom.isoformat(), 'label': label, 'label_full': f'{dfrom.year}년 {label}', 'trade_count': len(dayT), 'jeonse_count': len(dayJ), 'by_sido': by_sido,
            'top_trades': [{'region': names[codes[x[0]]], 'apt': list(apts)[x[6]], 'area': round(x[2] / 10), 'price_man': x[3]} for x in top],
            'up3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[:3]],
            'down3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[::-1][:3]],

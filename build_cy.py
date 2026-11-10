@@ -86,10 +86,11 @@ if '--standalone' in sys.argv:
 os.makedirs(os.path.dirname(out_html) or '.', exist_ok=True)
 open(out_html, 'w', encoding='utf-8').write(html)
 
-# 주간 요약: 이번 주(오늘~6일 뒤) 일정 + 지난 7일 결과
+# 주간 요약: 이번 주(월~일) 일정 + 지난주(월~일) 1순위 결과
 T0 = datetime.date.fromisoformat(today)
-w0, w1 = today, (T0 + datetime.timedelta(6)).isoformat()
-p0 = (T0 - datetime.timedelta(7)).isoformat()
+W0 = T0 - datetime.timedelta(T0.weekday())   # 이번 주 월요일 (주간을 월~일로 고정)
+w0, w1 = W0.isoformat(), (W0 + datetime.timedelta(6)).isoformat()
+p0 = (W0 - datetime.timedelta(7)).isoformat()   # 지난주 월~일
 def gap(p):
     if not p['unit'] or re.search('토지임대|지분적립', p['nm']): return None
     ref = p['refN'] or p['refR']
@@ -107,7 +108,7 @@ summary = {'asof': today, 'week': [w0, w1],
            'rank1': [card(p, {'date': p['r1'][:10], 'sp_date': (p['sp'] or '')[:10]}) for p in sorted([p for p in P if inw(p['r1']) or inw(p['sp'])], key=first)],
            'winners': [card(p, {'date': p['win'][:10]}) for p in sorted([p for p in P if inw(p['win'])], key=lambda p: p['win'])],
            'contracts': [card(p, {'date': p['ct'][:10]}) for p in P if inw(p['ct'])],
-           'last_week': [card(p, {'date': p['r1'][:10]}) for p in sorted([p for p in P if p['r1'] and p0 <= p['r1'][:10] < today and p['hasc']],
+           'last_week': [card(p, {'date': p['r1'][:10]}) for p in sorted([p for p in P if p['r1'] and p0 <= p['r1'][:10] < w0 and p['hasc']],
                                                                           key=lambda p: -(p['a1'] / p['g'] if p['g'] else 0))],
            'total': len(P)}
 json.dump(summary, open(out_sum, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
