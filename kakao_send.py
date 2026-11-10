@@ -113,16 +113,6 @@ if ok_t:
         print('타로 전송 결과:', r3)
     except urllib.error.HTTPError as err:
         print('::warning::타로 전송 실패:', err.read().decode('utf-8', 'replace')[:300])
-# 인스타 게시용 페이지 링크만 따로 한 통 ("인스타용")
-INSTA = SITE.rstrip('/') + '/insta/'
-tpl_i = {'object_type': 'text', 'text': f'인스타용\n{INSTA}', 'link': {'web_url': INSTA, 'mobile_web_url': INSTA}, 'button_title': '인스타용'}
-try:
-    r4 = json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
-         data=urllib.parse.urlencode({'template_object': json.dumps(tpl_i, ensure_ascii=False)}).encode(),
-         headers={'Authorization': 'Bearer ' + tok['access_token']})))
-    print('인스타용 링크 전송 결과:', r4)
-except urllib.error.HTTPError as err:
-    print('::warning::인스타용 링크 전송 실패:', err.read().decode('utf-8', 'replace')[:300])
 new_rt = tok.get('refresh_token')
 if new_rt:
     open('.kakao_rt', 'w').write(new_rt)  # 같은 작업의 청약 알림이 새 토큰을 쓰도록
