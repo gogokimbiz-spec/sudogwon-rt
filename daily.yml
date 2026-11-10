@@ -231,14 +231,6 @@ jobs:
           else
             echo '월요일이 아니라 청약 카톡은 건너뜁니다'
           fi
-      - name: 인스타그램 자동 게시
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_TOKEN: ${{ secrets.IG_TOKEN }}
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: python3 post_instagram.py
       - name: 기업재무 카톡 (화·금)
         if: ${{ !cancelled() }}
         continue-on-error: true

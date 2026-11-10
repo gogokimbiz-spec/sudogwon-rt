@@ -1,4 +1,4 @@
-"""인스타그램 자동 게시 (GitHub Actions notify 잡, 사이트 배포 뒤 실행).
+"""인스타그램 자동 게시 (GitHub Actions insta.yml, 매일 07:55 KST – 새벽 daily 가 만든 posts.json 사용).
 - build_insta.py 가 만든 insta/posts.json(오늘 올릴 게시물, JPEG 주소, 캡션)을 사이트에서 받아 올립니다.
   실거래: 매일 캐러셀 / 청약: 월요일 / 기업재무: 화·금
 - 같은 게시물이 이미 올라가 있으면(최근 게시물 캡션 첫 줄이 같으면) 건너뜁니다 → 수동 재실행해도 중복 없음
