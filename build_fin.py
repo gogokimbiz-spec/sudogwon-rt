@@ -95,12 +95,12 @@ fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda 
        'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%', 'sales': won, 'op': won, 'ni': won}
 F = lambda k, v: '-' if v is None else fmt[k.replace('q_', '')](v)
 slim = lambda x: {k: x.get(k) for k in ('rank', 'name', 'market', 'stock', 'sales', 'op', 'ni', 'opm', 'roe', 'dr', 'gr', 'opg', 'fy', 'financial', 'q_sales', 'q_op', 'q_opm', 'q_gr', 'q_opg', 'q_dr')}
-# 오늘 올릴 글: 화·금요일, 주제를 돌아가며 (수동 실행 FIN_POST=none 이 아니면 오늘 주제로 게시)
+# 오늘 올릴 글: 화·목요일 (2026-11-10 금→목 변경), 주제를 돌아가며 (수동 실행 FIN_POST=none 이 아니면 오늘 주제로 게시)
 KST = datetime.timezone(datetime.timedelta(hours=9))
 today = datetime.datetime.now(KST).date()
 THEMES = ['q_gr', 'q_opg', 'q_opm', 'q_turn', 'q_low_debt', 'roe'] if QP and sum(1 for x in C if x['q_sales']) >= 300 else ['opm', 'roe', 'growth', 'low_debt', 'opg', 'turn']
 fp_env = os.environ.get('FIN_POST', '').strip()
-slot = {1: 0, 4: 1}.get(today.weekday())
+slot = {1: 0, 3: 1}.get(today.weekday())
 if slot is None and fp_env and fp_env != 'none': slot = 0
 post = None
 if slot is not None:
