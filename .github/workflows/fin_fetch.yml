@@ -25,7 +25,7 @@ jobs:
       PYTHONIOENCODING: 'utf-8'
     steps:
       - uses: actions/checkout@v4
-      - name: 상장사 시세·재무 수집 (시총 상위 500)
+      - name: 상장사 재무 수집 (매출 상위 500)
         shell: cmd
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
@@ -37,6 +37,17 @@ jobs:
           if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
           echo python: %PY%
           "%PY%" fetch_fin.py
+      - name: DART 분기 실적 붙이기
+        shell: cmd
+        env:
+          DART_KEY: ${{ secrets.DART_KEY }}
+        run: |
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          "%PY%" fetch_dart.py || echo DART step failed - annual data only
       - name: 결과를 저장소에 올리기
         shell: cmd
         env:
