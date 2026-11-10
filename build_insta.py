@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 청약: 월요일 / 기업재무: 화·금(오늘 재무 글이 있는 날)
+- 실거래: 매일 / 청약: 월·수·금 / 기업재무: 화·금(오늘 재무 글이 있는 날)
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -54,14 +54,19 @@ if S:
                              images=imgs('cards', car), alt=imgs('cards', ['single.png']),
                              caption=trim_tags(cap, 7, '아파트')))
 
-# ── 2. 청약 (월요일)
+# ── 2. 청약 (월: 이번 주 / 수: 이번 주 남은 청약 / 금: 다음 주 청약)
 CY = load('cheongyak/summary.json')
-cy_cap = read('cheongyak/cards/caption.txt')
-cy_img = imgs('cheongyak/cards', ['single.png'])
-if CY and cy_cap and cy_img:
-    sections.append(dict(key='cy', title='이번 주 청약', when='월요일', today=(WD == 0),
-                         guide='사진 1장 선택 → 캡션 붙여넣기', images=cy_img, alt=[],
-                         caption=trim_tags(cy_cap, 7)))
+CYV = {0: ('이번 주 청약', 'single.png', 'caption.txt'), 2: ('이번 주 남은 청약', 'mid.png', 'caption_mid.txt'),
+       4: ('다음 주 청약', 'next.png', 'caption_next.txt')}
+if CY:
+    order = ([WD] if WD in CYV else []) + ([0] if WD != 0 else [])   # 오늘 것, 없으면 월요일 것을 미리보기로
+    for wd in order:
+        title, img, capf = CYV[wd]
+        c_ = read(f'cheongyak/cards/{capf}'); im_ = imgs('cheongyak/cards', [img])
+        if c_ and im_:
+            sections.append(dict(key='cy', title=title, when='월·수·금', today=(wd == WD),
+                                 guide='사진 1장 선택 → 캡션 붙여넣기', images=im_, alt=[], caption=trim_tags(c_, 7)))
+            break
 
 # ── 3. 기업재무 (화·금, 재무 글이 있는 날)
 FN = load('fin/summary.json')

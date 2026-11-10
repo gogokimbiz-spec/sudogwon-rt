@@ -104,12 +104,16 @@ def card(p, extra=None):
     return d
 inw = lambda s: s and w0 <= s[:10] <= w1
 first = lambda p: (p['r1'] or p['sp'] or '')[:10]
+n0, n1 = (W0 + datetime.timedelta(7)).isoformat(), (W0 + datetime.timedelta(13)).isoformat()   # 다음 주 월~일 (금요일 인스타용)
+inn = lambda s: s and n0 <= s[:10] <= n1
 summary = {'asof': today, 'week': [w0, w1],
            'rank1': [card(p, {'date': p['r1'][:10], 'sp_date': (p['sp'] or '')[:10]}) for p in sorted([p for p in P if inw(p['r1']) or inw(p['sp'])], key=first)],
            'winners': [card(p, {'date': p['win'][:10]}) for p in sorted([p for p in P if inw(p['win'])], key=lambda p: p['win'])],
            'contracts': [card(p, {'date': p['ct'][:10]}) for p in P if inw(p['ct'])],
            'last_week': [card(p, {'date': p['r1'][:10]}) for p in sorted([p for p in P if p['r1'] and p0 <= p['r1'][:10] < w0 and p['hasc']],
                                                                           key=lambda p: -(p['a1'] / p['g'] if p['g'] else 0))],
+           'next_week': [card(p, {'date': (p['r1'] or p['sp'])[:10], 'sp_date': (p['sp'] or '')[:10]}) for p in sorted([p for p in P if inn(p['r1']) or (not p['r1'] and inn(p['sp']))], key=first)],
+           'next_range': [n0, n1],
            'total': len(P)}
 json.dump(summary, open(out_sum, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print('built', out_html, len(html), 'bytes; 이번 주 접수', len(summary['rank1']), '당첨발표', len(summary['winners']), '지난주 결과', len(summary['last_week']))
