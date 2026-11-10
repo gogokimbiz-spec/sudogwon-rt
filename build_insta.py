@@ -1,0 +1,176 @@
+"""인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
+사용법: python build_insta.py site
+- 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
+- 실거래: 매일 / 청약: 월요일 / 기업재무: 화·금(오늘 재무 글이 있는 날)
+- 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
+- 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
+- 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
+"""
+import sys, os, json, glob, html, datetime
+
+SITE = sys.argv[1]
+OUT = os.path.join(SITE, 'insta'); os.makedirs(OUT, exist_ok=True)
+KST = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(hours=9)
+TODAY = KST.date(); WD = TODAY.weekday()            # 0=월 … 6=일
+WDN = '월화수목금토일'[WD]
+VER = os.environ.get('GITHUB_RUN_ID') or KST.strftime('%Y%m%d%H%M')
+BRAND_TAG = '#데이터로보는재테크'
+
+
+def load(p):
+    try: return json.load(open(os.path.join(SITE, p), encoding='utf-8'))
+    except Exception: return None
+
+
+def read(p):
+    try: return open(os.path.join(SITE, p), encoding='utf-8').read().strip()
+    except Exception: return ''
+
+
+def trim_tags(cap, n_fixed, suffix=''):
+    """마지막 해시태그 줄을 5개로: 브랜드 + 앞쪽 주제 태그 2 + 데이터 태그(앞에서 n_fixed 개 이후) 2"""
+    lines = cap.split('\n')
+    if not lines or not lines[-1].lstrip().startswith('#'): return cap + '\n\n' + BRAND_TAG
+    tags = [t for t in lines[-1].split() if t.startswith('#')]
+    keep = [BRAND_TAG] + tags[:2] + [t if t.endswith(suffix) else t + suffix for t in tags[n_fixed:n_fixed + 2]]
+    lines[-1] = ' '.join(dict.fromkeys(keep))
+    return '\n'.join(lines)
+
+
+def imgs(folder, names):
+    return [f'{folder}/{n}' for n in names if os.path.exists(os.path.join(SITE, folder, n))]
+
+
+sections = []
+
+# ── 1. 실거래 (매일)
+S = load('summary.json')
+if S:
+    car = sorted(os.path.basename(p) for p in glob.glob(os.path.join(SITE, 'cards', '[0-9][0-9].png')))
+    cap = read('cards/caption.txt')
+    if car and cap:
+        sections.append(dict(key='rt', title='실거래 신고가', when='매일', today=True,
+                             guide=f'사진 {len(car)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기',
+                             images=imgs('cards', car), alt=imgs('cards', ['single.png']),
+                             caption=trim_tags(cap, 7, '아파트')))
+
+# ── 2. 청약 (월요일)
+CY = load('cheongyak/summary.json')
+cy_cap = read('cheongyak/cards/caption.txt')
+cy_img = imgs('cheongyak/cards', ['single.png'])
+if CY and cy_cap and cy_img:
+    sections.append(dict(key='cy', title='이번 주 청약', when='월요일', today=(WD == 0),
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=cy_img, alt=[],
+                         caption=trim_tags(cy_cap, 7)))
+
+# ── 3. 기업재무 (화·금, 재무 글이 있는 날)
+FN = load('fin/summary.json')
+fin_img = imgs('fin/cards', ['single.png'])
+if FN and FN.get('post') and fin_img:
+    NAME = {'opm': ('영업이익률 TOP', 'opm', '영업이익률'), 'roe': ('ROE TOP', 'roe', 'ROE'),
+            'growth': ('매출 성장률 TOP', 'gr', '매출성장'), 'opg': ('영업이익 증가율 TOP', 'opg', '영업이익'),
+            'low_debt': ('부채비율 낮은 기업', 'dr', '부채비율'), 'turn': ('흑자전환 기업', 'op', '흑자전환')}
+    fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
+           'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%',
+           'op': lambda v: f'{v / 1e12:,.1f}조' if abs(v) >= 1e12 else f'{v / 1e8:,.0f}억'}
+    key = FN['post']['keys'][0]
+    t, k, tag = NAME.get(key, (key, key, '기업분석'))
+    rows = (FN.get('rank') or {}).get(key, [])[:10]
+    L = [f"📊 {t} 10 | {FN.get('fy', '')} 사업연도", '상장사 매출 상위 500곳 기준', '']
+    for i, x in enumerate(rows, 1):
+        try: L.append(f"{i}. {x['name']} {fmt[k](x[k])}")
+        except Exception: L.append(f"{i}. {x.get('name', '')}")
+    L += ['', '※ 금융업은 비율 순위에서 제외', '자료: 금융위원회 기업 재무정보 · 참고용 정보이며 투자 권유가 아닙니다',
+          '', '500곳 전체 표는 프로필 링크에서 👆', '',
+          ' '.join([BRAND_TAG, '#기업분석', '#재테크', f'#{tag}', '#상장사'])]
+    sections.append(dict(key='fin', title='기업재무 순위', when='화·금', today=WD in (1, 4),
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=fin_img, alt=[], caption='\n'.join(L)))
+
+# ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)
+try:
+    from PIL import Image
+    IMG = os.path.join(OUT, 'img'); os.makedirs(IMG, exist_ok=True)
+    posts = []
+    for s in sections:
+        if not s['today']: continue
+        urls = []
+        for i, p in enumerate(s['images'][:10], 1):          # 캐러셀은 최대 10장
+            name = f"{s['key']}_{i:02d}.jpg"
+            Image.open(os.path.join(SITE, p)).convert('RGB').save(os.path.join(IMG, name), 'JPEG', quality=92)
+            urls.append(f'insta/img/{name}')
+        posts.append({'key': s['key'], 'title': s['title'], 'images': urls, 'caption': s['caption']})
+    json.dump({'day': TODAY.isoformat(), 'posts': posts}, open(os.path.join(OUT, 'posts.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    print(f'자동 게시용 posts.json: {len(posts)}건')
+except Exception as e:
+    print('::warning::자동 게시용 JPEG/posts.json 생성 실패:', e)
+
+# ── 페이지
+todo = [s for s in sections if s['today']]
+later = [s for s in sections if not s['today']]
+E = html.escape
+
+
+def card(s, idx):
+    ims = ''.join(f'<a class="im" href="../{p}?v={VER}" download="{s["key"]}_{TODAY:%m%d}_{i:02d}.png">'
+                  f'<img src="../{p}?v={VER}" loading="lazy" alt=""><span>{i}</span></a>'
+                  for i, p in enumerate(s['images'], 1))
+    alt = ''
+    if s['alt']:
+        p = s['alt'][0]
+        alt = (f'<details><summary>한 장짜리 요약 이미지로 올리기</summary>'
+               f'<a class="im one" href="../{p}?v={VER}" download="{s["key"]}_{TODAY:%m%d}_single.png">'
+               f'<img src="../{p}?v={VER}" loading="lazy" alt=""></a></details>')
+    return f'''
+<section class="card{' dim' if not s['today'] else ''}">
+  <div class="hd"><b>{E(s['title'])}</b><em>{E(s['when'])}</em></div>
+  <p class="guide">{E(s['guide'])}</p>
+  <div class="ims">{ims}</div>
+  <p class="tip">이미지를 길게 눌러 '사진에 저장' (PC는 클릭하면 저장)</p>
+  {alt}
+  <textarea id="c{idx}" readonly>{E(s['caption'])}</textarea>
+  <button onclick="cp('c{idx}', this)">캡션 복사</button>
+</section>'''
+
+
+body = ''.join(card(s, i) for i, s in enumerate(todo)) or '<p class="none">오늘 올릴 게시물이 없어요.</p>'
+if later:
+    body += '<h2>다른 요일 게시물 (미리보기)</h2>' + ''.join(card(s, i + 100) for i, s in enumerate(later))
+
+page = f'''<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>인스타 게시용 | 데이터로 보는 재테크</title>
+<style>
+:root{{--navy:#13233F;--red:#FF4D4F;--bg:#F4F6FA;--ink:#18202C;--ink2:#6B7685}}
+*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}}
+header{{background:var(--navy);color:#fff;padding:20px 16px}}header small{{opacity:.7}}header h1{{margin:4px 0 0;font-size:22px}}
+main{{max-width:640px;margin:0 auto;padding:12px 16px 40px}}
+.todo{{background:#fff;border-radius:14px;padding:12px 16px;margin:4px 0 12px;font-size:15px}}
+.card{{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.06)}}.dim{{opacity:.75}}
+.hd{{display:flex;justify-content:space-between;align-items:center}}.hd b{{font-size:19px}}
+.hd em{{font-style:normal;font-size:13px;background:var(--navy);color:#fff;border-radius:20px;padding:3px 10px}}
+.guide{{margin:6px 0 10px;color:var(--ink2);font-size:14px}}.tip{{margin:6px 0;color:var(--ink2);font-size:12px}}
+.ims{{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}}
+.im{{position:relative;flex:0 0 46%;display:block}}.im img{{width:100%;border-radius:10px;display:block;border:1px solid #e3e7ee}}
+.im span{{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;border-radius:10px;padding:1px 7px}}
+.im.one{{width:60%;margin-top:8px}}details{{margin:6px 0;font-size:14px;color:var(--ink2)}}
+textarea{{width:100%;height:180px;margin-top:8px;border:1px solid #dfe3ea;border-radius:10px;padding:10px;font-size:14px;line-height:1.5;font-family:inherit;resize:vertical}}
+button{{width:100%;margin-top:8px;padding:14px;border:0;border-radius:12px;background:var(--red);color:#fff;font-size:16px;font-weight:700}}
+h2{{font-size:15px;color:var(--ink2);margin:28px 0 4px}}.none{{text-align:center;color:var(--ink2);padding:40px 0}}
+footer{{text-align:center;color:var(--ink2);font-size:12px;padding:16px}}footer a{{color:inherit}}
+</style></head><body>
+<header><small>데이터로 보는 재테크 · 인스타 게시용</small><h1>{TODAY.month}월 {TODAY.day}일({WDN}) 올릴 게시물</h1></header>
+<main>
+<div class="todo">오늘 할 일: {' · '.join(E(s['title']) for s in todo) or '없음'}<br>
+<span style="color:var(--ink2);font-size:13px">① 이미지 저장 → ② 캡션 복사 → ③ 인스타에서 새 게시물</span></div>
+{body}
+</main>
+<footer>데이터로 보는 재테크 · <a href="https://sudogwon-rt.blogspot.com">블로그</a> · 이 페이지는 검색에 노출되지 않습니다</footer>
+<script>
+function cp(id,b){{var t=document.getElementById(id);
+ function ok(){{b.textContent='복사됐어요 ✓';setTimeout(function(){{b.textContent='캡션 복사'}},1500)}}
+ if(navigator.clipboard&&window.isSecureContext){{navigator.clipboard.writeText(t.value).then(ok,function(){{t.select();document.execCommand('copy');ok()}})}}
+ else{{t.select();document.execCommand('copy');ok()}}}}
+</script></body></html>'''
+open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(page)
+print(f'인스타 페이지 → {OUT}/index.html (오늘 {len(todo)}건: {", ".join(s["title"] for s in todo) or "없음"})')

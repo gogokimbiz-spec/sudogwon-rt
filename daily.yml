@@ -1,0 +1,252 @@
+name: 매일 실거래 갱신
+
+on:
+  schedule:
+    - cron: '11 20 * * *'   # 매일 05:11 KST
+  workflow_dispatch:         # Actions 탭에서 수동 실행
+    inputs:
+      cy_weekly:
+        description: '청약 주간 블로그 글·카톡도 지금 보내기'
+        type: boolean
+        default: false
+      fin_post:
+        description: '기업재무 글·카톡 지금 보내기 (rank=순위, value=저평가 지표)'
+        type: choice
+        options: ['none', 'rank', 'value']
+        default: 'none'
+
+permissions:
+  contents: write   # 카드 이미지 보관용
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 국토부 실거래 수집
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: python fetch.py
+      - name: 지도 페이지 만들기
+        env:
+          WATCH_DAYS: ${{ vars.WATCH_DAYS }}
+          WATCH_FIXED: ${{ vars.WATCH_FIXED }}
+        run: |
+          mkdir -p site
+          python build.py rt_data.json site/index.html site/summary.json --standalone
+          cp privacy.html site/ 2>/dev/null || true
+          [ -d unse ] && cp -r unse site/ || true   # 내 집 마련 타로
+          # 검색엔진 소유 확인 파일과 사이트맵 (있으면 같이 올림)
+          for f in google*.html naver*.html sitemap.xml robots.txt; do [ -f "$f" ] && cp "$f" site/ || true; done
+      - name: 오늘의 신고가 카드 이미지 만들기
+        continue-on-error: true
+        run: |
+          # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          python make_cards.py site/summary.json site/cards
+          cp site/cards/single.png site/cards/latest.png
+      - name: 시군구별 실거래가 페이지 만들기
+        continue-on-error: true
+        run: python build_regions.py rt_data.json site
+      - name: 청약홈 분양정보 수집
+        id: cy
+        continue-on-error: true
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: python fetch_cy.py
+      - name: 청약 지도 만들기
+        continue-on-error: true
+        run: |
+          mkdir -p site/cheongyak
+          if [ -f cy_data.json ]; then
+            python build_cy.py cy_data.json rt_data.json site/cheongyak/index.html site/cheongyak/summary.json --standalone
+          else
+            echo '::warning::청약홈 수집 실패 - 어제 청약 지도를 그대로 둡니다'
+            curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/index.html -o site/cheongyak/index.html || true
+            curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json -o site/cheongyak/summary.json || true
+          fi
+      - name: 상장사 재무 데이터 확인 (PC 실행기가 04:31 에 올린 것)
+        id: fin
+        continue-on-error: true
+        run: |
+          # 금융위원회 API 는 해외 접속이 막혀 있어 fin_fetch.yml 이 사장님 PC 에서 받아 저장소에 올립니다.
+          python -c "import json,datetime,sys;d=json.load(open('fin_data.json',encoding='utf-8'));t=(datetime.datetime.utcnow()+datetime.timedelta(hours=9)).date().isoformat();print('재무 데이터 기준', d['asof'], '/ 오늘', t);sys.exit(0 if d['asof']==t else 1)" \
+            || { echo '::warning::오늘 재무 데이터가 없습니다 (PC 꺼짐 등) - 어제 재무 페이지를 그대로 두고 재무 글·카톡은 건너뜁니다'; rm -f fin_data.json; exit 1; }
+      - name: 기업 재무 페이지 만들기
+        continue-on-error: true
+        env:
+          FIN_POST: ${{ inputs.fin_post }}
+        run: |
+          if [ -f fin_data.json ]; then
+            python build_fin.py fin_data.json site
+          else
+            echo '::warning::상장사 수집 실패 - 어제 재무 페이지를 그대로 둡니다'
+            mkdir -p site/fin
+            curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/index.html -o site/fin/index.html || true
+            curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/summary.json -o site/fin/summary.json || true
+          fi
+      - name: 기업재무 카드 이미지 만들기 (화·금)
+        if: steps.fin.outcome == 'success'
+        continue-on-error: true
+        run: |
+          # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          python make_cards_fin.py site/fin/summary.json site/fin/cards
+      - name: 이번 주 청약 카드 이미지 만들기
+        continue-on-error: true
+        run: |
+          # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
+      - name: 인스타 게시용 페이지 만들기 (/insta/)
+        continue-on-error: true
+        run: python build_insta.py site
+      - name: 카드 이미지 보관 (블로그 대표 이미지용)
+        continue-on-error: true
+        run: |
+          D=$(python -c "import json;print(json.load(open('site/summary.json'))['day'])")
+          mkdir -p cards/rt cards/cy cards/fin
+          if [ -f site/fin/cards/single.png ]; then
+            FD=$(python -c "import json;print(json.load(open('site/fin/summary.json'))['day'])") && cp site/fin/cards/single.png "cards/fin/$FD.png"
+          fi
+          [ -f site/cards/single.png ] && cp site/cards/single.png "cards/rt/$D.png"
+          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
+            W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''
+            [ -n "$W" ] && [ -f site/cheongyak/cards/single.png ] && cp site/cheongyak/cards/single.png "cards/cy/$W.png"
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cards
+          if ! git diff --cached --quiet; then
+            git commit -q -m "카드 이미지 $D"
+            git pull -q --rebase --autostash && git push -q
+          fi
+      - name: 청약 주간 블로그 글 (월요일)
+        if: steps.cy.outcome == 'success'
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: |
+          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
+            python fetch_news_cy.py site/cheongyak/summary.json || echo '청약 뉴스 단계 실패 - 뉴스 없이 계속'
+            python post_blogger_cy.py site/cheongyak/summary.json
+          else
+            echo '월요일이 아니라 청약 주간 글은 건너뜁니다'
+          fi
+      - name: 기업재무 블로그 글 (화·금)
+        if: steps.fin.outcome == 'success'
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger_fin.py site/fin/summary.json
+      - name: 오늘의 부동산 뉴스 고르기
+        run: python fetch_news.py site/summary.json || echo '뉴스 단계 실패 - 뉴스 없이 계속'
+      - name: 블로거에 오늘 글 올리기
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger.py site/summary.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment2.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url || steps.deployment2.outputs.page_url }}
+    steps:
+      # GitHub Pages 쪽 일시 오류("Deployment failed, try again later")가 가끔 나서, 실패하면 1분 뒤 한 번 더 시도
+      - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment2
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+  notify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 오늘 요약 받기
+        run: sleep 60; curl -sf "${{ needs.deploy.outputs.page_url }}summary.json?t=$(date +%s)" -o summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/summary.json?t=$(date +%s)" -o summary.json
+      - name: 카카오톡 나에게 보내기
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 kakao_send.py summary.json
+      - name: 텔레그램 채널에 올리기
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 telegram_send.py summary.json
+      - name: 청약 주간 카톡 (월요일)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
+            curl -sf "${{ needs.deploy.outputs.page_url }}cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json
+            python3 kakao_send_cy.py cy_summary.json
+            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}" python3 telegram_send.py cy_summary.json --cy || echo '청약 텔레그램 실패'
+          else
+            echo '월요일이 아니라 청약 카톡은 건너뜁니다'
+          fi
+      - name: 인스타그램 자동 게시
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 기업재무 카톡 (화·금)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "${{ needs.deploy.outputs.page_url }}fin/summary.json?t=$(date +%s)" -o fin_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/fin/summary.json?t=$(date +%s)" -o fin_summary.json
+          python3 kakao_send_fin.py fin_summary.json

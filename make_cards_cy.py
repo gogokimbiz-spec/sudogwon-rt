@@ -11,7 +11,7 @@ OUT = sys.argv[2]; os.makedirs(OUT, exist_ok=True)
 W, SH = 1080, 1350
 NAVY, WHITE, MUTED, RED, BLUE = (15, 39, 66), (255, 255, 255), (150, 170, 195), (255, 92, 92), (60, 120, 230)
 CREAM, INK, INK2 = (247, 248, 251), (20, 30, 45), (95, 108, 125)
-BRAND = '수도권 실거래 브리핑'
+BRAND = '데이터로 보는 재테크'
 
 def font_path(weight):
     for pat in [f'/usr/share/fonts/**/NotoSansCJK-{weight}.ttc', f'/usr/share/fonts/**/NotoSansCJKkr-{weight}.otf', f'/usr/share/fonts/**/*CJK*{weight}*']:

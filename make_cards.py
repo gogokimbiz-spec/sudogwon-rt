@@ -50,7 +50,7 @@ nh = S.get('new_highs') or []
 items = nh[:8]
 title_word = '신고가' if nh else '거래가 TOP'
 if not nh: items = (S.get('day_trades') or [])[:5]
-BRAND = '수도권 실거래 브리핑'
+BRAND = '데이터로 보는 재테크'
 total = len(items) + 2
 
 def footer(d, i, dark=True):
