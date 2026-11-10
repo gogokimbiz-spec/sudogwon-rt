@@ -96,7 +96,7 @@ if DRY: sys.exit(0)
 tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', urllib.parse.urlencode({
     'grant_type': 'refresh_token', 'client_id': K['KAKAO_REST_KEY'], 'client_secret': K['KAKAO_CLIENT_SECRET'],
     'refresh_token': K['KAKAO_REFRESH_TOKEN']}).encode()))
-BTN = {'wed': '줍줍 일정 보기', 'fri': '단지분석 보기'}.get(MODE, '청약 일정 보기')
+BTN = {'wed': '청약 결과·줍줍 보기', 'fri': '단지분석 보기'}.get(MODE, '청약 일정 보기')
 tpl = {'object_type': 'text', 'text': text, 'link': {'web_url': link, 'mobile_web_url': link}, 'button_title': BTN}
 req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
                              data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(),
@@ -117,7 +117,7 @@ card = SITE + ('cards_wed/' if MODE == 'wed' else 'cards_sat/' if MODE == 'fri' 
 try: ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD'), timeout=20).status == 200
 except Exception: ok_img = False
 if ok_img:
-    feed = {'object_type': 'feed', 'content': {'title': (f"이번 주 수도권 줍줍 {len(S.get('zz') or [])}곳" if MODE == 'wed' else f"단지분석 | {PK.get('name', '')}" if MODE == 'fri' else f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})"),
+    feed = {'object_type': 'feed', 'content': {'title': ((f"수도권 1순위 청약 결과 {len(S['results'])}곳" if [x for x in (S.get('results') or []) if 'rate' in x] else f"이번 주 수도권 줍줍 {len(S.get('zz') or [])}곳") if MODE == 'wed' else f"단지분석 | {PK.get('name', '')}" if MODE == 'fri' else f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})"),
             'description': '이미지를 눌러 크게 보기',
             'image_url': f"{card}?v={VER}", 'image_width': 1080, 'image_height': 1350,
             'link': {'web_url': link, 'mobile_web_url': link}},
