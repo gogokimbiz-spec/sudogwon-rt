@@ -17,26 +17,19 @@ if not DRY and not all(K.values()):
     print('카카오 설정값이 없어 전송을 건너뜁니다.'); sys.exit(0)
 SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/fin/'
 link = S.get('blog_url') or SITE
-bd = datetime.date.fromisoformat(S['basDt'])
 R = S['rank']
 cut = lambda s, n=9: s if len(s) <= n else s[:n] + '…'
-fmt = {'per': lambda v: f'{v:,.1f}배', 'pbr': lambda v: f'{v:.2f}배', 'opm': lambda v: f'{v:.1f}%',
-       'dr': lambda v: f'{v:,.0f}%', 'gr': lambda v: f'{v:+.1f}%',
+fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
+       'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%',
        'op': lambda v: f'{v / 1e12:,.1f}조' if abs(v) >= 1e12 else f'{v / 1e8:,.0f}억'}
-NAME = {'opm': ('영업이익률 TOP', 'opm'), 'low_debt': ('부채비율 낮은 기업', 'dr'), 'growth': ('매출 성장률 TOP', 'gr'),
-        'turn': ('흑자전환 기업', 'op'), 'low_per': ('PER 낮은 순', 'per'), 'low_pbr': ('PBR 낮은 순', 'pbr')}
+NAME = {'opm': ('영업이익률 TOP', 'opm'), 'roe': ('ROE TOP', 'roe'), 'growth': ('매출 성장률 TOP', 'gr'),
+        'opg': ('영업이익 증가율 TOP', 'opg'), 'low_debt': ('부채비율 낮은 기업', 'dr'), 'turn': ('흑자전환 기업', 'op')}
 
 
 def compose(n):
-    if P['kind'] == 'rank':
-        t, k = NAME[P['keys'][0]]
-        L = [f"📊 기업재무 | {t}", f"{S['fy']} 사업연도 · 시총 상위 500", '']
-        L += [f"{i}. {cut(x['name'])} {fmt[k](x[k])}" for i, x in enumerate(R[P['keys'][0]][:n], 1)]
-    else:
-        L = [f"📉 저평가 지표 | {bd.month}.{bd.day} 종가", '시총 상위 500 · PER·PBR 낮은 순']
-        for key in P['keys']:
-            t, k = NAME[key]
-            L += ['', t] + [f"{i}. {cut(x['name'])} {fmt[k](x[k])}" for i, x in enumerate(R[key][:n], 1)]
+    t, k = NAME[P['keys'][0]]
+    L = [f"📊 기업재무 | {t}", f"{S['fy']} 사업연도 · 상장사 매출 상위 500", '']
+    L += [f"{i}. {cut(x['name'])} {fmt[k](x[k])}" for i, x in enumerate(R[P['keys'][0]][:n], 1)]
     L += ['', f'👉 {link}']
     return '\n'.join(L)
 

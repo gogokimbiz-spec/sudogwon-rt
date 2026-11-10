@@ -1,188 +1,171 @@
-"""상장사 시세 + 재무 수집 (GitHub Actions 용).
-환경변수 DATA_GO_KR_KEY (Decoding 키). 금융위원회 API 3종 사용:
-  주식시세정보(매일) · KRX상장종목정보(법인등록번호 연결) · 기업 재무정보(요약재무제표, 캐시에 없을 때만)
-대상: 코스피+코스닥 보통주 시가총액 상위 500 (스팩 제외)
-결과: fin_data.json (build_fin.py 입력), fin_cache.json (재무 캐시, 저장소에 커밋해서 다음 실행에 재사용)
+"""상장사 재무 수집 (매출 상위 500, GitHub Actions 용).
+환경변수 DATA_GO_KR_KEY (Decoding 키). 이용허락범위 '제한 없음' 인 금융위원회 API 2종만 사용합니다.
+  - 기업 재무정보 (요약재무제표): 사업연도별 전체 기업을 한꺼번에 받아 매출 순으로 정렬
+  - 기업기본정보 (기업개요): 상장 여부(코스피·코스닥)·업종 확인, 한 번 확인한 회사는 캐시
+※ 주식시세·KRX상장종목정보는 공공누리 제4유형(상업적 이용금지)이라 쓰지 않습니다.
+결과: fin_data.json (build_fin.py 입력), fin_cache.json (기업개요 캐시, 저장소에 보관)
 """
 import os, sys, json, time, datetime, urllib.request, urllib.parse, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 
 KEY = os.environ['DATA_GO_KR_KEY'].strip()
 B = 'https://apis.data.go.kr/1160100/service/'
-PRICE = B + 'GetStockSecuritiesInfoService/getStockPriceInfo'
-LIST = B + 'GetKrxListedInfoService/getItemInfo'
 SUMM = B + 'GetFinaStatInfoService_V2/getSummFinaStat_V2'
+OUTL = B + 'GetCorpBasicInfoService_V2/getCorpOutline_V2'
 KST = datetime.timezone(datetime.timedelta(hours=9))
 today = datetime.datetime.now(KST).date()
 TOP_N = 500
-MAX_FIN_CALLS = 3000          # 하루 한도(10,000) 안에서 넉넉히
-RETRY_EMPTY_DAYS = 14         # 재무가 비어 있던 회사는 2주 뒤 다시 조회
-FIN_KW = ('금융', '은행', '보험', '증권', '생명', '화재', '캐피탈', '카드', '손해', '투자', '신탁', '리츠')
-
-
+MAX_LOOKUPS = 2500            # 하루 기업개요 조회 상한 (나머지는 다음 날 이어서)
+RECHECK_DAYS = 90             # 상장 여부는 90일마다 다시 확인
+FIN_SIC = ('금융', '보험', '은행', '증권', '신탁', '투자', '여신', '저축')
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
       'Accept': 'application/json, */*'}
 
 
-def raw_get(url, **p):
-    """(HTTP 상태, 본문 앞부분) - 진단용. 키는 찍지 않음"""
+def get(url, **p):
+    """→ (items, totalCount) / 실패 시 None. 403·401 은 재시도하지 않음"""
     q = urllib.parse.urlencode({'serviceKey': KEY, 'resultType': 'json', **p})
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url + '?' + q, headers=UA), timeout=60) as r:
-            return r.status, r.read()[:300].decode('utf-8', 'replace')
-    except urllib.error.HTTPError as e:
-        return e.code, e.read()[:300].decode('utf-8', 'replace')
-    except Exception as e:
-        return 0, f'{type(e).__name__} {e}'
-
-
-def call(url, **p):
-    """한 페이지 호출 → (items, totalCount). 실패 시 None"""
-    q = urllib.parse.urlencode({'serviceKey': KEY, 'resultType': 'json', **p})
+    err = None
     for a in range(4):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url + '?' + q, headers=UA), timeout=60) as r:
-                body = json.loads(r.read().decode('utf-8', 'replace'))['response']
+            with urllib.request.urlopen(urllib.request.Request(url + '?' + q, headers=UA), timeout=90) as r:
+                raw = r.read().decode('utf-8', 'replace')
+            body = json.loads(raw)['response']
             if body['header'].get('resultCode') not in ('00', '0', '000'):
                 raise RuntimeError(body['header'].get('resultMsg'))
             b = body.get('body') or {}
             items = (b.get('items') or {}).get('item') or []
             return ([items] if isinstance(items, dict) else items), int(b.get('totalCount') or 0)
         except urllib.error.HTTPError as e:
-            err = e
-            if e.code in (401, 403): break      # 권한 문제는 재시도해도 같음
+            err = f'HTTP {e.code} {e.read()[:150].decode("utf-8", "replace")}'
+            if e.code in (401, 403): break
         except Exception as e:
-            err = e
-        time.sleep(1 + a)
-    print(f'  호출 실패 ({url.rsplit("/", 1)[-1]}): {type(err).__name__} {str(err)[:120]}')
+            err = f'{type(e).__name__} {str(e)[:150]}'
+        time.sleep(2 + 2 * a)
+    print(f'  호출 실패 ({url.rsplit("/", 1)[-1]} {p.get("bizYear", "")}{p.get("crno", "")} p{p.get("pageNo", "")}): {" ".join(str(err).split())}')
     return None
 
 
-def call_all(url, **p):
-    out, page = [], 1
-    while True:
-        r = call(url, numOfRows=1000, pageNo=page, **p)
-        if r is None: return None
-        items, total = r
-        out += items
-        if len(out) >= total or not items: return out
-        page += 1
-
-
 num = lambda v: None if v in (None, '', '-') else int(float(str(v).replace(',', '')))
-code6 = lambda s: (s or '')[-6:]
 
-# 0. 진단: API 3종에 한 번씩 호출해서 응답 상태를 남김 (403 이면 본문에 이유가 있음)
-_d = (today - datetime.timedelta(days=4)).strftime('%Y%m%d')
-for _name, _url, _p in [('주식시세', PRICE, {'basDt': _d}), ('상장종목', LIST, {'basDt': _d}), ('재무', SUMM, {'crno': '1301110006246', 'bizYear': str(today.year - 1)}),
-                        ('(비교) 국토부 실거래', 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev', {'LAWD_CD': '11110', 'DEAL_YMD': today.strftime('%Y%m')})]:
-    _c, _b = raw_get(_url, numOfRows=1, pageNo=1, **_p)
-    print(f'[진단] {_name}: HTTP {_c} | {" ".join(_b.split())[:160]}')
-
-# 1. 최근 영업일 시세 (전 영업일 자료는 다음 영업일 오후에 올라오므로 며칠 거슬러 찾기)
-basDt = None
-for k in range(0, 12):
-    d = (today - datetime.timedelta(days=k)).strftime('%Y%m%d')
-    r = call(PRICE, basDt=d, numOfRows=1, pageNo=1)
-    if r and r[0]:
-        basDt = d; break
-if not basDt:
-    sys.exit('시세 기준일을 찾지 못했습니다')
-prices = call_all(PRICE, basDt=basDt)
-if not prices:
-    sys.exit('시세 수집 실패')
-print(f'시세 기준일 {basDt}: {len(prices)}종목, 필드 {list(prices[0].keys())}')
-
-stocks = [p for p in prices
-          if p.get('mrktCtg') in ('KOSPI', 'KOSDAQ')
-          and code6(p.get('srtnCd')).endswith('0')            # 보통주만 (우선주 코드는 5·7·9·K 등으로 끝남)
-          and '스팩' not in (p.get('itmsNm') or '')
-          and (num(p.get('mrktTotAmt')) or 0) > 0]
-stocks.sort(key=lambda p: -num(p['mrktTotAmt']))
-top = stocks[:TOP_N]
-
-# 2. 법인등록번호 연결
-listed = call_all(LIST, basDt=basDt) or []
-if not listed:   # 상장종목정보는 갱신이 하루 늦을 수 있음
-    for k in range(1, 8):
-        d = (datetime.date(int(basDt[:4]), int(basDt[4:6]), int(basDt[6:])) - datetime.timedelta(days=k)).strftime('%Y%m%d')
-        listed = call_all(LIST, basDt=d) or []
-        if listed: break
-crno_of = {code6(x.get('srtnCd')): (x.get('crno') or '').strip() for x in listed}
-print(f'상장종목 {len(listed)}건, 필드 {list(listed[0].keys()) if listed else "-"}')
-
-# 3. 요약재무제표 (캐시)
-CACHE_F = 'fin_cache.json'
-cache = json.load(open(CACHE_F, encoding='utf-8')) if os.path.exists(CACHE_F) else {}
-Y = today.year
-YEARS = [str(Y - 1), str(Y - 2), str(Y - 3)]   # 최신 사업연도 + 비교용 직전 연도
-logged = [False]
+# 0. 진단 (로그 확인용)
+for name, url, p in [('재무 일괄(연도만)', SUMM, {'bizYear': str(today.year - 1)}), ('기업개요(삼성전자)', OUTL, {'crno': '1301110006246'})]:
+    r = get(url, numOfRows=1, pageNo=1, **p)
+    print(f'[진단] {name}: ' + ('실패' if r is None else f'totalCount={r[1]} 필드={list(r[0][0].keys()) if r[0] else "-"}'))
+    if r and r[0] and name.startswith('기업개요'):
+        o = r[0][0]
+        print('[진단] 삼성전자 개요:', {k: o.get(k) for k in ('corpNm', 'enpPbanCmpyNm', 'corpRegMrktDcd', 'corpRegMrktDcdNm', 'enpXchgLstgDt', 'enpKosdaqLstgDt', 'sicNm')})
 
 
-def pick(items):
-    if not items: return None
-    if not logged[0]:
-        print('요약재무 필드:', list(items[0].keys())); logged[0] = True
-    con = [i for i in items if '연결' in (i.get('fnclDcdNm') or '')]
-    i = (con or items)[0]
-    f = {'kind': '연결' if con else '별도',
-         'sales': num(i.get('enpSaleAmt')), 'op': num(i.get('enpBzopPft')), 'ni': num(i.get('enpCrtmNpf')),
-         'pre_tax': num(i.get('iclsPalClcAmt')), 'assets': num(i.get('enpTastAmt')), 'debt': num(i.get('enpTdbtAmt')),
-         'equity': num(i.get('enpTcptAmt')), 'capital': num(i.get('enpCptlAmt'))}
+# 1. 사업연도별 요약재무제표 일괄 수집
+def pick(rows):
+    con = [i for i in rows if '연결' in (i.get('fnclDcdNm') or '')]
+    i = (con or rows)[0]
+    f = {'kind': '연결' if con else '별도', 'sales': num(i.get('enpSaleAmt')), 'op': num(i.get('enpBzopPft')),
+         'ni': num(i.get('enpCrtmNpf')), 'assets': num(i.get('enpTastAmt')), 'debt': num(i.get('enpTdbtAmt')),
+         'equity': num(i.get('enpTcptAmt'))}
     return f if any(v is not None for k, v in f.items() if k != 'kind') else None
 
 
-def need(crno, y):
-    c = cache.get(crno, {})
-    if y in c and c[y]: return False
-    t = c.get('_t', {}).get(y)
-    return not t or (today - datetime.date.fromisoformat(t)).days >= RETRY_EMPTY_DAYS
+def bulk(year):
+    first = get(SUMM, bizYear=year, numOfRows=1000, pageNo=1)
+    if first is None: return None
+    items, total = first
+    pages = min((total + 999) // 1000, 300)
+    print(f'{year} 사업연도 재무: {total}건, {pages}쪽')
+    with ThreadPoolExecutor(3) as ex:
+        for r in ex.map(lambda pg: get(SUMM, bizYear=year, numOfRows=1000, pageNo=pg), range(2, pages + 1)):
+            if r: items += r[0]
+    by = {}
+    for i in items:
+        c = (i.get('crno') or '').strip()
+        if c: by.setdefault(c, []).append(i)
+    out = {c: pick(v) for c, v in by.items()}
+    return {c: f for c, f in out.items() if f}
 
 
-def fin_job(a):
-    crno, y = a
-    r = call(SUMM, crno=crno, bizYear=y, numOfRows=20, pageNo=1)
-    return a, (None if r is None else pick(r[0])), r is not None
+Y = today.year
+data = {}
+for y in (str(Y - 1), str(Y - 2), str(Y - 3)):
+    d = bulk(y)
+    if d: data[y] = d
+    if len(data) == 2: break
+if not data:
+    sys.exit('재무 일괄 수집 실패 - 위 [진단] 줄을 확인하세요')
+years = sorted(data, reverse=True)
+# 최신 연도 공시가 아직 적으면(직전 연도의 30% 미만) 한 해 앞을 기준으로
+FY = years[0] if len(years) == 1 or len(data[years[0]]) >= 0.3 * len(data[years[1]]) else years[1]
+PY = str(int(FY) - 1)
+if PY not in data:
+    d = bulk(PY)
+    if d: data[PY] = d
+cur, prev = data[FY], data.get(PY, {})
+print(f'기준 사업연도 {FY}: {len(cur)}개사 (비교 {PY}: {len(prev)}개사)')
+
+# 2. 매출 순으로 상장 여부 확인 → 상장사 500곳
+CACHE_F = 'fin_cache.json'
+cache = json.load(open(CACHE_F, encoding='utf-8')) if os.path.exists(CACHE_F) else {}
+OC = cache.setdefault('outline', {})   # crno → {m: KOSPI|KOSDAQ|'', n: 이름, s: 업종, t: 확인일}
 
 
-jobs = []
-for p in top:
-    crno = crno_of.get(code6(p['srtnCd']))
-    if not crno: continue
-    c = cache.get(crno, {})
-    # 최신 연도(Y-1)가 아직 없으면 Y-2, Y-3 까지 확보 (직전 연도 비교용)
-    for y in YEARS:
-        if need(crno, y):
-            jobs.append((crno, y))
-jobs = jobs[:MAX_FIN_CALLS]
-print(f'재무 조회 {len(jobs)}건 (캐시 {len(cache)}개사)')
-ok_calls = 0
-with ThreadPoolExecutor(3) as ex:
-    for (crno, y), f, ok in ex.map(fin_job, jobs):
-        if not ok: continue
-        ok_calls += 1
-        c = cache.setdefault(crno, {})
-        c[y] = f
-        c.setdefault('_t', {})[y] = today.isoformat()
+def market(o):
+    nm = o.get('corpRegMrktDcdNm') or ''
+    if o.get('enpXchgLstgDt') and not o.get('enpXchgLstgAbolDt'): return 'KOSPI'
+    if o.get('enpKosdaqLstgDt') and not o.get('enpKosdaqLstgAbolDt'): return 'KOSDAQ'
+    if '유가' in nm: return 'KOSPI'
+    if '코스닥' in nm: return 'KOSDAQ'
+    return ''
+
+
+def clean(n):
+    n = (n or '').strip()
+    for s in ('주식회사', '(주)', '㈜'):
+        n = n.replace(s, '')
+    return n.strip()
+
+
+def look(crno):
+    r = get(OUTL, crno=crno, numOfRows=1, pageNo=1)
+    if r is None: return crno, None
+    if not r[0]: return crno, {'m': '', 'n': '', 's': '', 't': today.isoformat()}
+    o = r[0][0]
+    return crno, {'m': market(o), 'n': clean(o.get('enpPbanCmpyNm') or o.get('corpNm')), 's': o.get('sicNm') or '', 't': today.isoformat()}
+
+
+def fresh(c):
+    o = OC.get(c)
+    return o and (today - datetime.date.fromisoformat(o['t'])).days < RECHECK_DAYS
+
+
+ranked = sorted((c for c, f in cur.items() if f.get('sales')), key=lambda c: -cur[c]['sales'])
+listed, lookups, i = [], 0, 0
+while len(listed) < TOP_N and i < len(ranked) and lookups < MAX_LOOKUPS:
+    batch = []
+    while i < len(ranked) and len(batch) < 60:
+        c = ranked[i]; i += 1
+        if fresh(c):
+            if OC[c]['m']: listed.append(c)
+        else:
+            batch.append(c)
+    if batch:
+        lookups += len(batch)
+        with ThreadPoolExecutor(3) as ex:
+            for c, o in ex.map(look, batch):
+                if o: OC[c] = o
+        listed += [c for c in batch if OC.get(c, {}).get('m')]
+    listed = sorted(set(listed), key=lambda c: -cur[c]['sales'])
+listed = listed[:TOP_N]
 json.dump(cache, open(CACHE_F, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
-print(f'재무 조회 성공 {ok_calls}/{len(jobs)}')
+print(f'기업개요 조회 {lookups}건, 상장사 {len(listed)}곳 확보 (매출 순위 {i}위까지 확인)')
+if len(listed) < TOP_N:
+    print(f'::warning::상장사 {len(listed)}곳 - 기업개요 조회가 덜 끝났거나 상장 판정이 안 됨 (다음 실행에 이어서)')
 
-# 4. 결과
 out = []
-for rank, p in enumerate(top, 1):
-    code = code6(p['srtnCd']); crno = crno_of.get(code, '')
-    name = p.get('itmsNm', '')
-    c = cache.get(crno, {})
-    fy = next((y for y in YEARS if c.get(y)), None)
-    py_ = str(int(fy) - 1) if fy else None
-    out.append({'rank': rank, 'code': code, 'name': name, 'market': p['mrktCtg'], 'crno': crno,
-                'close': num(p.get('clpr')), 'chg': float(p.get('fltRt') or 0), 'cap': num(p['mrktTotAmt']),
-                'shares': num(p.get('lstgStCnt')),
-                'financial': any(k in name for k in FIN_KW),
-                'fy': fy, 'f': c.get(fy) if fy else None, 'fp': c.get(py_) if py_ else None})
-have = sum(1 for x in out if x['f'])
-print(f'상위 {len(out)}개사 중 재무 있음 {have}')
-if have < len(out) * 0.3:
-    print('::warning::재무 데이터가 30% 미만입니다 - 필드 이름이나 활용신청 상태를 확인하세요')
-json.dump({'basDt': f'{basDt[:4]}-{basDt[4:6]}-{basDt[6:]}', 'asof': today.isoformat(), 'companies': out},
-          open('fin_data.json', 'w', encoding='utf-8'), ensure_ascii=False)
+for rank, c in enumerate(listed, 1):
+    o = OC[c]
+    out.append({'rank': rank, 'crno': c, 'name': o['n'] or c, 'market': o['m'], 'sic': o['s'],
+                'financial': any(k in o['s'] for k in FIN_SIC), 'fy': FY, 'f': cur[c], 'fp': prev.get(c)})
+json.dump({'asof': today.isoformat(), 'fy': FY, 'companies': out}, open('fin_data.json', 'w', encoding='utf-8'), ensure_ascii=False)
+print(f'완료: 상장사 {len(out)}곳, 직전 연도 비교 가능 {sum(1 for x in out if x["fp"])}곳')
+if len(out) < 100:
+    sys.exit('상장사가 너무 적어 결과를 올리지 않습니다')

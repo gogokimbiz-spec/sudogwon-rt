@@ -47,24 +47,26 @@ def won(v):
         j, e = divmod(round(v / 1e8), 10000)
         return f'{s}{j:,}조 {e:,}억' if e else f'{s}{j:,}조'
     return f'{s}{round(v / 1e8):,}억'
-fmt = {'per': lambda v: f'{v:,.1f}배', 'pbr': lambda v: f'{v:.2f}배', 'opm': lambda v: f'{v:.1f}%',
-       'dr': lambda v: f'{v:,.0f}%', 'gr': lambda v: f'{v:+.1f}%', 'op': won, 'sales': won}
+fmt = {'opm': lambda v: f'{v:.1f}%', 'roe': lambda v: f'{v:.1f}%', 'dr': lambda v: f'{v:,.0f}%',
+       'gr': lambda v: f'{v:+.1f}%', 'opg': lambda v: f'{v:+.1f}%', 'op': won, 'sales': won, 'ni': won}
 Fm = lambda k, v: '-' if v is None else fmt[k](v)
-LAB = {'per': 'PER', 'pbr': 'PBR', 'opm': '영업이익률', 'dr': '부채비율', 'gr': '매출', 'op': '영업이익', 'sales': '매출'}
+LAB = {'opm': '영업이익률', 'roe': 'ROE', 'dr': '부채비율', 'gr': '매출', 'opg': '영업이익', 'op': '영업이익', 'sales': '매출', 'ni': '순이익'}
 THEME = {'opm': ('영업이익률 TOP', 'opm', 'op', '매출 대비 영업이익 비율'),
-         'low_debt': ('부채비율 낮은 기업', 'dr', 'opm', '부채총계 ÷ 자본총계'),
+         'roe': ('ROE TOP', 'roe', 'ni', '자기자본 대비 순이익 비율'),
          'growth': ('매출 성장률 TOP', 'gr', 'sales', '직전 연도 대비 매출 증가율'),
-         'turn': ('흑자전환 기업', 'op', 'opm', '영업적자 → 영업흑자'),
-         'low_per': ('PER 낮은 순', 'per', 'pbr', ''), 'low_pbr': ('PBR 낮은 순', 'pbr', 'per', '')}
-bd = datetime.date.fromisoformat(S['basDt'])
+         'opg': ('영업이익 증가율 TOP', 'opg', 'op', '직전 연도 대비 영업이익 증가율'),
+         'low_debt': ('부채비율 낮은 기업', 'dr', 'opm', '부채총계 ÷ 자본총계'),
+         'turn': ('흑자전환 기업', 'op', 'opm', '영업적자 → 영업흑자')}
+
 R = S['rank']
 
 im = Image.new('RGB', (W, SH), CREAM); d = ImageDraw.Draw(im)
 d.rectangle((0, 0, W, 300), fill=NAVY)
 if P['kind'] == 'rank':
     key = P['keys'][0]; t, k1, k2, sub = THEME[key]
-    pill = f"{S['fy']} 사업연도 · 시총 상위 500"
+    pill = f"{S['fy']} 사업연도 · 상장사 매출 상위 500"
     head, big = t, '' if key == 'turn' else str(min(10, len(R[key])))
+    if len(head) > 10: big = ''
 else:
     pill = f'{bd.month}.{bd.day} 종가 · 시총 상위 500'
     head, big, sub = '저평가 지표', 'PER·PBR', '숫자가 낮을수록 이익·자산 대비 주가가 낮음'
@@ -90,7 +92,7 @@ def row(y, rh, i, x, k1, k2):
     mk = '코스피' if x['market'] == 'KOSPI' else '코스닥'
     nx = 60 + 2 * bs + 22; nf = F(int(40 * z), 'Black')
     d.text((nx, cy - int(42 * z)), fit(d, x['name'], nf, W - 64 - vw - 40 - nx), font=nf, fill=INK)
-    d.text((nx, cy + int(6 * z)), f"{mk} · 시총 {won(x['cap'])} · {LAB[k2]} {Fm(k2, x[k2])}", font=F(int(26 * z), 'Medium'), fill=INK2)
+    d.text((nx, cy + int(6 * z)), f"{mk} · 매출 {won(x['sales'])}" + ('' if k2 == 'sales' else f" · {LAB[k2]} {Fm(k2, x[k2])}"), font=F(int(26 * z), 'Medium'), fill=INK2)
 
 
 top, bottom = 330, SH - 170
