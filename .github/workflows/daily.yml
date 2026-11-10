@@ -5,10 +5,11 @@ on:
     - cron: '11 20 * * *'   # 매일 05:11 KST
   workflow_dispatch:         # Actions 탭에서 수동 실행
     inputs:
-      cy_weekly:
-        description: '청약 주간 블로그 글·카톡도 지금 보내기'
-        type: boolean
-        default: false
+      cy_post:
+        description: '청약 블로그 글·카톡 지금 보내기 (mon=이번 주 청약 일정, wed=줍줍·로또·결과, fri=단지분석)'
+        type: choice
+        options: ['none', 'mon', 'wed', 'fri']
+        default: 'none'
       fin_post:
         description: '기업재무 글·카톡 지금 보내기 (rank=순위, value=저평가 지표)'
         type: choice
@@ -111,6 +112,9 @@ jobs:
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
+          # 수요일(줍줍·로또·결과)·토요일(단지분석) 캐러셀 – 매일 만들어 두고 인스타·블로그 대표 이미지에 씀
+          python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_wed --mode=wed || echo '수요일 청약 카드 실패'
+          python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_sat --mode=sat || echo '토요일 청약 카드 실패'
       - name: 인스타 게시용 페이지 만들기 (/insta/)
         continue-on-error: true
         run: python build_insta.py site
@@ -123,9 +127,18 @@ jobs:
             FD=$(python -c "import json;print(json.load(open('site/fin/summary.json'))['day'])") && cp site/fin/cards/single.png "cards/fin/$FD.png"
           fi
           [ -f site/cards/single.png ] && cp site/cards/single.png "cards/rt/$D.png"
-          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
+          DOW=$(TZ=Asia/Seoul date +%u); CYP="${{ inputs.cy_post }}"
+          if [ "$DOW" = "1" ] || [ "$CYP" = "mon" ]; then
             W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''
             [ -n "$W" ] && [ -f site/cheongyak/cards/single.png ] && cp site/cheongyak/cards/single.png "cards/cy/$W.png"
+          fi
+          if [ "$DOW" = "3" ] || [ "$CYP" = "wed" ]; then
+            W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['wed'])" 2>/dev/null) || W=''
+            [ -n "$W" ] && [ -f site/cheongyak/cards_wed/01.png ] && cp site/cheongyak/cards_wed/01.png "cards/cy/${W}_wed.png"
+          fi
+          if [ "$DOW" = "5" ] || [ "$CYP" = "fri" ]; then
+            W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['fri'])" 2>/dev/null) || W=''
+            [ -n "$W" ] && [ -f site/cheongyak/cards_sat/01.png ] && cp site/cheongyak/cards_sat/01.png "cards/cy/${W}_fri.png"
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -134,7 +147,7 @@ jobs:
             git commit -q -m "카드 이미지 $D"
             git pull -q --rebase --autostash && git push -q
           fi
-      - name: 청약 주간 블로그 글 (월요일)
+      - name: 청약 블로그 글 (월·수·금)
         if: steps.cy.outcome == 'success'
         continue-on-error: true
         env:
@@ -145,12 +158,14 @@ jobs:
           ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
           ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
         run: |
-          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
-            python fetch_news_cy.py site/cheongyak/summary.json || echo '청약 뉴스 단계 실패 - 뉴스 없이 계속'
-            python post_blogger_cy.py site/cheongyak/summary.json
-          else
-            echo '월요일이 아니라 청약 주간 글은 건너뜁니다'
+          # 월: 이번 주 청약 일정 / 수: 줍줍·로또 청약 + 결과 / 금: 단지분석 (수동 실행 때는 cy_post 선택값)
+          M="${{ inputs.cy_post }}"
+          if [ -z "$M" ] || [ "$M" = "none" ]; then
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 3) M=wed;; 5) M=fri;; *) M=none;; esac
           fi
+          if [ "$M" = "none" ]; then echo '오늘은 청약 글이 없는 요일입니다'; exit 0; fi
+          [ "$M" = "mon" ] && { python fetch_news_cy.py site/cheongyak/summary.json || echo '청약 뉴스 단계 실패 - 뉴스 없이 계속'; }
+          python post_blogger_cy.py site/cheongyak/summary.json --mode=$M
       - name: 기업재무 블로그 글 (화·금)
         if: steps.fin.outcome == 'success'
         continue-on-error: true
@@ -215,7 +230,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python3 telegram_send.py summary.json
-      - name: 청약 주간 카톡 (월요일)
+      - name: 청약 카톡 (월·수)
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
@@ -224,12 +239,18 @@ jobs:
           KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          if [ "$(TZ=Asia/Seoul date +%u)" = "1" ] || [ "${{ inputs.cy_weekly }}" = "true" ]; then
+          M="${{ inputs.cy_post }}"
+          if [ -z "$M" ] || [ "$M" = "none" ]; then
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 3) M=wed;; *) M=none;; esac
+          fi
+          if [ "$M" = "mon" ] || [ "$M" = "wed" ]; then
             curl -sf "${{ needs.deploy.outputs.page_url }}cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json
-            python3 kakao_send_cy.py cy_summary.json
-            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}" python3 telegram_send.py cy_summary.json --cy || echo '청약 텔레그램 실패'
+            python3 kakao_send_cy.py cy_summary.json --mode=$M
+            if [ "$M" = "mon" ]; then
+              TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}" python3 telegram_send.py cy_summary.json --cy || echo '청약 텔레그램 실패'
+            fi
           else
-            echo '월요일이 아니라 청약 카톡은 건너뜁니다'
+            echo '월·수가 아니라 청약 카톡은 건너뜁니다'
           fi
       - name: 기업재무 카톡 (화·금)
         if: ${{ !cancelled() }}
