@@ -92,6 +92,14 @@ def trade_dict(x):
         d['new_high'] = True; d['prev_high_man'] = pm[3]; d['prev_high_date'] = (d0 + datetime.timedelta(pm[1])).isoformat()
     return d
 day_list = [trade_dict(x) for x in sorted(dayT, key=lambda x: -x[3])]
+# 주요 지역 최고가: 아래 지역마다 그날(월요일은 주말) 계약 중 가장 비싼 1건, 비싼 순 (2026-11-11 추가)
+MAJOR = ['서울 강남구', '서울 서초구', '서울 송파구', '서울 용산구', '서울 성동구', '서울 마포구',
+         '성남 분당구', '과천시', '수원 영통구', '용인 수지구', '화성 동탄구']
+_best = {}
+for x in dayT:
+    n = names[codes[x[0]]]
+    if n in MAJOR and (n not in _best or x[3] > _best[n][3]): _best[n] = x
+major_tops = [trade_dict(x) for x in sorted(_best.values(), key=lambda x: -x[3])]
 # 관심지역: 며칠마다 자동으로 바뀜 (서울 1 · 경기 1 · 인천/경기 1). 날짜로 정해지므로 같은 기간엔 항상 같은 지역.
 import random
 def stat30(code_i, a, b):
@@ -133,6 +141,7 @@ summary = {'asof': asof, 'day': day, 'day_from': dfrom.isoformat(), 'label': lab
            'new_highs': [d for d in day_list if d.get('new_high')],
            'watch': watch, 'watch_period': [period_start.isoformat(), (period_start + datetime.timedelta(watch_days - 1)).isoformat()],
            'day_trades': day_list[:20],
+           'major_tops': major_tops, 'major_regions': MAJOR,
            'trade_median_man': statistics.median([x[3] for x in dayT]) if dayT else None,
            'jeonse_median_man': statistics.median([x[3] for x in dayJ]) if dayJ else None}
 json.dump(summary, open(out_sum, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

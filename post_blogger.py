@@ -113,6 +113,11 @@ def cta(href, icon, title, sub, primary):
 parts.append('<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
              + cta(SITE, '🗺️', '지역별 지도로 보기', '76개 시군구 가격·변동을 한눈에', True)
              + cta(f'{SITE}r/', '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>')
+# 3-0. 주요 지역 최고가 표 (2026-11-11 추가)
+_mt = S.get('major_tops') or []
+if _mt:
+    parts.append(f"<h3>주요 지역 최고가 {len(_mt)}곳</h3><p><small>강남·서초·송파·용산·성동·마포·분당·과천·수원 영통·용인 수지·동탄 가운데 이 날 계약이 신고된 지역의 최고가 거래입니다.</small></p>")
+    parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(_mt, True)}</table>")
 # 3. 신고가 표
 if nh:
     parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")

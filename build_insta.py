@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 청약: 월·수·금 / 기업재무: 화·금(오늘 재무 글이 있는 날)
+- 실거래: 매일 / 청약: 월~금 / 기업재무: 토(오늘 재무 글이 있는 날)
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -54,10 +54,12 @@ if S:
                              images=imgs('cards', car), alt=imgs('cards', ['single.png']),
                              caption=trim_tags(cap, 7, '아파트')))
 
-# ── 2. 청약 (월: 이번 주 청약 1장 / 수: 줍줍·로또·결과 캐러셀 cards_wed / 금: 단지분석 캐러셀 cards_sat)
+# ── 2. 청약 (월: 이번 주 청약 / 화: 1순위 결과 / 수: 줍줍·로또 / 목: 가점 커트라인 / 금: 단지분석 – 2026-11-11)
 CY = load('cheongyak/summary.json')
 CYV = {0: ('이번 주 청약', 'cheongyak/cards', ['single.png']),
+       1: ('청약 결과', 'cheongyak/cards_tue', None),
        2: ('줍줍·로또 청약', 'cheongyak/cards_wed', None),
+       3: ('당첨 가점 커트라인', 'cheongyak/cards_thu', None),
        4: ('청약 단지분석', 'cheongyak/cards_sat', None)}
 if CY:
     order = ([WD] if WD in CYV else []) + ([0] if WD != 0 else [])   # 오늘 것, 없으면 월요일 것을 미리보기로
@@ -67,11 +69,11 @@ if CY:
             names = sorted(os.path.basename(x) for x in glob.glob(os.path.join(SITE, folder, '[0-9][0-9].png')))
         c_ = read(f'{folder}/caption.txt'); im_ = imgs(folder, names)
         if c_ and im_:
-            sections.append(dict(key='cy', title=title, when='월·수·금', today=(wd == WD),
+            sections.append(dict(key='cy', title=title, when='월~금', today=(wd == WD),
                                  guide=f'사진 {len(im_)}장 선택 → 캡션 붙여넣기', images=im_, alt=[], caption=trim_tags(c_, 7)))
             break
 
-# ── 3. 기업재무 (화·금, 재무 글이 있는 날)
+# ── 3. 기업재무 (토, 재무 글이 있는 날)
 FN = load('fin/summary.json')
 fin_img = imgs('fin/cards', ['single.png'])
 if FN and FN.get('post') and fin_img:
@@ -96,7 +98,7 @@ if FN and FN.get('post') and fin_img:
     L += ['', '※ 금융업은 비율 순위에서 제외', ('자료: 금융감독원 DART 정기보고서' if q else '자료: 금융위원회 기업 재무정보') + ' · 참고용 정보이며 투자 권유가 아닙니다',
           '', '500곳 전체 표는 프로필 링크에서 👆', '',
           ' '.join(dict.fromkeys([BRAND_TAG, '#기업분석', '#재테크', f'#{tag}', '#상장사']))]
-    sections.append(dict(key='fin', title='기업재무 순위', when='화·금', today=WD in (1, 4),
+    sections.append(dict(key='fin', title='기업재무 순위', when='토', today=WD == 5,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=fin_img, alt=[], caption='\n'.join(L)))
 
 # ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)

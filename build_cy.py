@@ -117,6 +117,8 @@ summary = {'asof': today, 'week': [w0, w1],
 DD = datetime.timedelta
 WED = W0 + DD(2); WED = WED if T0 >= WED else WED - DD(7)        # 기준 수요일 (월·화는 지난 수요일)
 FRI = W0 + DD(4); FRI = FRI if T0 >= FRI else FRI - DD(7)        # 기준 금요일 (월~목은 지난 금요일)
+TUE = W0 + DD(1); TUE = TUE if T0 >= TUE else TUE - DD(7)        # 기준 화요일 (청약 결과, 2026-11-11 추가)
+THU = W0 + DD(3); THU = THU if T0 >= THU else THU - DD(7)        # 기준 목요일 (당첨 가점 커트라인)
 iso = lambda d: d.isoformat()
 zw0, zw1 = iso(WED), iso(WED + DD(6))                            # 줍줍: 수요일 ~ 다음 주 화요일 접수
 def base_name(n): return re.sub(r'\(.*?\)|\s*\d+차$|조합원\s*취소분', '', n).strip()
@@ -145,7 +147,7 @@ for p in P:
         e = float(t[0][:7]); bnd = '60㎡ 이하' if e < 60 else '60~85㎡' if e < 86 else None
         if bnd: cut.setdefault(c['area'], {}).setdefault(bnd, []).append(t[7])
 cutline = {a: {b: {'min_med': round(statistics.median(x[0] for x in v)), 'avg': round(statistics.mean(x[2] for x in v)), 'n': len(v)} for b, v in d.items()} for a, d in cut.items()}
-res0, res1 = iso(WED - DD(7)), iso(WED - DD(1))
+res0, res1 = iso(TUE - DD(8)), iso(TUE - DD(2))   # 화요일 기준 지난주 월~일 1순위 접수
 results = [card(p, {'date': p['r1'][:10]}) for p in sorted([p for p in P if p['r1'] and res0 <= p['r1'][:10] <= res1 and p['hasc'] and p['g']],
                                                        key=lambda p: -(p['a1'] / p['g']))]
 results = [x for x in results if 'rate' in x]
@@ -174,7 +176,8 @@ if pk:
                      'types': [[t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]] for t in c['ty']],   # 주택형, 공급면적, 일반, 특공, 분양가, 1순위, 2순위, [가점 최저·최고·평균]
                      'sp_stat': c.get('sp_stat'), 'near': near})
 summary.update({'wed': iso(WED), 'zz_range': [zw0, zw1], 'zz': zz, 'cheap5': [card(p, {'ann': p['ann']}) for p in cheap],
-                'cutline': cutline, 'results': results, 'results_range': [res0, res1], 'fri': iso(FRI), 'pick': pick})
+                'cutline': cutline, 'results': results, 'results_range': [res0, res1], 'fri': iso(FRI), 'pick': pick,
+                'tue': iso(TUE), 'thu': iso(THU)})
 print('수요일 줍줍', len(zz), '· 로또', len(cheap), '· 결과', len(results), '/ 금요일 단지분석:', pick and pick['name'])
 json.dump(summary, open(out_sum, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print('built', out_html, len(html), 'bytes; 이번 주 접수', len(summary['rank1']), '당첨발표', len(summary['winners']), '지난주 결과', len(summary['last_week']))

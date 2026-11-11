@@ -1,4 +1,4 @@
-"""수요일(줍줍·로또·결과)·토요일(단지분석) 청약 인스타 캐러셀 카드(1080×1350)를 만듭니다 (GitHub Actions 용).
+"""화(청약 결과)·수(줍줍·로또)·목(당첨 가점 커트라인)·금(단지분석, 폴더 이름은 cards_sat) 청약 인스타 캐러셀 카드(1080×1350)를 만듭니다 (GitHub Actions 용).
 사용법: python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_wed --mode=wed
         python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_sat --mode=sat
 결과: <출력폴더>/01.png … NN.png, single.png(=01), latest.png, caption.txt
@@ -79,12 +79,12 @@ def name_row(d, x0, cy, chip_txt, name, sub, maxw_right):
     d.text((x0, cy + 2), sub, font=F(27, 'Medium'), fill=INK2)
 
 
-# ───────────────────────── 수요일 ─────────────────────────
-def wed():
+# ───────────────────────── 화요일: 1순위 청약 결과 (2026-11-11 수요일에서 분리) ─────────────────────────
+def tue():
     zz = S.get('zz') or []; z0, z1 = S['zz_range']
     rng = f"{D(z0).month}.{D(z0).day} ~ {D(z1).month}.{D(z1).day} 접수"
     foot = '자료 청약홈 · 분양가 단위 만원 · 청약 전 모집공고 확인'
-    # 1) 결과 (수요일 대표 이미지 = 1순위 청약 결과, 2026-11-11 변경. 결과가 없으면 줍줍이 첫 장)
+    # 결과
     rs = [x for x in (S.get('results') or []) if 'rate' in x][:6]
     if rs:
         a, b = S['results_range']
@@ -95,6 +95,20 @@ def wed():
             right(d, x['status'], F(26, 'Medium'), cy + 4, INK2)
         page(f"{D(a).month}.{D(a).day} ~ {D(b).month}.{D(b).day} 접수", '1순위 청약 결과', f'{len(S["results"])}곳',
              '1순위 접수 ÷ 일반공급 · 미달은 파랑', rs, rrow, '전체 결과 → 프로필 링크', foot, rh_max=150)
+    a, b = S['results_range']
+    cap = [f"🏆 수도권 1순위 청약 결과 {len(S.get('results') or [])}곳 ({D(a).month}.{D(a).day}~{D(b).month}.{D(b).day} 접수)", '']
+    cap += [f"· {x['region']} {x['name']} {x['rate']:.1f}:1 {x['status']}" for x in rs]
+    tags = ['청약결과', '청약경쟁률', '수도권청약', '청약', '아파트청약', '내집마련', '부동산'] + list(dict.fromkeys(city(x['region']) + '청약' for x in rs))[:4]
+    cap += ['', '※ 1순위 접수 ÷ 일반공급 세대수 (특별공급 제외)', '자료: 청약홈 · 참고용 정보이며 투자 권유가 아닙니다',
+            '', '전체 결과·청약 지도는 프로필 링크에서 👆', '', ' '.join('#' + t for t in tags)]
+    return cap
+
+
+# ───────────────────────── 수요일: 줍줍 + 로또 TOP 5 ─────────────────────────
+def wed():
+    zz = S.get('zz') or []; z0, z1 = S['zz_range']
+    rng = f"{D(z0).month}.{D(z0).day} ~ {D(z1).month}.{D(z1).day} 접수"
+    foot = '자료 청약홈 · 분양가 단위 만원 · 청약 전 모집공고 확인'
     # 2) 줍줍
     rows = (zz[:6] if len(zz) > 7 else zz[:7]) or [None]
     def zrow(d, x, i, y, cy, rh):
@@ -127,6 +141,26 @@ def wed():
             right(d, f"3.3㎡ {man(x['pp_man'])}만", F(26, 'Medium'), cy + 4, INK2)
         page('최근 6개월 · 민영', '시세보다 싼 분양', 'TOP5', '분양가 vs 같은 시군구 신축(10년 내) 매매 시세', c5, crow,
              '전체 순위·지도 → 프로필 링크', '주변 신축 매매 3.3㎡당 중앙값 비교 · 전용면적 기준')
+    rs = []
+    # 캡션
+    cap = []
+    cap += [f"🔥 이번 주 수도권 줍줍 {len(zz)}곳 ({D(z0).month}.{D(z0).day}~{D(z1).month}.{D(z1).day} 접수)", '']
+    for x in zz[:8]:
+        pr = f" {man(x['p_min'])}만~" if x.get('p_min') else ''
+        cap.append(f"· {md(x['r0'])} {x['region']} {x['name']} ({x['kind']} {x['units']}세대){pr}")
+    if c5:
+        cap += ['', '💰 시세보다 싸게 나온 분양 TOP 5 (최근 6개월)'] + [f"{i}. {x['name']} 주변 신축 대비 {sg(x['gap_new'])}" for i, x in enumerate(c5, 1)]
+    tags = ['줍줍', '무순위청약', '수도권청약', '청약', '아파트청약', '내집마련', '부동산'] + list(dict.fromkeys(city(x['region']) + '줍줍' for x in zz))[:4]
+    cap += ['', '※ 무순위·임의공급도 자격 요건이 있어요. 반드시 입주자모집공고를 확인하세요', '자료: 청약홈 · 참고용 정보이며 투자 권유가 아닙니다',
+            '', '줍줍 일정·청약 지도는 프로필 링크에서 👆', '', ' '.join('#' + t for t in tags)]
+    return cap
+
+
+
+
+# ───────────────────────── 목요일: 당첨 가점 커트라인 ─────────────────────────
+def thu():
+    foot = '자료 청약홈 · 민영 · 해당지역'
     # 4) 가점 커트라인
     cl = S.get('cutline') or {}
     areas = [a for a in ('서울', '인천', '경기') if a in cl]
@@ -140,19 +174,12 @@ def wed():
                 if v: d.text((x, cy + 30), f"평균 {v['avg']}점 · {v['n']}개 주택형", font=F(24, 'Medium'), fill=INK2)
         page('최근 6개월 · 민영 · 해당지역', '당첨 가점 커트라인', '', '주택형별 최저 당첨 가점의 중앙값 (미달·추첨 제외)', areas, lrow,
              '단지별 가점 → 프로필 링크', '이 점수면 절반 정도의 주택형에서 당첨됐다는 뜻', rh_max=230)
-    # 캡션
-    cap = []
-    if rs:
-        cap += [f"🏆 수도권 1순위 청약 결과 {len(S['results'])}곳", ''] + [f"· {x['region']} {x['name']} {x['rate']:.1f}:1 {x['status']}" for x in rs[:6]] + ['']
-    cap += [f"🔥 이번 주 수도권 줍줍 {len(zz)}곳 ({D(z0).month}.{D(z0).day}~{D(z1).month}.{D(z1).day} 접수)", '']
-    for x in zz[:8]:
-        pr = f" {man(x['p_min'])}만~" if x.get('p_min') else ''
-        cap.append(f"· {md(x['r0'])} {x['region']} {x['name']} ({x['kind']} {x['units']}세대){pr}")
-    if c5:
-        cap += ['', '💰 시세보다 싸게 나온 분양 TOP 5 (최근 6개월)'] + [f"{i}. {x['name']} 주변 신축 대비 {sg(x['gap_new'])}" for i, x in enumerate(c5, 1)]
-    tags = ['줍줍', '무순위청약', '수도권청약', '청약', '아파트청약', '내집마련', '부동산'] + list(dict.fromkeys(city(x['region']) + '줍줍' for x in zz))[:4]
-    cap += ['', '※ 무순위·임의공급도 자격 요건이 있어요. 반드시 입주자모집공고를 확인하세요', '자료: 청약홈 · 참고용 정보이며 투자 권유가 아닙니다',
-            '', '줍줍 일정·청약 지도는 프로필 링크에서 👆', '', ' '.join('#' + t for t in tags)]
+    cap = ['📊 수도권 당첨 가점 커트라인 (최근 6개월 · 민영 · 해당지역)', '']
+    for a in areas:
+        cap.append(f"· {a}: " + ' / '.join(f"{bnd} {cl[a][bnd]['min_med']}점" for bnd in ('60㎡ 이하', '60~85㎡') if cl[a].get(bnd)))
+    tags = ['청약가점', '당첨가점', '수도권청약', '청약', '아파트청약', '내집마련', '부동산', '서울청약', '경기청약']
+    cap += ['', '※ 주택형별 최저 당첨 가점의 중앙값 – 이 점수면 절반 정도의 주택형에서 당첨됐다는 뜻', '자료: 청약홈 · 참고용 정보이며 투자 권유가 아닙니다',
+            '', '단지별 가점은 프로필 링크에서 👆', '', ' '.join('#' + t for t in tags)]
     return cap
 
 
@@ -239,7 +266,9 @@ def sat():
     return cap
 
 
-cap = wed() if MODE == 'wed' else sat()
+cap = {'tue': tue, 'wed': wed, 'thu': thu}.get(MODE, sat)()
+if not pages:                                         # 결과·커트라인 자료가 없는 주는 카드를 만들지 않음 → 그날 청약 게시·카톡 건너뜀
+    print(f'청약 {MODE}: 보여줄 자료가 없어 카드를 만들지 않습니다'); sys.exit(0)
 for i, im in enumerate(pages, 1):
     im.save(os.path.join(OUT, f'{i:02d}.png'))
 shutil.copy(os.path.join(OUT, '01.png'), os.path.join(OUT, 'single.png'))

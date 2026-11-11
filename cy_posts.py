@@ -11,7 +11,7 @@ D = lambda s: datetime.date.fromisoformat(s[:10])
 
 
 def build(mode, S, h):
-    return (wed if mode == 'wed' else fri)(S, h)
+    return {'tue': tue, 'wed': wed, 'thu': thu}.get(mode, fri)(S, h)
 
 
 def _common(h):
@@ -29,13 +29,38 @@ def _week_label(d):
     return f"{mon.month}월 {(mon.day - 1) // 7 + 1}주차"
 
 
-# ───────────────────────── 수요일: 줍줍·로또 청약 + 결과 ─────────────────────────
+# ───────────────────────── 화요일: 1순위 청약 결과 (2026-11-11 수요일 글에서 분리) ─────────────────────────
+def tue(S, h):
+    T, TH, THR, TD, TDR, man, md, esc, pc, sg, intro, foot = _common(h)
+    W = D(S['tue']); rs = S.get('results') or []; a, b = S['results_range']
+    if not rs: raise SystemExit('지난주 결과가 나온 수도권 청약이 없어 화요일 글을 건너뜁니다.')
+    title = f"[수도권 청약] {_week_label(W)} 1순위 청약 결과 {len(rs)}곳 ({D(a).month}.{D(a).day}~{D(b).month}.{D(b).day} 접수)"
+    P = [intro(f'🏆 <b>화요일 · 1순위 청약 결과</b> · 지난주 1순위 접수한 수도권 단지의 경쟁률을 모았습니다. 월요일 이번 주 청약 일정 · 화요일 청약 결과 · 수요일 줍줍·로또 청약 · 목요일 당첨 가점 커트라인 · 금요일 단지분석이 올라갑니다.'),
+         '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
+         + h['cta'](h['SITE'], '🗺️', '청약 지도로 보기', '접수 일정·분양가·주변 신축 대비', True)
+         + h['cta'](f"{h['RT_SITE']}r/", '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>']
+    # 3) 결과
+    rs = S.get('results') or []; a, b = S['results_range']
+    P.append(f"<h3>1순위 청약 결과 ({md(a)}~{md(b)} 접수) {len(rs)}곳</h3>")
+    if rs:
+        rows = ''.join(f"<tr><td {TD}>{esc(x['region'])}</td><td {TD}>{h['name'](x)}</td><td {TDR}>{h['rate'](x)}<br><small>{x.get('apps', 0):,}건</small></td>"
+                       f"<td {TDR}>{man(x['pp_man'])}{h['gap'](x)}</td></tr>" for x in rs)
+        mi = sum(1 for x in rs if x.get('status') == '미달')
+        P.append(f"<p>가장 치열했던 곳은 <b>{esc(rs[0]['name'])}</b>({rs[0]['rate']:.1f} : 1)였고, {len(rs)}곳 중 {mi}곳은 미달이었습니다.</p>"
+                 f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>1순위 경쟁률</th><th {THR}>3.3㎡당</th></tr>{rows}</table>"
+                 '<p><small>1순위 접수 건수 ÷ 일반공급 세대수(특별공급 제외). 2순위까지 일반공급에 못 미친 주택형이 있으면 미달로 표시합니다.</small></p>')
+    else:
+        P.append('<p>이 기간에 결과가 나온 수도권 청약이 없습니다.</p>')
+    P.append(foot)
+    return title, P, ['수도권 청약', '청약 결과', '청약 경쟁률']
+
+
+# ───────────────────────── 수요일: 줍줍·로또 청약 ─────────────────────────
 def wed(S, h):
     T, TH, THR, TD, TDR, man, md, esc, pc, sg, intro, foot = _common(h)
     W = D(S['wed']); z0, z1 = S['zz_range']; zz = S.get('zz') or []
-    title = f"[수도권 청약] {_week_label(W)} 줍줍 {len(zz)}곳 · 시세보다 싼 분양 TOP 5 · 청약 결과"
-    P = [intro(f'🔥 <b>수요일 · 줍줍·로또 청약 + 결과</b> · {md(z0)}~{md(z1)} 접수하는 무순위·임의공급, 시세보다 싸게 나온 분양, '
-               '최근 나온 1순위 결과와 당첨 가점을 모았습니다. 월요일엔 이번 주 청약 일정, 금요일엔 단지분석이 올라갑니다.'),
+    title = f"[수도권 청약] {_week_label(W)} 줍줍 {len(zz)}곳 · 시세보다 싼 분양 TOP 5"
+    P = [intro(f'🔥 <b>수요일 · 줍줍·로또 청약</b> · {md(z0)}~{md(z1)} 접수하는 무순위·임의공급과 시세보다 싸게 나온 분양을 모았습니다. 월요일 이번 주 청약 일정 · 화요일 청약 결과 · 수요일 줍줍·로또 청약 · 목요일 당첨 가점 커트라인 · 금요일 단지분석이 올라갑니다.'),
          '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
          + h['cta'](h['SITE'], '🗺️', '청약 지도로 보기', '접수 일정·분양가·주변 신축 대비', True)
          + h['cta'](f"{h['RT_SITE']}r/", '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>']
@@ -73,18 +98,20 @@ def wed(S, h):
         note = (f" 시세보다 싸게 나와도 {len(hot)}곳은 미달이었어요. 입지·교통·입주 시점이 가격만큼 중요하다는 뜻이에요." if hot else '')
         P.append(f"<h3>시세보다 싸게 나온 분양 TOP 5 (최근 6개월 · 민영)</h3><table {T}><tr><th {TH}>#</th><th {TH}>단지</th><th {THR}>3.3㎡당 분양가</th><th {THR}>1순위</th></tr>{rows}</table>"
                  f"<p><small>같은 시군구 최근 10년 내 준공 아파트 매매 3.3㎡당 중앙값과 비교(전용면적 기준)한 단순 비교입니다.{note}</small></p>")
-    # 3) 결과
-    rs = S.get('results') or []; a, b = S['results_range']
-    P.append(f"<h3>1순위 청약 결과 ({md(a)}~{md(b)} 접수) {len(rs)}곳</h3>")
-    if rs:
-        rows = ''.join(f"<tr><td {TD}>{esc(x['region'])}</td><td {TD}>{h['name'](x)}</td><td {TDR}>{h['rate'](x)}<br><small>{x.get('apps', 0):,}건</small></td>"
-                       f"<td {TDR}>{man(x['pp_man'])}{h['gap'](x)}</td></tr>" for x in rs)
-        mi = sum(1 for x in rs if x.get('status') == '미달')
-        P.append(f"<p>가장 치열했던 곳은 <b>{esc(rs[0]['name'])}</b>({rs[0]['rate']:.1f} : 1)였고, {len(rs)}곳 중 {mi}곳은 미달이었습니다.</p>"
-                 f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>1순위 경쟁률</th><th {THR}>3.3㎡당</th></tr>{rows}</table>"
-                 '<p><small>1순위 접수 건수 ÷ 일반공급 세대수(특별공급 제외). 2순위까지 일반공급에 못 미친 주택형이 있으면 미달로 표시합니다.</small></p>')
-    else:
-        P.append('<p>이 기간에 결과가 나온 수도권 청약이 없습니다.</p>')
+    P.append(foot)
+    return title, P, ['수도권 청약', '줍줍', '무순위 청약', '로또 청약']
+
+
+# ───────────────────────── 목요일: 당첨 가점 커트라인 ─────────────────────────
+def thu(S, h):
+    T, TH, THR, TD, TDR, man, md, esc, pc, sg, intro, foot = _common(h)
+    W = D(S['thu'])
+    if not (S.get('cutline') or {}): raise SystemExit('가점 자료가 없어 목요일 글을 건너뜁니다.')
+    title = f"[수도권 청약] {_week_label(W)} 당첨 가점 커트라인 (서울·인천·경기 · 최근 6개월)"
+    P = [intro(f'📊 <b>목요일 · 당첨 가점 커트라인</b> · 최근 6개월 수도권 민영 청약에서 몇 점이면 당첨됐는지 정리했습니다. 월요일 이번 주 청약 일정 · 화요일 청약 결과 · 수요일 줍줍·로또 청약 · 목요일 당첨 가점 커트라인 · 금요일 단지분석이 올라갑니다.'),
+         '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
+         + h['cta'](h['SITE'], '🗺️', '청약 지도로 보기', '접수 일정·분양가·주변 신축 대비', True)
+         + h['cta'](f"{h['RT_SITE']}r/", '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>']
     # 4) 가점 커트라인
     cl = S.get('cutline') or {}
     if cl:
@@ -93,8 +120,10 @@ def wed(S, h):
         P.append(f"<h3>최근 6개월 당첨 가점 커트라인</h3><table {T}><tr><th {TH}>지역</th><th {THR}>60㎡ 이하</th><th {THR}>60~85㎡</th></tr>{rows}</table>"
                  '<p><small>민영주택 주택형별 최저 당첨 가점의 중앙값(해당지역 기준, 미달·추첨 주택형 제외)입니다. '
                  '"이 점수면 절반 정도의 주택형에서 당첨됐다"는 뜻이에요.</small></p>')
+    if not (S.get('cutline') or {}):
+        P.append('<p>최근 6개월 가점이 공개된 수도권 민영 단지가 없습니다.</p>')
     P.append(foot)
-    return title, P, ['수도권 청약', '줍줍', '무순위 청약', '청약 경쟁률']
+    return title, P, ['수도권 청약', '청약 가점', '당첨 가점']
 
 
 # ───────────────────────── 금요일: 단지분석 ─────────────────────────

@@ -91,7 +91,7 @@ parts.append('<p style="background:#f3f6fb;border-radius:8px;padding:10px 12px;f
 parts.append('<hr><p><small>자료: 한국부동산원 청약홈 APT 분양정보·경쟁률, 국토교통부 실거래가 공개시스템. '
              '청약 신청 전에는 반드시 입주자모집공고를 확인하세요. 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
 LABELS = ['수도권 청약', '아파트 분양', '청약 경쟁률']
-if MODE in ('wed', 'fri'):
+if MODE in ('tue', 'wed', 'thu', 'fri'):
     import cy_posts                                          # 수·금 글 본문 (같은 폴더)
     title, parts, LABELS = cy_posts.build(MODE, S, dict(T=T, TH=TH, THR=THR, TD=TD, TDR=TDR, man=man, md=md, esc=esc, name=name, rate=rate, gap=gap, cta=cta,
                                                         SITE=SITE, RT_SITE=RT_SITE))
@@ -101,7 +101,7 @@ if MODE in ('wed', 'fri'):
                      '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
     news = []
 # 대표 이미지 (블로그 목록 썸네일·공유 미리보기용) – daily.yml 이 저장소 cards/ 에 보관한 날짜별 이미지
-_key = {'mon': S['week'][0], 'wed': f"{S.get('wed')}_wed", 'fri': f"{S.get('fri')}_fri"}[MODE]
+_key = {'mon': S['week'][0], 'tue': f"{S.get('tue')}_tue", 'wed': f"{S.get('wed')}_wed", 'thu': f"{S.get('thu')}_thu", 'fri': f"{S.get('fri')}_fri"}[MODE]
 if os.path.exists(f'cards/cy/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'):
     _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/cy/{_key}.png"
     _has_img = True
@@ -128,8 +128,12 @@ API = f"https://www.googleapis.com/blogger/v3/blogs/{env['BLOGGER_BLOG_ID']}/pos
 # 같은 글이 이미 있으면 새로 만들지 않고 고칩니다 (월: 주간 날짜 / 수: '줍줍' + 주차 / 금: 단지명)
 if MODE == 'mon':
     key, tag = f"({w0.month}.{w0.day}~", '청약 일정'
+elif MODE == 'tue':
+    key, tag = title.split(' 1순위')[0], '청약 결과'
 elif MODE == 'wed':
     key, tag = title.split(' 줍줍')[0], '줍줍'
+elif MODE == 'thu':
+    key, tag = title.split(' 당첨')[0], '커트라인'
 else:
     key, tag = (S.get('pick') or {}).get('name', title), '단지분석'
 q = urllib.request.Request(API + '/search?' + urllib.parse.urlencode({'q': '수도권 청약', 'fetchBodies': 'false'}), headers=H)
@@ -142,5 +146,5 @@ else:
     r = urllib.request.urlopen(urllib.request.Request(API, data=body, headers=H, method='POST'))
 post = json.load(r)
 print('게시 완료:', post.get('url'))
-S[{'mon': 'blog_url', 'wed': 'blog_url_wed', 'fri': 'blog_url_fri'}[MODE]] = post.get('url')
+S[{'mon': 'blog_url', 'tue': 'blog_url_tue', 'wed': 'blog_url_wed', 'thu': 'blog_url_thu', 'fri': 'blog_url_fri'}[MODE]] = post.get('url')
 json.dump(S, open(sys.argv[1], 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

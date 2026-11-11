@@ -14,7 +14,7 @@ if not DRY and not all(K.values()):
 SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/cheongyak/'
 VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))  # 카카오가 같은 주소의 이미지를 캐시하므로 실행마다 다른 주소
 S = json.load(open(sys.argv[1], encoding='utf-8'))
-MODE = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--mode=')), 'mon')   # mon: 이번 주 청약 / wed: 줍줍·로또·결과 / fri: 단지분석(2026-11-10 추가)
+MODE = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--mode=')), 'mon')   # mon: 이번 주 청약 / tue: 청약 결과 / wed: 줍줍·로또 / thu: 당첨 가점 커트라인 / fri: 단지분석 (2026-11-11)
 
 D = lambda s: datetime.date.fromisoformat(s[:10])
 WD = '월화수목금토일'
@@ -29,7 +29,11 @@ def city(r):
     return p[0]
 cut = lambda s, n=11: s if len(s) <= n else s[:n] + '…'
 w0, w1 = D(S['week'][0]), D(S['week'][1])
-link = S.get({'wed': 'blog_url_wed', 'fri': 'blog_url_fri'}.get(MODE, 'blog_url')) or SITE
+link = S.get({'tue': 'blog_url_tue', 'wed': 'blog_url_wed', 'thu': 'blog_url_thu', 'fri': 'blog_url_fri'}.get(MODE, 'blog_url')) or SITE
+FOLDER = {'tue': 'cards_tue/', 'wed': 'cards_wed/', 'thu': 'cards_thu/', 'fri': 'cards_sat/'}.get(MODE, 'cards/')
+RS = [x for x in (S.get('results') or []) if 'rate' in x]; CL = S.get('cutline') or {}
+if (MODE == 'tue' and not RS) or (MODE == 'thu' and not CL):
+    print(f'{MODE}: 보낼 청약 자료가 없어 카톡을 건너뜁니다'); sys.exit(0)
 PK = S.get('pick') or {}
 if MODE == 'fri' and not PK:
     print('이번 주 단지분석 대상이 없어 금요일 청약 카톡은 건너뜁니다'); sys.exit(0)
@@ -78,12 +82,27 @@ def compose_fri(*_):
     if PK.get('pp_man'): L.append(f"3.3㎡당 {man(PK['pp_man'])}" + ('' if man(PK['pp_man'])[-1] in '만억' else '만') + (f" (주변 신축 {'+' if PK['gap_new'] > 0 else ''}{PK['gap_new']}%)" if PK.get('gap_new') is not None else ''))
     L += ['', f'👉 {link}']
     return '\n'.join(L)
-if MODE == 'fri':
+def compose_tue(*_):
+    a, b = S['results_range']
+    L = [f"🏆 1순위 청약 결과 | {D(a).month}.{D(a).day}~{D(b).month}.{D(b).day} 접수", '']
+    L += [f"· {city(x['region'])} {cut(x['name'], 10)} {x['rate']:.1f}:1 {x['status']}" for x in RS[:4]]
+    L += ['', f'👉 {link}']
+    return '\n'.join(L)
+def compose_thu(*_):
+    L = ['📊 당첨 가점 커트라인 | 최근 6개월', '']
+    for a in ('서울', '인천', '경기'):
+        if a in CL: L.append(f"· {a} " + ' / '.join(f"{k} {v['min_med']}점" for k, v in CL[a].items()))
+    L += ['', f'👉 {link}']
+    return '\n'.join(L)
+if MODE in ('tue', 'thu'):
+    compose = compose_tue if MODE == 'tue' else compose_thu
+    OPTS = [()]
+elif MODE == 'fri':
     compose = compose_fri
     OPTS = [()]
 elif MODE == 'wed':
     compose = compose_wed
-    OPTS = [(3,), (2,), (2, True, False), (1, True, False), (1, False, False), (0, False, False)]
+    OPTS = [(3, True, False), (2, True, False), (1, True, False), (1, False, False), (0, False, False)]   # 결과는 화요일로 옮김
 else:
     OPTS = [(3, True), (2, True), (1, True), (2, True, False), (1, True, False), (2, False), (1, False), (0, False, False)]
 # 카카오 텍스트 메시지는 200자 안팎이 넘으면 잘릴 수 있어 짧아질 때까지 줄입니다
@@ -96,13 +115,13 @@ if DRY: sys.exit(0)
 tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', urllib.parse.urlencode({
     'grant_type': 'refresh_token', 'client_id': K['KAKAO_REST_KEY'], 'client_secret': K['KAKAO_CLIENT_SECRET'],
     'refresh_token': K['KAKAO_REFRESH_TOKEN']}).encode()))
-BTN = {'wed': '청약 결과·줍줍 보기', 'fri': '단지분석 보기'}.get(MODE, '청약 일정 보기')
+BTN = {'tue': '청약 결과 보기', 'wed': '줍줍 일정 보기', 'thu': '가점 커트라인 보기', 'fri': '단지분석 보기'}.get(MODE, '청약 일정 보기')
 tpl = {'object_type': 'text', 'text': text, 'link': {'web_url': link, 'mobile_web_url': link}, 'button_title': BTN}
 req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
                              data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(),
                              headers={'Authorization': 'Bearer ' + tok['access_token']})
 # 이미지가 있으면 글 메시지는 보내지 않고 이미지만 보냅니다 (이미지를 못 만든 날만 글로 대신 보냄)
-_card = SITE + ('cards_wed/' if MODE == 'wed' else 'cards_sat/' if MODE == 'fri' else 'cards/') + 'latest.png'
+_card = SITE + FOLDER + 'latest.png'
 try: _has_card = urllib.request.urlopen(urllib.request.Request(_card, method='HEAD'), timeout=20).status == 200
 except Exception: _has_card = False
 if not _has_card:
@@ -113,11 +132,11 @@ if not _has_card:
 else:
     print('카드 이미지가 있어 글 메시지는 생략합니다')
 # 이번 주 청약 카드 이미지 (인스타그램용) 도 같이 보냅니다
-card = SITE + ('cards_wed/' if MODE == 'wed' else 'cards_sat/' if MODE == 'fri' else 'cards/') + 'latest.png'
+card = SITE + FOLDER + 'latest.png'
 try: ok_img = urllib.request.urlopen(urllib.request.Request(card, method='HEAD'), timeout=20).status == 200
 except Exception: ok_img = False
 if ok_img:
-    feed = {'object_type': 'feed', 'content': {'title': ((f"수도권 1순위 청약 결과 {len(S['results'])}곳" if [x for x in (S.get('results') or []) if 'rate' in x] else f"이번 주 수도권 줍줍 {len(S.get('zz') or [])}곳") if MODE == 'wed' else f"단지분석 | {PK.get('name', '')}" if MODE == 'fri' else f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})"),
+    feed = {'object_type': 'feed', 'content': {'title': (f"수도권 1순위 청약 결과 {len(RS)}곳" if MODE == 'tue' else '수도권 당첨 가점 커트라인 (최근 6개월)' if MODE == 'thu' else f"이번 주 수도권 줍줍 {len(S.get('zz') or [])}곳" if MODE == 'wed' else f"단지분석 | {PK.get('name', '')}" if MODE == 'fri' else f"이번 주 수도권 청약 {len(r1)}곳 ({w0.month}.{w0.day}~{w1.month}.{w1.day})"),
             'description': '이미지를 눌러 크게 보기',
             'image_url': f"{card}?v={VER}", 'image_width': 1080, 'image_height': 1350,
             'link': {'web_url': link, 'mobile_web_url': link}},

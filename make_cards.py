@@ -115,41 +115,58 @@ tags = ' '.join('#' + x for x in ['아파트실거래가', '신고가', '수도�
                 list(dict.fromkeys(t['region'].split(' ')[-1] for t in items))[:5])
 cap = [f"🔺 {LB} 수도권 아파트 {title_word} {len(nh) if nh else len(items)}건", '']
 cap += [f"· {t['region']} {t['apt']} {t['area']}㎡ {man_unit(t['price_man'])}원" + (f" (이전 {man_unit(t['prev_high_man'])})" if t.get('new_high') else '') for t in items]
+_mt = S.get('major_tops') or []
+if _mt:
+    cap += ['', '📍 주요 지역 최고가'] + [f"· {t['region']} {t['apt']} {t['area']}㎡ {man_unit(t['price_man'])}원" for t in _mt[:6]]
 cap += ['', '※ 신고가: 같은 단지·같은 면적의 최근 6개월 거래 중 최고가 경신', '※ 계약 후 30일 안에 신고되므로 건수는 늘어날 수 있어요',
         '자료: 국토교통부 실거래가 공개시스템', '', '지역별 지도·전체 거래는 프로필 링크에서 👆', '', tags]
 open(os.path.join(OUT, 'caption.txt'), 'w', encoding='utf-8').write('\n'.join(cap))
 
-# ── 한 장 요약 이미지 (1080×1350, 인스타 세로 4:5) – card_style.py 공통 디자인 ─────────────────
+# ── 한 장 요약 이미지 (1080×1350) – 주요 지역 최고가 3 + 신고가 3, 한쪽이 모자라면 다른 쪽으로 채워 6줄 (2026-11-11)
+mt = S.get('major_tops') or []
+_key = lambda t: (t['region'], t['apt'], t['area'], t['price_man'])
+_mk = {_key(t) for t in mt}
+nhx = [t for t in nh if _key(t) not in _mk]
+n_top, n_nh = min(3, len(mt)), min(3, len(nhx))
+n_nh = min(len(nhx), 6 - n_top); n_top = min(len(mt), 6 - n_nh)
+secs = [('주요 지역 최고가', f'주요 {len(S.get("major_regions") or [])}개 지역 중 {len(mt)}곳', mt[:n_top]),
+        ('신고가', f'{len(nh)}건 중', nhx[:n_nh])]
+secs = [x for x in secs if x[2]]
+if not secs:                                          # 둘 다 없으면 그날 거래가 높은 순
+    secs = [('거래가 높은 순', f"{S.get('trade_count', 0)}건 중", (S.get('day_trades') or [])[:6])]
 im, d = C.canvas(); SH = C.SH
-cnt = f"{len(nh) if nh else len(items)}건"
-C.header(d, F, f'{LBS} 계약', f'수도권 아파트 {title_word}', cnt,
-         '같은 단지·같은 면적 최근 6개월 최고가 경신' if nh else '이 날 거래가 높은 순')
-rows_ = items[:7]
-top, bottom = 340, SH - 170
-if nh and len(nh) > len(rows_): bottom -= 40          # '외 N건' 안내 자리
-rh = min(128, (bottom - top) // max(1, len(rows_)))
-y = top
-for k, t in enumerate(rows_):
-    C.row_box(d, y, rh - 14)
-    cy = y + (rh - 14) // 2
-    reg = t['region'].split(' ')[-1] if t['region'].split(' ')[0] in ('서울', '인천') else t['region'].split(' ')[0]
-    cw = C.chip(d, F, 64, cy - 52, reg)
-    nmf = F(40, 'Black'); nx = 64 + cw + 14; maxw = W - 64 - nx - 300   # 가격과 겹치지 않도록
-    nm = t['apt']
-    while d.textlength(nm, font=nmf) > maxw and len(nm) > 4: nm = nm.rstrip('…')[:-1] + '…'
-    d.text((nx, cy - 58), nm, font=nmf, fill=C.INK)
-    d.text((64, cy + 4), f"전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년", font=F(27, 'Medium'), fill=C.INK2)
-    pr = man(t['price_man']); pfnt = F(50, 'Black')
-    d.text((W - 64 - d.textlength(pr, font=pfnt), cy - 60), pr, font=pfnt, fill=C.INK)
-    if t.get('new_high'):
-        diff = t['price_man'] - t['prev_high_man']; pct = diff / t['prev_high_man'] * 100
-        sub = f"▲{man_unit(diff)} (+{pct:.1f}%)"; sf = F(28)
-        d.text((W - 64 - d.textlength(sub, font=sf), cy + 4), sub, font=sf, fill=C.UP)
-    y += rh
-more = (len(nh) - len(rows_)) if nh else 0
-if more > 0: d.text((64, y + 2), f'외 {more}건은 프로필 링크에서', font=F(28, 'Medium'), fill=C.INK2)
+C.header(d, F, f'{LBS} 계약', '수도권 아파트 실거래', '', '주요 지역 최고가 · 신고가 (같은 단지·면적 최근 6개월 최고가 경신)')
+nrows = sum(len(x[2]) for x in secs)
+more = len(nhx) - (len(secs[-1][2]) if secs[-1][0] == '신고가' else 0)
+bottom = SH - 170 - (40 if more > 0 else 0)
+rh = min(118, (bottom - 330 - 62 * len(secs) - 18 * (len(secs) - 1)) // max(1, nrows))
+y = 330
+for si, (title, sub, rows) in enumerate(secs):
+    if si: y += 18
+    d.text((64, y + 6), title, font=F(34, 'Black'), fill=C.INK)
+    d.text((64 + d.textlength(title, font=F(34, 'Black')) + 16, y + 18), sub, font=F(24, 'Medium'), fill=C.INK2)
+    y += 62
+    for t in rows:
+        C.row_box(d, y, rh - 12); cy = y + (rh - 12) // 2
+        p_ = t['region'].split(' ')
+        chip = p_[1] if p_[0] in ('서울', '인천') else (p_[0] + ' ' + p_[1][:-1]) if len(p_) > 1 else p_[0][:-1]
+        cw = C.chip(d, F, 64, cy - 48, chip)
+        nmf = F(36, 'Black'); nx = 64 + cw + 14; maxw = W - 64 - nx - 290
+        nm = t['apt']
+        while d.textlength(nm, font=nmf) > maxw and len(nm) > 4: nm = nm.rstrip('…')[:-1] + '…'
+        d.text((nx, cy - 52), nm, font=nmf, fill=C.INK)
+        d.text((64, cy + 2), (f"{t.get('umd', '')} · " if title.startswith('주요') else '') + f"전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년",
+               font=F(25, 'Medium'), fill=C.INK2)
+        pr = man(t['price_man']); pf = F(44, 'Black')
+        d.text((W - 64 - d.textlength(pr, font=pf), cy - 54), pr, font=pf, fill=C.INK)
+        if t.get('new_high'):
+            diff = t['price_man'] - t['prev_high_man']; pct = diff / t['prev_high_man'] * 100
+            s2 = (f"신고가 ▲{man_unit(diff)}" if title.startswith('주요') else f"▲{man_unit(diff)} (+{pct:.1f}%)"); sf = F(25)
+            d.text((W - 64 - d.textlength(s2, font=sf), cy + 6), s2, font=sf, fill=C.UP)
+        y += rh
+if more > 0: d.text((64, y + 2), f'신고가 외 {more}건은 프로필 링크에서', font=F(26, 'Medium'), fill=C.INK2)
 C.cta(d, F, '우리 동네 실거래가 → 프로필 링크')
 C.footer(d, F, '자료 국토교통부 실거래가 공개시스템 · 가격 단위 만원')
 im.save(os.path.join(OUT, 'single.png'))
 im.save(os.path.join(OUT, '01.png'))   # 캐러셀 표지 = 한 장 요약
-print(f'한 장 요약 이미지 → single.png, 캐러셀 {total}장(01=요약) → {OUT}')
+print(f'한 장 요약 이미지 → single.png (주요 {n_top} + 신고가 {n_nh}), 캐러셀 {total}장(01=요약) → {OUT}')
