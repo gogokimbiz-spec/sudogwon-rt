@@ -30,7 +30,7 @@ def put(path):
 
 
 ok = True
-for p in ('fin_cache.json', 'fin_data.json'):
+for p in ('fin_cache.json', 'fin_data.json', 'region_cache.json', 'region_data.json'):
     if os.path.exists(p):
         try: put(p)
         except Exception as e:

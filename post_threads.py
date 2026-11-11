@@ -6,7 +6,7 @@
 필요한 Secret: THREADS_TOKEN / 선택: THREADS_APP_SECRET(처음 넣은 토큰이 1시간짜리일 때 장기 토큰으로 바꿈), GH_PAT(GH_TOKEN 으로 전달)
 옵션: --dry (게시하지 않고 글만 출력)
 """
-import os, sys, json, time, datetime, subprocess, urllib.request, urllib.parse, urllib.error
+import re, os, sys, json, time, datetime, subprocess, urllib.request, urllib.parse, urllib.error
 
 SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/'
 BLOG = 'https://sudogwon-rt.blogspot.com/'
@@ -76,6 +76,12 @@ if P.get('day') != TODAY:
 
 
 def blog_link(key):
+    if key == 'dong':                     # 동네 대표기업은 블로그 글이 없어 그 구의 실거래 페이지로
+        try:
+            code = json.load(urllib.request.urlopen(f'{SITE}dong/summary.json?t={VER}', timeout=30))['post']['code']
+            return f'{SITE}r/{code}.html'
+        except Exception:
+            return BLOG
     path, field = {'rt': ('summary.json', 'blog_url'), 'hero': ('summary.json', 'blog_url'), 'fin': ('fin/summary.json', 'blog_url'),
                    'cy': ('cheongyak/summary.json', {0: 'blog_url', 1: 'blog_url_tue', 2: 'blog_url_wed', 3: 'blog_url_thu', 4: 'blog_url_fri'}.get(WD, 'blog_url'))}.get(key, (None, None))
     try:
@@ -84,14 +90,14 @@ def blog_link(key):
         return BLOG
 
 
-TAG = {'rt': '#아파트실거래가', 'hero': '#신고가', 'cy': '#청약', 'fin': '#기업분석'}
+TAG = {'rt': '#아파트실거래가', 'hero': '#신고가', 'cy': '#청약', 'fin': '#기업분석', 'dong': '#동네대표기업'}
 
 
 def compose(p, link):
     lines = [x for x in p['caption'].split('\n')]
     head = lines[0].strip()
-    rows = [x.strip() for x in lines[1:] if x.strip().startswith(('·', '1.', '2.', '3.', '4.', '5.'))]
-    tail = ['', f'👉 전체 보기: {link}', '', f"{TAG.get(p['key'], '#재테크')}"]
+    rows = [x.strip() for x in lines[1:] if x.strip().startswith('·') or re.match(r'\d{1,2}\. ', x.strip())]
+    tail = ['', (f'👉 이 동네 아파트 실거래가: {link}' if p['key'] == 'dong' else f'👉 전체 보기: {link}'), '', f"{TAG.get(p['key'], '#재테크')}"]
     for n in (5, 4, 3, 2, 1, 0):                          # 500자 안으로
         text = '\n'.join([head, ''] + rows[:n] + (['…'] if len(rows) > n else []) + tail)
         if len(text) <= 490: return text

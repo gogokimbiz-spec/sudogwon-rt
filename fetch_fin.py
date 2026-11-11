@@ -101,6 +101,8 @@ if PY not in data:
     if d: data[PY] = d
 cur, prev = data[FY], data.get(PY, {})
 print(f'기준 사업연도 {FY}: {len(cur)}개사 (비교 {PY}: {len(prev)}개사)')
+# 동네 대표기업(fetch_region.py)용 – 저장소에는 올리지 않는 작업 파일
+json.dump({'fy': FY, 'cur': {c: [f.get('sales'), f.get('ni'), f.get('op')] for c, f in cur.items()}}, open('fin_bulk.json', 'w', encoding='utf-8'), separators=(',', ':'))
 
 # 2. 매출 순으로 상장 여부 확인 → 상장사 500곳
 CACHE_F = 'fin_cache.json'

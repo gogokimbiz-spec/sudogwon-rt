@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 청약: 월~금 / 기업재무: 토(오늘 재무 글이 있는 날)
+- 실거래: 매일 / 청약: 월~금 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -117,6 +117,26 @@ if FN and FN.get('post') and fin_img:
           ' '.join(dict.fromkeys([BRAND_TAG, '#기업분석', '#재테크', f'#{tag}', '#상장사']))]
     sections.append(dict(key='fin', title='기업재무 순위', when='토', today=WD == 5,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=fin_img, alt=[], caption='\n'.join(L)))
+
+# ── 4. 동네 대표기업 (목, 인스타·스레드 전용 – 블로그·카톡 없음, 2026-11-11)
+DG = load('dong/summary.json')
+dong_img = imgs('dong/cards', ['single.png'])
+if DG and DG.get('post') and dong_img:
+    from region_fmt import short, man, emp, tenure
+    P = DG['post']; area = P['name'].split()[-1]
+    rng = 'TOP 10' if P['start'] == 1 else f"{P['start']}~{P['end']}위"
+    L = [f"🏢 {area} 대표기업 {rng} | {P['name']} 본사", f"{DG['fy']}년 매출 기준 · 비상장 포함", '']
+    for x in P['rows']:
+        L.append(f"{x['rank']}. {x['n']}" + (f" ({x['dong']})" if x.get('dong') else '') + f" 매출 {short(x['sales'])} · 영업이익 {short(x.get('op'))}")
+        sub = ' · '.join(t for t in [f"직원 {emp(x['emp'])}" if x.get('emp') else '', f"근속 {tenure(x['tenure'])}" if x.get('tenure') else '',
+                                     f"평균연봉 {man(x['sal'])}" if x.get('sal') else ''] if t)
+        if sub: L.append('   ' + sub)
+    L += ['', '※ 본사 주소 기준 · 직원·근속·연봉은 공시한 회사만 표시',
+          '자료: 금융위원회 기업 재무정보·기업기본정보 · 참고용 정보', '',
+          f'{area} 아파트 실거래가는 프로필 링크에서 👆', '',
+          ' '.join(dict.fromkeys([BRAND_TAG, '#동네대표기업', f'#{area}', f'#{area}회사', '#연봉']))]
+    sections.append(dict(key='dong', title='동네 대표기업', when='목', today=True,
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=dong_img, alt=[], caption='\n'.join(L)))
 
 # ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)
 try:
