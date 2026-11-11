@@ -22,7 +22,11 @@ D = S['day']
 print('오늘 요약 날짜:', D)
 
 env = dict(os.environ, HERO_PHOTO_ONLY='1', HERO_3D='1')
-subprocess.run([sys.executable, 'make_hero.py', 'hero_summary.json', OUT], env=env, check=True)
+res = subprocess.run([sys.executable, 'make_hero.py', 'hero_summary.json', OUT], env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+print(res.stdout); print(res.stderr)
+os.makedirs(OUT, exist_ok=True)
+with open(os.path.join(OUT, 'make_hero_log.txt'), 'w', encoding='utf-8') as f:
+    f.write(res.stdout + '\n' + res.stderr)
 
 
 def put(local, path):
@@ -40,9 +44,13 @@ def put(local, path):
 
 
 # 3D 시험 기록 (찍힌 화면·로그) – 각도 맞추기용. 로그에서 API 키는 지움
-_lg, _k = os.path.join(OUT, '3d_log.txt'), os.environ.get('VWORLD_KEY', '').strip()
-if os.path.exists(_lg) and _k:
-    open(_lg, 'w', encoding='utf-8').write(open(_lg, encoding='utf-8').read().replace(_k, '***'))
+_k = os.environ.get('VWORLD_KEY', '').strip()
+_txt = ''
+for _f in ('make_hero_log.txt', '3d_log.txt'):
+    if os.path.exists(os.path.join(OUT, _f)):
+        _txt += f'===== {_f}\n' + open(os.path.join(OUT, _f), encoding='utf-8', errors='replace').read() + '\n'
+if _k: _txt = _txt.replace(_k, '***')
+open(os.path.join(OUT, '3d_log.txt'), 'w', encoding='utf-8').write(_txt)
 for f, dst in (('3d_debug.png', 'cards/rt/_hero3d_debug.png'), ('3d_log.txt', 'cards/rt/_hero3d_log.txt')):
     if os.path.exists(os.path.join(OUT, f)):
         try: put(os.path.join(OUT, f), dst)

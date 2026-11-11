@@ -129,7 +129,8 @@ if xy and os.environ.get('HERO_3D') == '1':                    # PC 실행기: 3
         import hero3d
         bg = hero3d.oblique(*xy, KEY, OUT); src = '3D 지도'
     except Exception as e:
-        print('3D 사진을 못 받음 → 위성 사진으로:', str(e)[:200])
+        import traceback; traceback.print_exc()
+        print('3D 사진을 못 받음 → 위성 사진으로:', str(e)[:300])
 if xy and bg is None:
     try:
         bg = satellite(*xy); src = '항공사진'

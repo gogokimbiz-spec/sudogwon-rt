@@ -14,7 +14,8 @@ HEADING = float(os.environ.get('HERO_3D_HEADING', '20'))  # 0 = 북쪽을 바라
 PAGE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/hero3d.html'
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
-<style>html,body,#vmap{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000}</style>
+<style>html,body,#vmap{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000}
+.__clean #vmap *{visibility:hidden!important}.__clean #vmap canvas{visibility:visible!important}</style>
 <script>window.__st={step:'start',err:[]};window.onerror=function(m){window.__st.err.push(String(m).slice(0,200))};</script>
 <script src="https://map.vworld.kr/js/webglMapInit.js.do?version=3.0&apiKey=__KEY__"></script>
 </head><body><div id="vmap"></div>
@@ -46,6 +47,19 @@ window.__aim=function(){                       // 첫 화면 애니메이션이 
         orientation:{heading:C.Math.toRadians(CAM.heading),pitch:C.Math.toRadians(CAM.tilt),roll:0}});done.push('setView');}
   }catch(e){window.__st.err.push('setView:'+e);}
   return done.join(',');
+};
+window.__clean=function(){                     // 캡처 전: 지명 글씨·버튼·안내 막대 숨김 (출처는 카드에 표시)
+  var n=0;document.documentElement.className='__clean';
+  try{var v=ws3d.viewer, C=window.Cesium;
+    (function walk(c){for(var i=0;c&&c.length!==undefined&&i<c.length;i++){var q=c.get(i);if(!q)continue;
+      var nm=(q.constructor&&q.constructor.name)||'';
+      if((C&&(q instanceof C.LabelCollection||q instanceof C.BillboardCollection||q instanceof C.PointPrimitiveCollection))||/Label|Billboard|PointPrimitive/.test(nm)){q.show=false;n++;}
+      else if(q.length!==undefined&&q.get)walk(q);}})(v.scene.primitives);
+    if(v.entities){v.entities.show=false;}
+    if(v.dataSources){for(var j=0;j<v.dataSources.length;j++){v.dataSources.get(j).show=false;n++;}}
+    v.scene.requestRender();
+  }catch(e){window.__st.err.push('clean:'+e);}
+  return n;
 };
 window.__state=function(){
   var v=(window.ws3d&&ws3d.viewer)||null, s={step:window.__st.step,how:window.__st.how,err:window.__st.err.slice(-3),vw:typeof vw,ws3d:!!window.ws3d,viewer:!!v,
@@ -106,10 +120,13 @@ def oblique(lon, lat, key, out_dir, w=864, h=1080):
                 if ok_n >= 3: break                              # 타일 다 받은 상태가 6초 이상 유지
             if not st.get('viewer') and aimed == 0:
                 pg.evaluate('window.__aim && window.__aim()'); time.sleep(15)
+            time.sleep(2)
+            say('글씨 숨김', pg.evaluate('window.__clean()'))
             time.sleep(4)
             say('마지막 상태', json.dumps(pg.evaluate('window.__state()'), ensure_ascii=False))
             shot = pg.screenshot()
-            b.close()
+            try: b.close()
+            except Exception as e: say('브라우저 닫기 오류(무시)', str(e)[:120])
     finally:
         if shot: open(os.path.join(out_dir, '3d_debug.png'), 'wb').write(shot)
         open(os.path.join(out_dir, '3d_log.txt'), 'w', encoding='utf-8').write('\n'.join(log))
