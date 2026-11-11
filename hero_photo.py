@@ -21,10 +21,8 @@ json.dump(S, open('hero_summary.json', 'w', encoding='utf-8'), ensure_ascii=Fals
 D = S['day']
 print('오늘 요약 날짜:', D)
 
-env = dict(os.environ, HERO_PHOTO_ONLY='1')
+env = dict(os.environ, HERO_PHOTO_ONLY='1', HERO_3D='1')
 subprocess.run([sys.executable, 'make_hero.py', 'hero_summary.json', OUT], env=env, check=True)
-if not os.path.exists(os.path.join(OUT, 'hero.png')):
-    print('사진 카드를 만들지 않았습니다 (신고가 없음 또는 사진 실패)'); sys.exit(0)
 
 
 def put(local, path):
@@ -40,6 +38,14 @@ def put(local, path):
     with urllib.request.urlopen(urllib.request.Request(url, data=json.dumps(body).encode(), headers=H, method='PUT')) as r:
         print('저장:', path, r.status)
 
+
+# 3D 시험 기록 (찍힌 화면·로그) – 각도 맞추기용
+for f, dst in (('3d_debug.png', 'cards/rt/_hero3d_debug.png'), ('3d_log.txt', 'cards/rt/_hero3d_log.txt')):
+    if os.path.exists(os.path.join(OUT, f)):
+        try: put(os.path.join(OUT, f), dst)
+        except Exception as e: print('시험 기록 저장 실패:', e)
+if not os.path.exists(os.path.join(OUT, 'hero.png')):
+    print('사진 카드를 만들지 않았습니다 (신고가 없음 또는 사진 실패)'); sys.exit(0)
 
 # json 을 마지막에 올림 → json 이 있으면 png·jpg 도 이미 있다는 뜻 (카톡·인스타가 이걸 보고 판단)
 put(os.path.join(OUT, 'hero.png'), f'cards/rt/{D}_hero.png')
