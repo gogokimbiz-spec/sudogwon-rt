@@ -1,10 +1,11 @@
 """오늘의 신고가 인스타그램 카드 이미지(1080×1350)를 만듭니다 (GitHub Actions 용).
-사용법: python make_cards.py site/summary.json site/cards
-결과: <출력폴더>/01.png(표지=요약), 02.png…(신고가 단지별, 최대 8장), 마지막(안내), single.png, caption.txt – 모두 1080×1350 크림색(card_style)
+사용법: python make_cards.py site/summary.json site/cards [hist 폴더=hist] [rt_data.json]
+결과: <출력폴더>/01.png(표지=요약), 02.png…(신고가 단지별, 최대 8장), 마지막(안내), single.png, caption.txt – 모두 1080×1350, card_style 의 slate 테마. 단지별 카드에 같은 단지·면적 최근 3년 거래 그래프(hist/ + rt_data.json)
 필요: Pillow, 한글 폰트(Noto Sans CJK KR – Actions 에서는 apt 로 fonts-noto-cjk 설치)
 """
-import sys, os, glob, json, datetime
+import sys, os, glob, json, datetime, statistics
 from PIL import Image, ImageDraw, ImageFont
+os.environ.setdefault('CARD_THEME', 'slate')   # 실거래 카드는 슬레이트(어두운 회청색) + 흰 글씨 (2026-11-11)
 
 S = json.load(open(sys.argv[1], encoding='utf-8'))
 OUT = sys.argv[2]; os.makedirs(OUT, exist_ok=True)
@@ -65,46 +66,109 @@ def page_no(d, i):
 
 # ── 1. 표지 = 한 장 요약 이미지(single.png) – 맨 아래에서 만든 뒤 01.png 로 복사
 
-# ── 2. 단지별 카드 (크림색 테마)
+# ── 2. 단지별 카드 + 최근 3년 거래 흐름 그래프 (2026-11-11)
+HIST = sys.argv[3] if len(sys.argv) > 3 else 'hist'
+RTF = sys.argv[4] if len(sys.argv) > 4 else 'rt_data.json'
+try: CODE_OF = {v: k for k, v in json.load(open('names.json', encoding='utf-8')).items()}
+except Exception: CODE_OF = {}
+try: RT_ROWS = json.load(open(RTF, encoding='utf-8'))['trade']   # [code, date, apt, umd, area, floor, price, built, 해제]
+except Exception: RT_ROWS = []
+_hist_cache = {}
+def hist_rows(code):
+    if code not in _hist_cache:
+        rows = []
+        for f in glob.glob(os.path.join(HIST, code, '*.json')):
+            try: rows += json.load(open(f, encoding='utf-8'))   # [date, apt, umd, area, floor, price, 해제]
+            except Exception: pass
+        _hist_cache[code] = rows
+    return _hist_cache[code]
+DAY = datetime.date.fromisoformat(S['day'])
+def series(t):
+    code = CODE_OF.get(t['region'])
+    if not code: return []
+    apt, umd, ar = t['apt'], t.get('umd', ''), round(t['area'])
+    cut = (DAY - datetime.timedelta(365 * 3)).isoformat()
+    pts = {(r[1], r[5], r[6]) for r in RT_ROWS if r[0] == code and r[2] == apt and r[3] == umd and round(r[4]) == ar and r[8] != 'O' and r[1] >= cut}
+    pts |= {(r[0], r[4], r[5]) for r in hist_rows(code) if r[1] == apt and r[2] == umd and round(r[3]) == ar and r[6] != 'O' and r[0] >= cut}
+    return sorted((datetime.date.fromisoformat(dt), p) for dt, fl, p in pts)
+def eok(v):
+    return (f'{v / 10000:.1f}억'.replace('.0억', '억')) if v >= 10000 else f'{v / 10000:.2f}억'
+def chart(d, box, pts, hl):
+    x0, y0, x1, y1 = box
+    d.rounded_rectangle((x0 - 28, y0 - 30, x1 + 28, y1 + 56), 16, fill=C.T['card'])
+    t0, t1 = pts[0][0], max(pts[-1][0], hl[0])
+    ps = [p for _, p in pts] + [hl[1]]; lo, hi = min(ps), max(ps); pad = (hi - lo) * 0.12 or hi * 0.05; lo -= pad; hi += pad
+    X = lambda t: x0 + (t - t0).days / max(1, (t1 - t0).days) * (x1 - x0)
+    Y = lambda v: y1 - (v - lo) / (hi - lo) * (y1 - y0)
+    for k in range(4):
+        v = lo + (hi - lo) * k / 3; yy = Y(v)
+        d.line((x0, yy, x1, yy), fill=C.LINE, width=1)
+        d.text((x0 + 4, yy - 30), eok(v), font=F(22, 'Medium'), fill=C.INK2)
+    mon = {}
+    for t, v in pts: mon.setdefault((t.year, t.month), []).append(v)
+    clamp = lambda t: min(max(t, t0), t1)
+    line = [(X(clamp(datetime.date(y, m, 15))), Y(statistics.median(v))) for (y, m), v in sorted(mon.items())]
+    for t, v in pts: d.ellipse((X(t) - 5, Y(v) - 5, X(t) + 5, Y(v) + 5), fill=(140, 150, 162))
+    if len(line) > 1: d.line(line, fill=(255, 255, 255), width=4, joint='curve')
+    hx, hy = X(hl[0]), Y(hl[1]); d.ellipse((hx - 13, hy - 13, hx + 13, hy + 13), fill=C.ORANGE, outline=(255, 255, 255), width=3)
+    for t, right_ in ((t0, False), (t1, True)):
+        s_ = f"{t.year % 100}.{t.month}"; f = F(22, 'Medium'); w_ = d.textlength(s_, font=f)
+        d.text((x1 - w_ if right_ else x0, y1 + 14), s_, font=f, fill=C.INK2)
+    first, last = statistics.median(mon[min(mon)]), statistics.median(mon[max(mon)])
+    nmon = (t1.year - t0.year) * 12 + t1.month - t0.month
+    return (last / first - 1) * 100, nmon
+
 for i, t in enumerate(items, start=2):
     im, d = C.canvas()
-    d.rectangle((40, 30, W - 40, 36), fill=C.INK)
+    d.rectangle((40, 30, W - 40, 36), fill=C.ORANGE)
     cw = C.chip(d, F, 64, 64, t['region'], size=30)
     if t.get('new_high'):
         bf = F(30); bw = d.textlength('신고가', font=bf)
-        rr(d, (64 + cw + 14, 64, 64 + cw + 14 + bw + 32, 108), 6, fill=C.ORANGE); d.text((64 + cw + 30, 67), '신고가', font=bf, fill=(255, 255, 255))
+        rr(d, (64 + cw + 14, 64, 64 + cw + 14 + bw + 32, 108), 6, fill=C.ORANGE); d.text((64 + cw + 30, 67), '신고가', font=bf, fill=C.T['pill_t'])
     page_no(d, i)
-    y = 150
-    for ln in wrap(d, t['apt'], F(76, 'Black'), W - 128)[:2]:
-        d.text((62, y), ln, font=F(76, 'Black'), fill=C.INK); y += 94
-    d.text((64, y + 6), f"{t.get('umd', '')} · 전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년", font=F(34, 'Medium'), fill=C.INK2)
-    y += 80
-    d.rectangle((40, y, W - 40, y + 6), fill=C.INK); y += 50
-    d.text((64, y), '거래가', font=F(36, 'Medium'), fill=C.INK2)
-    d.text((62, y + 46), man_unit(t['price_man']) + '원', font=F(124, 'Black'), fill=C.ORANGE if t.get('new_high') else C.INK)
-    y += 230
-    d.line([(40, y), (W - 40, y)], fill=C.INK, width=2); y += 36
+    y = 138
+    for ln in wrap(d, t['apt'], F(64, 'Black'), W - 128)[:2]:
+        d.text((62, y), ln, font=F(64, 'Black'), fill=C.INK); y += 80
+    d.text((64, y + 4), f"{t.get('umd', '')} · 전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년 · {DAY.month}.{DAY.day} 계약", font=F(30, 'Medium'), fill=C.INK2)
+    y += 70
+    d.text((64, y), '거래가', font=F(32, 'Medium'), fill=C.INK2)
+    d.text((62, y + 36), man_unit(t['price_man']) + '원', font=F(104, 'Black'), fill=C.ORANGE if t.get('new_high') else C.INK)
     if t.get('new_high'):
         prev = t['prev_high_man']; diff = t['price_man'] - prev; pct = diff / prev * 100
         pd = datetime.date.fromisoformat(t['prev_high_date'])
-        d.text((64, y), '이전 최고가', font=F(36, 'Medium'), fill=C.INK2)
-        v = f"{man_unit(prev)}원 ({pd.month}.{pd.day})"; d.text((W - 64 - d.textlength(v, font=F(40)), y - 2), v, font=F(40), fill=C.INK)
-        y += 80
-        bt = f"▲ {man_unit(diff)}원 · +{pct:.1f}%"; bw = d.textlength(bt, font=F(46))
-        rr(d, (64, y, 64 + bw + 56, y + 80), 6, fill=C.INK); d.text((92, y + 10), bt, font=F(46), fill=(255, 255, 255))
-        y += 120
+        bt = f"▲ {man_unit(diff)} · +{pct:.1f}%"; bf = F(34); bw = d.textlength(bt, font=bf)
+        by_ = y + 172                                       # 가격 아래 한 줄: 왼쪽 상승 배지, 오른쪽 이전 최고가
+        rr(d, (64, by_, 64 + bw + 44, by_ + 60), 30, fill=(255, 255, 255)); d.text((86, by_ + 6), bt, font=bf, fill=C.T['bg'])
+        v = f"이전 최고 {man_unit(prev)} ({pd.month}.{pd.day})"; d.text((W - 64 - d.textlength(v, font=F(28, 'Medium')), by_ + 14), v, font=F(28, 'Medium'), fill=C.INK2)
+        y += 94
+    y += 170
+    pts = series(t)
+    if len(pts) >= 3:
+        hl = (DAY, t['price_man'])
+        if all(not (p == t['price_man'] and dt == DAY) for dt, p in pts): pts = sorted(pts + [hl])
+        cy0 = y + 70; cy1 = C.SH - 270
+        chg, nmon = chart(d, (92, cy0 + 40, W - 92, cy1), pts, hl)
+        d.text((64, y), '같은 면적 거래 흐름', font=F(34, 'Black'), fill=C.INK)
+        per = f"{round(nmon / 12)}년" if nmon >= 24 else f"{max(1, nmon)}개월"
+        s2 = f"{per} {'+' if chg >= 0 else ''}{chg:.0f}% · {len(pts)}건"
+        d.text((W - 64 - d.textlength(s2, font=F(30)), y + 4), s2, font=F(30), fill=C.UP if chg >= 0 else C.DOWN)
+        foot = '자료 국토교통부 실거래가 · 점=거래, 선=월 중간값, 노란 점=이번 거래'
+    else:                                                  # 거래가 너무 적으면 숫자만
         d.line([(40, y), (W - 40, y)], fill=C.LINE, width=2); y += 36
-    d.text((64, y), '3.3㎡당', font=F(36, 'Medium'), fill=C.INK2)
-    v = f"{man_unit(t['pp_man'])}원"; d.text((W - 64 - d.textlength(v, font=F(40)), y - 2), v, font=F(40), fill=C.INK)
+        d.text((64, y), '3.3㎡당', font=F(36, 'Medium'), fill=C.INK2)
+        v = f"{man_unit(t['pp_man'])}원"; d.text((W - 64 - d.textlength(v, font=F(40)), y - 2), v, font=F(40), fill=C.INK)
+        y += 70
+        d.text((64, y), '최근 3년 같은 면적 거래가 적어 그래프는 생략했어요', font=F(28, 'Medium'), fill=C.INK2)
+        foot = '자료 국토교통부 실거래가 공개시스템 · 계약일 기준'
     C.cta(d, F, '우리 동네 실거래가 → 프로필 링크')
-    C.footer(d, F, '자료 국토교통부 실거래가 공개시스템 · 계약일 기준')
+    C.footer(d, F, foot)
     im.save(os.path.join(OUT, f'{i:02d}.png'))
 
-# ── 3. 마지막 안내 (크림색 테마)
+# ── 3. 마지막 안내
 im, d = C.canvas()
 C.header(d, F, '데이터로 보는 재테크', '우리 동네 실거래가', '', '궁금하다면 프로필 링크에서 확인하세요')
 y = 400
-for r_ in ['수도권 76개 시군구 실거래 지도', '지역별 신고가 · 최근 거래', '매일 아침 부동산 브리핑', '월·수·금 청약 / 화·목 기업재무']:
+for r_ in ['수도권 76개 시군구 실거래 지도', '지역별 신고가 · 최근 거래', '매일 아침 부동산 브리핑', '월~금 청약 / 토 기업재무']:
     C.row_box(d, y, 110); d.text((64, y + 30), '• ' + r_, font=F(44, 'Medium'), fill=C.INK); y += 130
 C.cta(d, F, '프로필 링크에서 확인하세요')
 C.footer(d, F, '자료 국토교통부 · 청약홈 · DART')

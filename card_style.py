@@ -16,6 +16,10 @@ THEMES = {
     'lavender': dict(bg=(250, 249, 255), head=(238, 234, 255), deco=(221, 213, 255), accent=(108, 76, 230), chip_t=(96, 64, 214),
                      pill=(255, 168, 76), chip=(236, 231, 255), ink=(30, 27, 52), ink2=(140, 136, 160), line=(229, 225, 245),
                      h_ink=(30, 27, 52), h_ink2=(140, 136, 160), big=(108, 76, 230)),
+    'slate':    dict(bg=(52, 58, 66), head=(52, 58, 66), deco=None, accent=(255, 196, 0), chip_t=(52, 58, 66),
+                     pill=(255, 196, 0), chip=(232, 234, 236), ink=(255, 255, 255), ink2=(176, 184, 194), line=(84, 92, 102),
+                     h_ink=(255, 255, 255), h_ink2=(176, 184, 194), big=(255, 196, 0), card=(62, 69, 78), pill_t=(52, 58, 66),
+                     up=(255, 120, 110), down=(120, 180, 255), flat=True),   # 실거래 카드용 (슬레이트 + 흰 글씨 + 노랑, 2026-11-11)
     'paper':    dict(bg=(246, 241, 232), head=(246, 241, 232), deco=None, accent=(214, 69, 36), chip_t=(246, 241, 232),
                      pill=(28, 26, 23), chip=(28, 26, 23), ink=(28, 26, 23), ink2=(120, 112, 100), line=(28, 26, 23),
                      h_ink=(28, 26, 23), h_ink2=(120, 112, 100), big=(214, 69, 36), flat=True),
@@ -24,7 +28,7 @@ THEMES = {
                      h_ink=(255, 255, 255), h_ink2=(150, 150, 150), big=(198, 244, 50), pill_t=(17, 17, 17), card=(28, 28, 28),
                      up=(255, 90, 95), down=(77, 163, 255)),
 }
-THEME = os.environ.get('CARD_THEME') or 'paper'   # orange / mint / lavender / paper / dark
+THEME = os.environ.get('CARD_THEME') or 'paper'   # 실거래(make_cards.py)는 slate, 청약·재무는 paper   # orange / mint / lavender / paper / dark
 T = THEMES.get(THEME, THEMES['orange'])
 WHITE = (255, 255, 255)
 INK, INK2, LINE, ORANGE = T['ink'], T['ink2'], T['line'], T['accent']
