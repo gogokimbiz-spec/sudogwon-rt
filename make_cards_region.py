@@ -61,16 +61,13 @@ for i, x in enumerate(rows, P['start']):
         d.text((vx, cy - int(40 * z) + (int(10 * z) if f is lf else 0)), t, font=f, fill=col); vx += d.textlength(t, font=f)
     nx = 56 + 2 * bs + 20; nf = F(int(34 * z), 'Black')
     room = W - 64 - vw - 24 - nx
-    has_chip = bool(x.get('dong'))
-    nm = fit(d, x['n'], nf, room - (110 if has_chip else 0))
+    nm = fit(d, x['n'], nf, room)
     d.text((nx, cy - int(42 * z)), nm, font=nf, fill=C.INK)
-    if has_chip and d.textlength(nm, font=nf) + 100 < room:
-        C.chip(d, F, int(nx + d.textlength(nm, font=nf) + 12), cy - int(37 * z), x['dong'], int(20 * z))
     sub = '   ·   '.join(t for t in [f"직원 {emp(x['emp'])}" if x.get('emp') else '', f"근속 {tenure(x['tenure'])}" if x.get('tenure') else '',
                                      f"평균연봉 {man(x['sal'])}" if x.get('sal') else ''] if t) or '직원·근속·연봉 미공시'
     d.text((nx, cy + int(8 * z)), fit(d, sub, F(int(26 * z), 'Medium'), W - 64 - nx), font=F(int(26 * z), 'Medium'), fill=C.INK2)
     y += rh
-C.cta(d, F, '직원 수·평균연봉 전체 → 블로그')
+C.cta(d, F, '우리 동네 실거래가 → 프로필 링크')
 C.footer(d, F, '자료 금융위원회 기업 재무·기본정보 · 본사 주소 기준')
 im.save(os.path.join(OUT, 'single.png'))
 shutil.copy(os.path.join(OUT, 'single.png'), os.path.join(OUT, 'latest.png'))
