@@ -2,21 +2,37 @@ name: 인스타그램·스레드 게시 (매일 아침 8시)
 
 # 새벽 '매일 실거래 갱신'이 만들어 둔 오늘 게시물(insta/posts.json)을 아침에 인스타그램과 스레드에 올립니다.
 # GitHub 예약 실행은 정각에 몰려 늦어지는 일이 잦아 07:55 로 걸어 둠 → 보통 8시 전후에 올라감
+# 갱신이 7시 넘어 끝난 날(장애로 예비 실행이 돈 날 등)은 갱신이 끝나고 8분 뒤 자동으로 한 번 더 실행 (이미 올린 게시물은 건너뜀)
 on:
   schedule:
     - cron: '55 22 * * *'   # 매일 07:55 KST
   workflow_dispatch:         # Actions 탭에서 수동 실행 (이미 올린 게시물은 건너뜀)
+  workflow_run:              # '매일 실거래 갱신'이 아침 7시 넘어 끝난 날(예비 실행·지연·수동)은 끝나고 8분 뒤 자동 게시
+    workflows: ['매일 실거래 갱신']
+    types: [completed]
 
 permissions:
   contents: write   # 1위 카드 카톡 '보낸 표시' 저장용
 
 jobs:
   post:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
+      - name: 늦게 끝난 갱신 뒤 실행인지 확인 (7시 전에 끝났으면 08시 예약 실행에 맡김)
+        id: late
+        run: |
+          H=$(TZ=Asia/Seoul date +%H)
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "$H" -lt 7 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo '7시 전이라 08시 예약 실행에 맡깁니다'; exit 0; fi
+            echo '1위 사진 카드(PC)가 끝나도록 8분 기다립니다'; sleep 480
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
+        if: steps.late.outputs.skip != 'true'
       - name: 1위 카드 카톡 (PC 가 꺼져 있어 아직 안 보냈으면 일반 배경 카드로)
+        if: steps.late.outputs.skip != 'true'
         continue-on-error: true
         env:
           KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
@@ -26,6 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 hero_kakao.py
       - name: 인스타그램 자동 게시
+        if: steps.late.outputs.skip != 'true'
         continue-on-error: true
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
@@ -33,6 +50,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: python3 post_instagram.py
       - name: 스레드 자동 게시
+        if: steps.late.outputs.skip != 'true'
         continue-on-error: true
         env:
           THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}

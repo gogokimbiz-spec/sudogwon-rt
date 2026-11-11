@@ -3,6 +3,7 @@ name: 매일 실거래 갱신
 on:
   schedule:
     - cron: '11 20 * * *'   # 매일 05:11 KST
+    - cron: '41 22 * * *'   # 07:41 KST 예비 실행 – 오늘 실행이 이미 성공(또는 진행 중)이면 스스로 취소, 새벽 실행이 GitHub 장애로 실패한 날만 대신 돎
   workflow_dispatch:         # Actions 탭에서 수동 실행
     inputs:
       cy_post:
@@ -23,6 +24,7 @@ on:
 
 permissions:
   contents: write   # 카드 이미지 보관용
+  actions: write    # 예비 실행이 스스로 취소할 때 사용
   pages: write
   id-token: write
 
@@ -31,7 +33,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:   # 07:41 예비 실행일 때만: 오늘(한국 날짜) 이미 성공했거나 돌고 있는 실행이 있으면 이 실행을 취소
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.c.outputs.go }}
+    steps:
+      - id: c
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "41 22 * * *" ]; then
+            SINCE=$(date -u -d "$(TZ=Asia/Seoul date +%Y-%m-%d) 00:00 +0900" +%Y-%m-%dT%H:%M:%SZ)
+            N=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?per_page=50&created=%3E%3D${SINCE}" \
+                --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.conclusion == "success" or .status == "in_progress" or .status == "queued" or .status == "waiting")] | length')
+            echo "오늘($SINCE 이후) 이미 성공·진행 중인 실행: $N"
+            if [ "$N" != "0" ]; then
+              echo "go=false" >> "$GITHUB_OUTPUT"
+              echo '오늘 실행이 이미 있어 예비 실행을 취소합니다'
+              gh run cancel ${{ github.run_id }} -R ${{ github.repository }}; sleep 60
+              exit 0
+            fi
+            echo '새벽 실행이 없거나 실패해서 예비 실행으로 대신 돌립니다'
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: check
+    if: needs.check.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
