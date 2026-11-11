@@ -51,7 +51,8 @@ if S:
     if car and cap:
         sections.append(dict(key='rt', title='실거래 신고가', when='매일', today=True,
                              guide=f'사진 {len(car)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기',
-                             images=imgs('cards', car), alt=imgs('cards', ['single.png']),
+                             images=(lambda L: L[:1] + imgs('cards', ['hero.png']) + L[1:])(imgs('cards', car)),   # 두 번째 장 = 주요 지역 신고가 1위 카드
+                             alt=imgs('cards', ['single.png']),
                              caption=trim_tags(cap, 7, '아파트')))
 
 # ── 2. 청약 (월: 이번 주 청약 / 화: 1순위 결과 / 수: 줍줍·로또 / 목: 가점 커트라인 / 금: 단지분석 – 2026-11-11)

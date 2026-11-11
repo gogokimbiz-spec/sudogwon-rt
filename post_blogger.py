@@ -150,6 +150,8 @@ if os.path.exists(f'cards/rt/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'
     _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/rt/{_key}.png"
     _has_img = True
     parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
+    if os.path.exists(f'cards/rt/{_key}_hero.png'):            # 주요 지역 신고가 1위 카드 (2026-11-12)
+        parts.insert((1 if news else 0) + 1, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img[:-4]}_hero.png" alt="주요 지역 신고가 1위" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
 # 오늘의 부동산 타로 (대표 이미지 바로 아래 – 대표 이미지가 블로그 썸네일이 되도록 타로는 그 뒤에 둠)
 try:
     from tarot import today_card

@@ -94,6 +94,26 @@ else:
     print('오늘의 카드 이미지가 없어 이미지 메시지는 건너뜁니다.')
 
 # (타로 카톡은 2026-11-10 사용자 요청으로 뺌 – 블로그 글의 타로 칸은 그대로)
+# 주요 지역 신고가 1위 카드 (있는 날만, 2026-11-12)
+hero = SITE.rstrip('/') + '/cards/hero.png'
+try:
+    hj = json.load(urllib.request.urlopen(SITE.rstrip('/') + f'/cards/hero.json?v={VER}', timeout=20))
+    ok_h = urllib.request.urlopen(urllib.request.Request(hero, method='HEAD'), timeout=20).status == 200
+except Exception:
+    hj, ok_h = None, False
+if ok_h and hj:
+    feed = {'object_type': 'feed', 'content': {'title': f"주요 지역 신고가 1위 | {hj['apt']} {man(hj['price_man'])}",
+            'description': f"{hj['region']} · 전용 {hj['area']}㎡", 'image_url': f"{hero}?v={VER}", 'image_width': 1080, 'image_height': 1350,
+            'link': {'web_url': link, 'mobile_web_url': link}},
+            'buttons': [{'title': '자세히 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+    try:
+        print('1위 카드 전송 결과:', json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+              data=urllib.parse.urlencode({'template_object': json.dumps(feed, ensure_ascii=False)}).encode(),
+              headers={'Authorization': 'Bearer ' + tok['access_token']}))))
+    except urllib.error.HTTPError as err:
+        print('::warning::1위 카드 전송 실패:', err.read().decode('utf-8', 'replace')[:300])
+else:
+    print('오늘은 주요 지역 신고가 1위 카드가 없습니다')
 new_rt = tok.get('refresh_token')
 if new_rt:
     open('.kakao_rt', 'w').write(new_rt)  # 같은 작업의 청약 알림이 새 토큰을 쓰도록
