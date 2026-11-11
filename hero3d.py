@@ -56,6 +56,8 @@ window.__clean=function(){                     // 캡처 전: 지명 글씨·버
       if((C&&(q instanceof C.LabelCollection||q instanceof C.BillboardCollection||q instanceof C.PointPrimitiveCollection))||/Label|Billboard|PointPrimitive/.test(nm)){q.show=false;n++;}
       else if(q.length!==undefined&&q.get)walk(q);}})(v.scene.primitives);
     if(v.entities){v.entities.show=false;}
+    try{var L=v.imageryLayers;for(var k=1;k<L.length;k++){L.get(k).show=false;n++;}}catch(e){}   // 지명 글씨가 사진 위 겹침 층이면 숨김
+    try{if(window.map&&map.getLayers){}}catch(e){}
     if(v.dataSources){for(var j=0;j<v.dataSources.length;j++){v.dataSources.get(j).show=false;n++;}}
     v.scene.requestRender();
   }catch(e){window.__st.err.push('clean:'+e);}
@@ -122,6 +124,8 @@ def oblique(lon, lat, key, out_dir, w=864, h=1080):
                 pg.evaluate('window.__aim && window.__aim()'); time.sleep(15)
             time.sleep(2)
             say('글씨 숨김', pg.evaluate('window.__clean()'))
+            try: say('층 정보', json.dumps(pg.evaluate("(function(){var v=ws3d.viewer,o={img:v.imageryLayers.length,prim:v.scene.primitives.length,ds:v.dataSources?v.dataSources.length:0,names:[]};for(var i=0;i<v.scene.primitives.length;i++){var q=v.scene.primitives.get(i);o.names.push((q&&q.constructor&&q.constructor.name)||'?')}return o})()"), ensure_ascii=False))
+            except Exception as e: say('층 정보 실패', str(e)[:100])
             time.sleep(4)
             say('마지막 상태', json.dumps(pg.evaluate('window.__state()'), ensure_ascii=False))
             shot = pg.screenshot()
