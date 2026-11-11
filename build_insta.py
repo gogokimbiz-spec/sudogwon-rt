@@ -127,7 +127,7 @@ if DG and DG.get('post') and dong_img:
     rng = 'TOP 10' if P['start'] == 1 else f"{P['start']}~{P['end']}위"
     L = [f"🏢 {area} 대표기업 {rng} | {P['name']} 본사", f"{DG['fy']}년 매출 기준 · 비상장 포함", '']
     for x in P['rows']:
-        L.append(f"{x['rank']}. {x['n']}" + (f" ({x['dong']})" if x.get('dong') else '') + f" 매출 {short(x['sales'])} · 영업이익 {short(x.get('op'))}")
+        L.append(f"{x['rank']}. {x['n']} 매출 {short(x['sales'])} · 영업이익 {short(x.get('op'))}")
         sub = ' · '.join(t for t in [f"직원 {emp(x['emp'])}" if x.get('emp') else '', f"근속 {tenure(x['tenure'])}" if x.get('tenure') else '',
                                      f"평균연봉 {man(x['sal'])}" if x.get('sal') else ''] if t)
         if sub: L.append('   ' + sub)

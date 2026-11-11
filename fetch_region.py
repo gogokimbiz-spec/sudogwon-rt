@@ -12,6 +12,7 @@ OUTL = 'https://apis.data.go.kr/1160100/service/GetCorpBasicInfoService_V2/getCo
 KST = datetime.timezone(datetime.timedelta(hours=9))
 today = datetime.datetime.now(KST).date()
 MAX_LOOKUPS = int(os.environ.get('REGION_LOOKUPS', '6000'))   # 기업기본정보 개발계정 하루 10,000건 안에서
+MAX_MIN = float(os.environ.get('REGION_MINUTES', '12'))     # 하루 확인 시간 한도(분) – PC 실행기를 오래 붙잡지 않게 (1위 사진 카드가 기다림), 남은 건 다음 날 이어서
 RECHECK_DAYS = 365
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36'}
 
@@ -99,25 +100,37 @@ ranked = sorted((c for c, v in cur.items() if v[0]), key=lambda c: -cur[c][0])
 todo = [c for c in ranked if not fresh(c)][:MAX_LOOKUPS]
 print(f'{FY}년 매출 있는 회사 {len(ranked)}곳, 오늘 확인 {len(todo)}곳 (누적 확인 {len(HIT) + len(CHK)}곳)')
 shown, no_dong = 0, 0
+T0 = time.time()
+
+
+def handle(c, items):
+    global shown, no_dong
+    if items is None: return
+    if not items:
+        CHK[c] = ymd; return
+    o = items[0]
+    a = ' '.join(x for x in (o.get('enpBsadr'), o.get('enpDtadr')) if x)
+    if shown < 3 and a:
+        print('[진단] 주소 예:', a, '| 종업원', o.get('enpEmpeCnt'), '| 평균급여', o.get('enpPn1AvgSlryAmt'), '| 근속', o.get('empeAvgCnwkTermCtt')); shown += 1
+    d = dong_of(a)
+    r = region_of(a, d)
+    if r:
+        if not d: no_dong += 1
+        HIT[c] = {'n': clean(o.get('enpPbanCmpyNm') or o.get('corpNm')), 'r': r, 'd': d, 'a': a[:80],
+                  'e': num(o.get('enpEmpeCnt')), 's': num(o.get('enpPn1AvgSlryAmt')), 'w': (o.get('empeAvgCnwkTermCtt') or '').strip(),
+                  'l': 1 if (o.get('enpXchgLstgDt') or o.get('enpKosdaqLstgDt')) else 0, 't': ymd}
+        CHK.pop(c, None)
+    else:
+        CHK[c] = ymd; HIT.pop(c, None)
+
+
 with ThreadPoolExecutor(4) as ex:
-    for c, items in ex.map(get, todo):
-        if items is None: continue
-        if not items:
-            CHK[c] = ymd; continue
-        o = items[0]
-        a = ' '.join(x for x in (o.get('enpBsadr'), o.get('enpDtadr')) if x)
-        if shown < 3 and a:
-            print('[진단] 주소 예:', a, '| 종업원', o.get('enpEmpeCnt'), '| 평균급여', o.get('enpPn1AvgSlryAmt'), '| 근속', o.get('empeAvgCnwkTermCtt')); shown += 1
-        d = dong_of(a)
-        r = region_of(a, d)
-        if r:
-            if not d: no_dong += 1
-            HIT[c] = {'n': clean(o.get('enpPbanCmpyNm') or o.get('corpNm')), 'r': r, 'd': d, 'a': a[:80],
-                      'e': num(o.get('enpEmpeCnt')), 's': num(o.get('enpPn1AvgSlryAmt')), 'w': (o.get('empeAvgCnwkTermCtt') or '').strip(),
-                      'l': 1 if (o.get('enpXchgLstgDt') or o.get('enpKosdaqLstgDt')) else 0, 't': ymd}
-            CHK.pop(c, None)
-        else:
-            CHK[c] = ymd; HIT.pop(c, None)
+    for k in range(0, len(todo), 200):                   # 200곳씩 – 시간 한도가 지나면 멈추고 저장
+        for c, items in ex.map(get, todo[k:k + 200]):
+            handle(c, items)
+        json.dump(cache, open(CF, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+        if time.time() - T0 > MAX_MIN * 60 and k + 200 < len(todo):
+            print(f'시간 한도 {MAX_MIN:g}분이 지나 {k + 200}곳까지만 확인하고 멈춥니다 (나머지는 다음 날)'); break
 json.dump(cache, open(CF, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 done = sum(1 for c in ranked if fresh(c))
 last = next((cur[c][0] for c in reversed(ranked) if fresh(c)), 0) if done else 0
