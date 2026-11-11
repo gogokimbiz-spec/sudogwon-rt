@@ -55,7 +55,9 @@ jobs:
           # 한글 폰트: 저장소 fonts/ 폴더의 Noto Sans KR 을 씀 (인터넷 설치가 실패해도 카드가 만들어지도록)
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
-          python make_cards.py site/summary.json site/cards
+          # 단지별 카드의 최근 3년 거래 그래프용 과거 실거래 (hist/ 에 쌓아 두고 다시 안 받음)
+          DATA_GO_KR_KEY="${{ secrets.DATA_GO_KR_KEY }}" python fetch_hist.py site/summary.json || echo '과거 거래 수집 실패 - 그래프 없이 계속'
+          python make_cards.py site/summary.json site/cards hist rt_data.json
           cp site/cards/single.png site/cards/latest.png
       - name: 시군구별 실거래가 페이지 만들기
         continue-on-error: true
@@ -152,7 +154,7 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add cards
+          git add cards hist
           if ! git diff --cached --quiet; then
             git commit -q -m "카드 이미지 $D"
             git pull -q --rebase --autostash && git push -q
