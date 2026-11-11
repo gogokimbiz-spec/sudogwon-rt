@@ -39,7 +39,10 @@ def put(local, path):
         print('저장:', path, r.status)
 
 
-# 3D 시험 기록 (찍힌 화면·로그) – 각도 맞추기용
+# 3D 시험 기록 (찍힌 화면·로그) – 각도 맞추기용. 로그에서 API 키는 지움
+_lg, _k = os.path.join(OUT, '3d_log.txt'), os.environ.get('VWORLD_KEY', '').strip()
+if os.path.exists(_lg) and _k:
+    open(_lg, 'w', encoding='utf-8').write(open(_lg, encoding='utf-8').read().replace(_k, '***'))
 for f, dst in (('3d_debug.png', 'cards/rt/_hero3d_debug.png'), ('3d_log.txt', 'cards/rt/_hero3d_log.txt')):
     if os.path.exists(os.path.join(OUT, f)):
         try: put(os.path.join(OUT, f), dst)

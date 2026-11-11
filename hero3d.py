@@ -22,12 +22,18 @@ HTML = """<!doctype html><html><head><meta charset="utf-8">
 var CAM=__CAM__;
 function pos(){return new vw.CameraPosition(new vw.CoordZ(CAM.lon,CAM.lat,CAM.alt),new vw.Direction(CAM.heading,CAM.tilt,0));}
 function go(){
-  try{
-    if(typeof vw==='undefined'){window.__st.step='no-vw';return;}
+  if(typeof vw==='undefined'){window.__st.step='no-vw';return;}
+  try{                                           // 3.0 방식: new vw.Map() → setOption → start
+    window.map=new vw.Map();
+    map.setOption({mapId:'vmap',initPosition:pos(),logo:true,navigation:false});
+    map.start();
+    window.__st.step='map';window.__st.how='3.0';return;
+  }catch(e){window.__st.err.push('start30:'+e);}
+  try{                                           // 2.0 방식 (예비)
     var o=new vw.MapOptions(vw.BasemapType.PHOTO,'',vw.DensityType.EMPTY,vw.DensityType.BASIC,false,pos(),pos());
     window.map=new vw.Map('vmap',o);
-    window.__st.step='map';
-  }catch(e){window.__st.err.push('map:'+e);window.__st.step='map-fail';}
+    window.__st.step='map';window.__st.how='2.0';
+  }catch(e){window.__st.err.push('map20:'+e);window.__st.step='map-fail';}
 }
 window.addEventListener('load',function(){setTimeout(go,300);});
 window.__aim=function(){                       // 첫 화면 애니메이션이 카메라를 되돌리는 경우 대비 → 다시 맞춤
@@ -42,7 +48,10 @@ window.__aim=function(){                       // 첫 화면 애니메이션이 
   return done.join(',');
 };
 window.__state=function(){
-  var v=(window.ws3d&&ws3d.viewer)||null, s={step:window.__st.step,err:window.__st.err.slice(-5),vw:typeof vw,ws3d:!!window.ws3d,viewer:!!v};
+  var v=(window.ws3d&&ws3d.viewer)||null, s={step:window.__st.step,how:window.__st.how,err:window.__st.err.slice(-3),vw:typeof vw,ws3d:!!window.ws3d,viewer:!!v,
+    canvas:document.querySelectorAll('canvas').length};
+  try{var g=document.createElement('canvas');s.webgl=!!(g.getContext('webgl2')||g.getContext('webgl'));}catch(e){s.webgl='err';}
+  try{if(window.ws3d&&!window.__k){window.__k=1;s.ws3dKeys=Object.keys(ws3d).slice(0,25);s.mapKeys=window.map?Object.keys(Object.getPrototypeOf(map)||{}).slice(0,40):[];}}catch(e){}
   try{if(v){v.scene.requestRender();s.tiles=v.scene.globe.tilesLoaded;
     var c=v.camera.positionCartographic;s.cam=[c.longitude*57.29578,c.latitude*57.29578,c.height,v.camera.pitch*57.29578];}}catch(e){s.serr=String(e);}
   return s;
@@ -61,7 +70,10 @@ def oblique(lon, lat, key, out_dir, w=864, h=1080):
     from playwright.sync_api import sync_playwright
     from PIL import Image, ImageStat
     log = []
-    say = lambda *a: (log.append(' '.join(str(x) for x in a)), print('[3D]', *a))
+    def say(*a):
+        t = ' '.join(str(x) for x in a)
+        if key: t = t.replace(key, '***')               # 로그에 API 키가 남지 않게
+        log.append(t); print('[3D]', t)
     cam = cam_for(lon, lat)
     say('카메라', json.dumps(cam))
     html = HTML.replace('__KEY__', key).replace('__CAM__', json.dumps(cam))
@@ -87,7 +99,7 @@ def oblique(lon, lat, key, out_dir, w=864, h=1080):
                 st = pg.evaluate('window.__state ? window.__state() : null') or {}
                 if st.get('step') in ('no-vw', 'map-fail'):
                     say('상태', json.dumps(st, ensure_ascii=False)); raise RuntimeError('3D 지도 시작 실패: ' + st.get('step'))
-                if st.get('step') == 'map' and time.time() - t0 > 8 and aimed < 3 and (aimed == 0 or time.time() - t0 > 8 + aimed * 10):
+                if st.get('step') == 'map' and (st.get('viewer') or time.time() - t0 > 30) and time.time() - t0 > 8 and aimed < 3 and (aimed == 0 or time.time() - t0 > 8 + aimed * 10):
                     say('카메라 맞춤', pg.evaluate('window.__aim()')); aimed += 1; ok_n = 0
                 ok_n = ok_n + 1 if (st.get('tiles') and aimed >= 2) else 0
                 if int(time.time() - t0) % 10 < 2: say('상태', json.dumps(st, ensure_ascii=False))
