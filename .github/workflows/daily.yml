@@ -6,9 +6,9 @@ on:
   workflow_dispatch:         # Actions 탭에서 수동 실행
     inputs:
       cy_post:
-        description: '청약 블로그 글·카톡 지금 보내기 (mon=이번 주 청약 일정, wed=줍줍·로또·결과, fri=단지분석)'
+        description: '청약 블로그 글·카톡 지금 보내기 (mon=이번 주 일정, tue=청약 결과, wed=줍줍·로또, thu=가점 커트라인, fri=단지분석)'
         type: choice
-        options: ['none', 'mon', 'wed', 'fri']
+        options: ['none', 'mon', 'tue', 'wed', 'thu', 'fri']
         default: 'none'
       fin_post:
         description: '기업재무 글·카톡 지금 보내기 (rank=순위, value=저평가 지표)'
@@ -97,7 +97,7 @@ jobs:
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/index.html -o site/fin/index.html || true
             curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/fin/summary.json -o site/fin/summary.json || true
           fi
-      - name: 기업재무 카드 이미지 만들기 (화·목)
+      - name: 기업재무 카드 이미지 만들기 (토)
         if: steps.fin.outcome == 'success'
         continue-on-error: true
         run: |
@@ -112,8 +112,10 @@ jobs:
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards_cy.py site/cheongyak/summary.json site/cheongyak/cards
-          # 수요일(줍줍·로또·결과)·토요일(단지분석) 캐러셀 – 매일 만들어 두고 인스타·블로그 대표 이미지에 씀
+          # 화(청약 결과)·수(줍줍·로또)·목(가점 커트라인)·금(단지분석, 폴더 cards_sat) – 매일 만들어 두고 인스타·블로그·카톡 이미지에 씀
+          python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_tue --mode=tue || echo '화요일 청약 카드 실패'
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_wed --mode=wed || echo '수요일 청약 카드 실패'
+          python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_thu --mode=thu || echo '목요일 청약 카드 실패'
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_sat --mode=sat || echo '토요일 청약 카드 실패'
       - name: 인스타 게시용 페이지 만들기 (/insta/)
         continue-on-error: true
@@ -132,6 +134,14 @@ jobs:
             W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''
             [ -n "$W" ] && [ -f site/cheongyak/cards/single.png ] && cp site/cheongyak/cards/single.png "cards/cy/$W.png"
           fi
+          if [ "$DOW" = "2" ] || [ "$CYP" = "tue" ]; then
+            W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['tue'])" 2>/dev/null) || W=''
+            [ -n "$W" ] && [ -f site/cheongyak/cards_tue/01.png ] && cp site/cheongyak/cards_tue/01.png "cards/cy/${W}_tue.png"
+          fi
+          if [ "$DOW" = "4" ] || [ "$CYP" = "thu" ]; then
+            W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['thu'])" 2>/dev/null) || W=''
+            [ -n "$W" ] && [ -f site/cheongyak/cards_thu/01.png ] && cp site/cheongyak/cards_thu/01.png "cards/cy/${W}_thu.png"
+          fi
           if [ "$DOW" = "3" ] || [ "$CYP" = "wed" ]; then
             W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['wed'])" 2>/dev/null) || W=''
             [ -n "$W" ] && [ -f site/cheongyak/cards_wed/01.png ] && cp site/cheongyak/cards_wed/01.png "cards/cy/${W}_wed.png"
@@ -147,7 +157,7 @@ jobs:
             git commit -q -m "카드 이미지 $D"
             git pull -q --rebase --autostash && git push -q
           fi
-      - name: 청약 블로그 글 (월·수·금)
+      - name: 청약 블로그 글 (월~금)
         if: steps.cy.outcome == 'success'
         continue-on-error: true
         env:
@@ -158,15 +168,15 @@ jobs:
           ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
           ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
         run: |
-          # 월: 이번 주 청약 일정 / 수: 줍줍·로또 청약 + 결과 / 금: 단지분석 (수동 실행 때는 cy_post 선택값)
+          # 월: 이번 주 청약 일정 / 화: 청약 결과 / 수: 줍줍·로또 / 목: 당첨 가점 커트라인 / 금: 단지분석 (수동 실행 때는 cy_post 선택값)
           M="${{ inputs.cy_post }}"
           if [ -z "$M" ] || [ "$M" = "none" ]; then
-            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 3) M=wed;; 5) M=fri;; *) M=none;; esac
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 2) M=tue;; 3) M=wed;; 4) M=thu;; 5) M=fri;; *) M=none;; esac
           fi
           if [ "$M" = "none" ]; then echo '오늘은 청약 글이 없는 요일입니다'; exit 0; fi
           [ "$M" = "mon" ] && { python fetch_news_cy.py site/cheongyak/summary.json || echo '청약 뉴스 단계 실패 - 뉴스 없이 계속'; }
           python post_blogger_cy.py site/cheongyak/summary.json --mode=$M
-      - name: 기업재무 블로그 글 (화·목)
+      - name: 기업재무 블로그 글 (토)
         if: steps.fin.outcome == 'success'
         continue-on-error: true
         env:
@@ -230,7 +240,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python3 telegram_send.py summary.json
-      - name: 청약 카톡 (월·수·금)
+      - name: 청약 카톡 (월~금)
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
@@ -241,18 +251,18 @@ jobs:
         run: |
           M="${{ inputs.cy_post }}"
           if [ -z "$M" ] || [ "$M" = "none" ]; then
-            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 3) M=wed;; 5) M=fri;; *) M=none;; esac
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 2) M=tue;; 3) M=wed;; 4) M=thu;; 5) M=fri;; *) M=none;; esac
           fi
-          if [ "$M" = "mon" ] || [ "$M" = "wed" ] || [ "$M" = "fri" ]; then
+          if [ "$M" != "none" ]; then
             curl -sf "${{ needs.deploy.outputs.page_url }}cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json
             python3 kakao_send_cy.py cy_summary.json --mode=$M
             if [ "$M" = "mon" ]; then
               TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" TELEGRAM_CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}" python3 telegram_send.py cy_summary.json --cy || echo '청약 텔레그램 실패'
             fi
           else
-            echo '월·수·금이 아니라 청약 카톡은 건너뜁니다'
+            echo '주말이라 청약 카톡은 건너뜁니다'
           fi
-      - name: 기업재무 카톡 (화·목)
+      - name: 기업재무 카톡 (토)
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
