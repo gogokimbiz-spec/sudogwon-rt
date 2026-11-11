@@ -1,7 +1,7 @@
 ===== make_hero_log.txt
-주요 지역 신고가 1위: 화성 동탄구 동탄 더샵 레이크에듀타운 85 130000
-좌표: 동탄더샵레이크에듀타운아파트/2506동 {'x': '127.10916254811794', 'y': '37.17378299104628'}
-[3D] 카메라 {"lon": 127.10712620787666, "lat": 37.16932501906685, "alt": 330.0, "heading": 20.0, "tilt": -32.0}
+주요 지역 신고가 1위: 용인 수지구 내대지마을건영캐스빌 85 90400
+좌표: 내대지마을건영캐스빌아파트입구 {'x': '127.12681608505144', 'y': '37.333053993023164'}
+[3D] 카메라 {"lon": 127.12477543527936, "lat": 37.32859602104373, "alt": 330.0, "heading": 20.0, "tilt": -32.0}
 [3D] 브라우저 msedge
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
@@ -20,15 +20,26 @@
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/check2DNum.do?version=3.0&key=***, is invok
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/checkWGLNum.do?version=3.0&type=WGL&key=***
 [3D] 카메라 맞춤 moveTo,setView
+[3D] 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": false, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
 [3D] 카메라 맞춤 moveTo,setView
-[3D] 글씨 숨김 82
-[3D] 마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.10712728807327, 37.16932533494354, 330.0000000002414, -32.00000027194613]}
-[3D] 밝기 115 대비 61
-주요 지역 신고가 1위 카드 → hero_out\hero.png (배경: 3D 지도 )
+[3D] 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
+[3D] 글씨 숨김 84
+[3D] 층 정보 {"img": 3, "prim": 169, "ds": 0, "names": ["Ja", "f_", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "du", "du", "du"]}
+[3D] 마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
+[3D] 밝기 90 대비 11
+3D 사진을 못 받음 → 위성 사진으로: 3D 사진이 비어 보임
+주요 지역 신고가 1위 카드 → hero_out\hero.png (배경: 항공사진 )
 
+Traceback (most recent call last):
+  File "C:\actions-runner\_work\sudogwon-rt\sudogwon-rt\make_hero.py", line 130, in <module>
+    bg = hero3d.oblique(*xy, KEY, OUT); src = '3D 지도'
+  File "C:\actions-runner\_work\sudogwon-rt\sudogwon-rt\hero3d.py", line 141, in oblique
+    if st.stddev[0] < 18 or st.mean[0] < 25: raise RuntimeError('3D 사진이 비어 보임')
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: 3D 사진이 비어 보임
 
 ===== 3d_log.txt
-카메라 {"lon": 127.10712620787666, "lat": 37.16932501906685, "alt": 330.0, "heading": 20.0, "tilt": -32.0}
+카메라 {"lon": 127.12477543527936, "lat": 37.32859602104373, "alt": 330.0, "heading": 20.0, "tilt": -32.0}
 브라우저 msedge
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
@@ -47,7 +58,10 @@ console warning A parser-blocking, cross site (i.e. different eTLD+1) script, ht
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/check2DNum.do?version=3.0&key=***, is invok
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/checkWGLNum.do?version=3.0&type=WGL&key=***
 카메라 맞춤 moveTo,setView
+상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": false, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
 카메라 맞춤 moveTo,setView
-글씨 숨김 82
-마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.10712728807327, 37.16932533494354, 330.0000000002414, -32.00000027194613]}
-밝기 115 대비 61
+상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
+글씨 숨김 84
+층 정보 {"img": 3, "prim": 169, "ds": 0, "names": ["Ja", "f_", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "du", "du", "du"]}
+마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
+밝기 90 대비 11
