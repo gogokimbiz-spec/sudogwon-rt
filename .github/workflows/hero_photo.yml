@@ -22,13 +22,13 @@ jobs:
   photo:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, Windows]
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       PYTHONUTF8: '1'
       PYTHONIOENCODING: 'utf-8'
     steps:
       - uses: actions/checkout@v4
-      - name: 단지 위성 사진으로 1위 카드 만들기
+      - name: 단지 3D·위성 사진으로 1위 카드 만들기
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +40,7 @@ jobs:
           if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
           if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
           echo python: %PY%
-          "%PY%" -m pip install --quiet --disable-pip-version-check pillow
+          "%PY%" -m pip install --quiet --disable-pip-version-check pillow playwright
           "%PY%" hero_photo.py
 
   kakao:
