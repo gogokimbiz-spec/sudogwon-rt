@@ -48,6 +48,17 @@ jobs:
           if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
           if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
           "%PY%" fetch_dart.py || echo DART step failed - annual data only
+      - name: 동네 대표기업 (본사 주소별) 수집
+        shell: cmd
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: |
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          "%PY%" fetch_region.py || echo region step failed
       - name: 결과를 저장소에 올리기
         shell: cmd
         env:

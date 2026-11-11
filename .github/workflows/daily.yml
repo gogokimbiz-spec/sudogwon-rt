@@ -15,6 +15,11 @@ on:
         type: choice
         options: ['none', 'rank', 'value']
         default: 'none'
+      region_post:
+        description: '동네 대표기업 인스타·스레드 게시물 지금 만들기 (next=이번 차례, 또는 지역 지정 – 게시는 인스타·스레드 실행 때)'
+        type: choice
+        options: ['none', 'next', 'gangnam', 'seocho', 'songpa', 'yongsan', 'seongdong', 'mapo', 'bundang', 'gwacheon', 'yeongtong', 'suji', 'dongtan', 'yeonsu']
+        default: 'none'
 
 permissions:
   contents: write   # 카드 이미지 보관용
@@ -109,6 +114,19 @@ jobs:
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           python make_cards_fin.py site/fin/summary.json site/fin/cards
+      - name: 동네 대표기업 지역 고르기·카드 (목, 인스타·스레드용)
+        id: dong
+        continue-on-error: true
+        env:
+          REGION_POST: ${{ inputs.region_post }}
+        run: |
+          # region_data.json 은 PC 실행기(fin_fetch.yml)가 매일 04:31 에 올림
+          if [ ! -f region_data.json ]; then echo '동네 대표기업 자료가 아직 없습니다'; exit 0; fi
+          [ "$REGION_POST" = "none" ] && export REGION_POST=''
+          python build_region.py region_data.json site
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          python make_cards_region.py site/dong/summary.json site/dong/cards
       - name: 이번 주 청약 카드 이미지 만들기
         continue-on-error: true
         run: |
@@ -128,7 +146,10 @@ jobs:
         continue-on-error: true
         run: |
           D=$(python -c "import json;print(json.load(open('site/summary.json'))['day'])")
-          mkdir -p cards/rt cards/cy cards/fin
+          mkdir -p cards/rt cards/cy cards/fin cards/dong
+          if [ -f site/dong/cards/single.png ]; then
+            RD=$(python -c "import json;print(json.load(open('site/dong/summary.json'))['day'])") && cp site/dong/cards/single.png "cards/dong/$RD.png"
+          fi
           if [ -f site/fin/cards/single.png ]; then
             FD=$(python -c "import json;print(json.load(open('site/fin/summary.json'))['day'])") && cp site/fin/cards/single.png "cards/fin/$FD.png"
           fi
