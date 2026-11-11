@@ -1,0 +1,53 @@
+===== make_hero_log.txt
+주요 지역 신고가 1위: 화성 동탄구 동탄 더샵 레이크에듀타운 85 130000
+좌표: 동탄더샵레이크에듀타운아파트/2506동 {'x': '127.10916254811794', 'y': '37.17378299104628'}
+[3D] 카메라 {"lon": 127.10712620787666, "lat": 37.16932501906685, "alt": 330.0, "heading": 20.0, "tilt": -32.0}
+[3D] 브라우저 msedge
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/VWViewerStartup.v30.min.js?ver=2026091801, is invoke
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/vw.ol3WebGL.v30.js?ver=2026091801, is invoked via do
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/dtkmap/jquery-3.7.0.min.js, is invoked via document.write. The network re
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/dtkmap/jquery-3.7.0.min.js, is invoked via document.write. The network re
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/jquery/ol3/jquery-ui.min.js, is invoked via document.write. The network requ
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/map/OpenLayers-7.5.2/ol.v752.min.js, is invoked via document.write. The n
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/map/ol-ext/ol-ext.min.js, is invoked via document.write. The network requ
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/dtkmap/imgdownload.js, is invoked via document.write. The network request
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/analmap/extmlib/proj4.281.js, is invoked via document.write. The network 
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/vectortiles/proxyUrl.jsp?url=/req/wmts/vector/getStyle/483E0418-2F46-3223-80
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/vectortiles/proxyUrl.jsp?url=/req/wmts/vector/getStyle/483E0418-2F46-3223-80
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/vw.ol7.webgl2DMapClassInit.v30.min.js, is invoked vi
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/check2DNum.do?version=3.0&key=***, is invok
+[3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/checkWGLNum.do?version=3.0&type=WGL&key=***
+[3D] 카메라 맞춤 moveTo,setView
+[3D] 카메라 맞춤 moveTo,setView
+[3D] 글씨 숨김 82
+[3D] 마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.10712728807327, 37.16932533494354, 330.0000000002414, -32.00000027194613]}
+[3D] 밝기 115 대비 61
+주요 지역 신고가 1위 카드 → hero_out\hero.png (배경: 3D 지도 )
+
+
+===== 3d_log.txt
+카메라 {"lon": 127.10712620787666, "lat": 37.16932501906685, "alt": 330.0, "heading": 20.0, "tilt": -32.0}
+브라우저 msedge
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/VWViewerStartup.v30.min.js?ver=2026091801, is invoke
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/vw.ol3WebGL.v30.js?ver=2026091801, is invoked via do
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/dtkmap/jquery-3.7.0.min.js, is invoked via document.write. The network re
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/dtkmap/jquery-3.7.0.min.js, is invoked via document.write. The network re
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/jquery/ol3/jquery-ui.min.js, is invoked via document.write. The network requ
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/map/OpenLayers-7.5.2/ol.v752.min.js, is invoked via document.write. The n
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/map/ol-ext/ol-ext.min.js, is invoked via document.write. The network requ
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/dtkmap/imgdownload.js, is invoked via document.write. The network request
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/analmap/extmlib/proj4.281.js, is invoked via document.write. The network 
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/vectortiles/proxyUrl.jsp?url=/req/wmts/vector/getStyle/483E0418-2F46-3223-80
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/vectortiles/proxyUrl.jsp?url=/req/wmts/vector/getStyle/483E0418-2F46-3223-80
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/vw.ol7.webgl2DMapClassInit.v30.min.js, is invoked vi
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/check2DNum.do?version=3.0&key=***, is invok
+console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/checkWGLNum.do?version=3.0&type=WGL&key=***
+카메라 맞춤 moveTo,setView
+카메라 맞춤 moveTo,setView
+글씨 숨김 82
+마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.10712728807327, 37.16932533494354, 330.0000000002414, -32.00000027194613]}
+밝기 115 대비 61
