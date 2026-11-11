@@ -58,6 +58,8 @@ jobs:
           # 단지별 카드의 최근 3년 거래 그래프용 과거 실거래 (hist/ 에 쌓아 두고 다시 안 받음)
           DATA_GO_KR_KEY="${{ secrets.DATA_GO_KR_KEY }}" python fetch_hist.py site/summary.json || echo '과거 거래 수집 실패 - 그래프 없이 계속'
           python make_cards.py site/summary.json site/cards hist rt_data.json
+          # 주요 지역 신고가 1위 카드 (브이월드 위성 사진 배경, 못 받으면 일반 배경)
+          VWORLD_KEY="${{ secrets.VWORLD_KEY }}" python make_hero.py site/summary.json site/cards || echo '1위 카드 실패 - 건너뜀'
           cp site/cards/single.png site/cards/latest.png
       - name: 시군구별 실거래가 페이지 만들기
         continue-on-error: true
@@ -131,6 +133,7 @@ jobs:
             FD=$(python -c "import json;print(json.load(open('site/fin/summary.json'))['day'])") && cp site/fin/cards/single.png "cards/fin/$FD.png"
           fi
           [ -f site/cards/single.png ] && cp site/cards/single.png "cards/rt/$D.png"
+          [ -f site/cards/hero.png ] && cp site/cards/hero.png "cards/rt/${D}_hero.png"
           DOW=$(TZ=Asia/Seoul date +%u); CYP="${{ inputs.cy_post }}"
           if [ "$DOW" = "1" ] || [ "$CYP" = "mon" ]; then
             W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''

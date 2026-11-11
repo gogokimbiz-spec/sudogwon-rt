@@ -1,6 +1,6 @@
-name: 인스타그램 게시 (매일 아침 8시)
+name: 인스타그램·스레드 게시 (매일 아침 8시)
 
-# 새벽 '매일 실거래 갱신'이 만들어 둔 오늘 게시물(insta/posts.json)을 아침에 올립니다.
+# 새벽 '매일 실거래 갱신'이 만들어 둔 오늘 게시물(insta/posts.json)을 아침에 인스타그램과 스레드에 올립니다.
 # GitHub 예약 실행은 정각에 몰려 늦어지는 일이 잦아 07:55 로 걸어 둠 → 보통 8시 전후에 올라감
 on:
   schedule:
@@ -13,12 +13,20 @@ permissions:
 jobs:
   post:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: 인스타그램 자동 게시
+        continue-on-error: true
         env:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: python3 post_instagram.py
+      - name: 스레드 자동 게시
+        continue-on-error: true
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
