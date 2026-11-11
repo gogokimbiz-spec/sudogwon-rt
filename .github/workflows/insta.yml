@@ -8,7 +8,7 @@ on:
   workflow_dispatch:         # Actions 탭에서 수동 실행 (이미 올린 게시물은 건너뜀)
 
 permissions:
-  contents: read
+  contents: write   # 1위 카드 카톡 '보낸 표시' 저장용
 
 jobs:
   post:
@@ -16,6 +16,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: 1위 카드 카톡 (PC 가 꺼져 있어 아직 안 보냈으면 일반 배경 카드로)
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 hero_kakao.py
       - name: 인스타그램 자동 게시
         continue-on-error: true
         env:

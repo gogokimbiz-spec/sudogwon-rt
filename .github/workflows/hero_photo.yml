@@ -1,0 +1,59 @@
+name: 1위 사진 카드 (내 PC)
+
+# 브이월드는 해외(GitHub 서버) 접속을 막아서, 주요 지역 신고가 1위 카드의 단지 위성 사진만 사장님 PC(한국 IP)에서 받습니다.
+# '매일 실거래 갱신'이 끝나면 자동 실행 → 사진 카드를 저장소에 올리고(블로그 이미지 자동 교체, 인스타·스레드는 08시에 사진 카드 사용)
+# → 이어서 GitHub 서버가 1위 카드를 카톡으로 보냄.
+# PC 가 꺼져 있으면 이 작업은 대기하고, 07:55 인스타 작업이 일반 배경 카드로 카톡을 대신 보냅니다.
+
+on:
+  workflow_run:
+    workflows: ['매일 실거래 갱신']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hero-photo
+  cancel-in-progress: true
+
+jobs:
+  photo:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+    steps:
+      - uses: actions/checkout@v4
+      - name: 단지 위성 사진으로 1위 카드 만들기
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+        run: |
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          echo python: %PY%
+          "%PY%" -m pip install --quiet --disable-pip-version-check pillow
+          "%PY%" hero_photo.py
+
+  kakao:
+    needs: photo
+    if: ${{ !cancelled() && needs.photo.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 1위 카드 카톡 보내기
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 hero_kakao.py
