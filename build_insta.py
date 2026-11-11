@@ -51,9 +51,25 @@ if S:
     if car and cap:
         sections.append(dict(key='rt', title='실거래 신고가', when='매일', today=True,
                              guide=f'사진 {len(car)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기',
-                             images=(lambda L: L[:1] + imgs('cards', ['hero.png']) + L[1:])(imgs('cards', car)),   # 두 번째 장 = 주요 지역 신고가 1위 카드
-                             alt=imgs('cards', ['single.png']),
+                             images=imgs('cards', car), alt=imgs('cards', ['single.png']),
                              caption=trim_tags(cap, 7, '아파트')))
+
+# ── 1-2. 주요 지역 신고가 1위 (실거래 캐러셀과 별도 게시물, 있는 날만 – 2026-11-12)
+HJ = load('cards/hero.json'); hero_img = imgs('cards', ['hero.png'])
+if HJ and hero_img:
+    def _man(v):
+        v = int(round(v)); e, m = divmod(v, 10000)
+        return (f'{e}억 {m:,}만' if m else f'{e}억') if e else f'{m:,}만'
+    city = HJ['region'].split(' ')[-1] if HJ['region'].split(' ')[0] in ('서울', '인천') else HJ['region'].split(' ')[0]
+    hcap = [f"🏆 주요 지역 신고가 1위 | {HJ['apt']} {_man(HJ['price_man'])}", '',
+            f"· {HJ['region']} {HJ.get('umd', '')} · 전용 {HJ['area']}㎡ · {HJ.get('floor', '')}층 · {HJ.get('built', '')}년",
+            f"· 이전 최고 {_man(HJ['prev_high_man'])} → {_man(HJ['price_man'])} (▲{_man(HJ['price_man'] - HJ['prev_high_man'])})" if HJ.get('prev_high_man') else '',
+            '', '※ 주요 지역: 강남·서초·송파·용산·성동·마포·분당·과천·수원 영통·용인 수지·동탄',
+            '자료: 국토교통부 실거래가' + (' · 항공사진 국토교통부 브이월드' if HJ.get('src') not in (None, '그림') else ''),
+            '', '전체 실거래·지역별 지도는 프로필 링크에서 👆', '',
+            ' '.join(dict.fromkeys([BRAND_TAG, '#신고가', '#아파트실거래가', f'#{city}아파트', '#' + HJ['apt'].replace(' ', '')[:15]]))]
+    sections.append(dict(key='hero', title='주요 지역 신고가 1위', when='있는 날', today=True,
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=hero_img, alt=[], caption='\n'.join(x for x in hcap if x is not None)))
 
 # ── 2. 청약 (월: 이번 주 청약 / 화: 1순위 결과 / 수: 줍줍·로또 / 목: 가점 커트라인 / 금: 단지분석 – 2026-11-11)
 CY = load('cheongyak/summary.json')

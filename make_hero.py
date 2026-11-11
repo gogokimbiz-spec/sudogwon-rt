@@ -180,6 +180,7 @@ credit = '자료 국토교통부 실거래가' + (f' · {src} 국토교통부 �
 text((60, 1282), credit, F(21, 'Medium'), WHITE, 3)
 text((W - 60 - tl('@data_jaetech', F(26)), 1278), '@data_jaetech', F(26), WHITE, 3)
 im.save(DST)
-json.dump({'apt': T['apt'], 'region': T['region'], 'price_man': T['price_man'], 'area': T['area'], 'src': src or '그림'},
+json.dump({'apt': T['apt'], 'region': T['region'], 'umd': T.get('umd', ''), 'price_man': T['price_man'], 'area': T['area'], 'floor': T['floor'],
+           'built': T['built'], 'prev_high_man': T['prev_high_man'], 'day': S['day'], 'src': src or '그림'},
           open(os.path.join(OUT, 'hero.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print('주요 지역 신고가 1위 카드 →', DST, '(배경:', src or '자동 그림', ')')

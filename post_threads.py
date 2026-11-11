@@ -1,5 +1,5 @@
 """스레드(Threads) 자동 게시 (GitHub Actions insta.yml, 인스타 게시 바로 뒤).
-- 인스타와 같은 insta/posts.json(오늘 게시물·JPEG)을 씁니다. 실거래 매일, 청약 월~금, 기업재무 토.
+- 인스타와 같은 insta/posts.json(오늘 게시물·JPEG)을 씁니다. 실거래 매일, 주요 지역 신고가 1위(있는 날, 별도 게시물), 청약 월~금, 기업재무 토.
 - 스레드는 글 500자 제한이라 캡션을 짧게 줄이고, 그날 블로그 글 링크(스레드는 링크가 눌림)와 주제 태그 1개를 붙입니다.
 - 같은 날 다시 실행해도 최근 게시물 첫 줄이 같으면 건너뜁니다(중복 방지).
 - 토큰 자동 갱신: 실행마다 장기 토큰(60일)을 새로 받아 THREADS_TOKEN Secret 에 저장 (GH_TOKEN 필요)
@@ -76,7 +76,7 @@ if P.get('day') != TODAY:
 
 
 def blog_link(key):
-    path, field = {'rt': ('summary.json', 'blog_url'), 'fin': ('fin/summary.json', 'blog_url'),
+    path, field = {'rt': ('summary.json', 'blog_url'), 'hero': ('summary.json', 'blog_url'), 'fin': ('fin/summary.json', 'blog_url'),
                    'cy': ('cheongyak/summary.json', {0: 'blog_url', 1: 'blog_url_tue', 2: 'blog_url_wed', 3: 'blog_url_thu', 4: 'blog_url_fri'}.get(WD, 'blog_url'))}.get(key, (None, None))
     try:
         return json.load(urllib.request.urlopen(f'{SITE}{path}?t={VER}', timeout=30)).get(field) or BLOG
@@ -84,7 +84,7 @@ def blog_link(key):
         return BLOG
 
 
-TAG = {'rt': '#아파트실거래가', 'cy': '#청약', 'fin': '#기업분석'}
+TAG = {'rt': '#아파트실거래가', 'hero': '#신고가', 'cy': '#청약', 'fin': '#기업분석'}
 
 
 def compose(p, link):
