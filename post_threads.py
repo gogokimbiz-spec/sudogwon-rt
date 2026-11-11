@@ -98,6 +98,18 @@ def compose(p, link):
     return '\n'.join([head[:300]] + tail)
 
 
+def hero_photo_url():                     # PC 가 만든 1위 사진 카드(jpg)가 저장소에 있으면 그 주소 (2026-11-11)
+    try:
+        d = json.load(urllib.request.urlopen(f'{SITE}cards/hero.json?t={VER}', timeout=30))['day']
+        repo = os.environ.get('GITHUB_REPOSITORY') or 'gogokimbiz-spec/sudogwon-rt'
+        u = f'https://raw.githubusercontent.com/{repo}/main/cards/rt/{d}_hero.jpg'
+        if urllib.request.urlopen(urllib.request.Request(u, method='HEAD'), timeout=30).status == 200:
+            return u
+    except Exception:
+        pass
+    return None
+
+
 # ── 3. 중복 확인용 최근 글 첫 줄
 recent = set()
 if not DRY:
@@ -113,6 +125,8 @@ for p in P.get('posts') or []:
     link = blog_link(p['key'])
     text = compose(p, link)
     urls = [SITE + u + f'?v={VER}' for u in p['images']][:20]
+    if p['key'] == 'hero' and hero_photo_url():
+        urls = [hero_photo_url() + f'?v={VER}']; print('1위 카드: PC 가 만든 사진 카드 사용')
     first = text.split('\n')[0].strip()
     print(f"\n[{p['title']}] 이미지 {len(urls)}장 · {len(text)}자\n{text}")
     if DRY: continue

@@ -91,6 +91,18 @@ posts = P.get('posts') or []
 if not posts:
     print('오늘 올릴 인스타 게시물이 없습니다.'); sys.exit(0)
 
+def hero_photo_url():                     # PC 가 만든 1위 사진 카드(jpg)가 저장소에 있으면 그 주소 (2026-11-11)
+    try:
+        d = json.load(urllib.request.urlopen(f'{SITE}cards/hero.json?t={VER}', timeout=30))['day']
+        repo = os.environ.get('GITHUB_REPOSITORY') or 'gogokimbiz-spec/sudogwon-rt'
+        u = f'https://raw.githubusercontent.com/{repo}/main/cards/rt/{d}_hero.jpg'
+        if urllib.request.urlopen(urllib.request.Request(u, method='HEAD'), timeout=30).status == 200:
+            return u
+    except Exception:
+        pass
+    return None
+
+
 # ── 3. 중복 확인용 최근 캡션 첫 줄
 recent = set()
 if not DRY:
@@ -105,6 +117,8 @@ failed = 0
 for p in posts:
     first = p['caption'].split('\n')[0].strip()
     urls = [SITE + u + f'?v={VER}' for u in p['images']][:10]
+    if p['key'] == 'hero' and hero_photo_url():
+        urls = [hero_photo_url() + f'?v={VER}']; print('1위 카드: PC 가 만든 사진 카드 사용')
     print(f"\n[{p['title']}] 이미지 {len(urls)}장 · {first}")
     if DRY:
         print('\n'.join(urls)); print(p['caption']); continue

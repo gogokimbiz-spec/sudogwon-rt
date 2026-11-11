@@ -3,7 +3,8 @@
 - 대상: summary 'major_tops' 중 신고가인 거래 가운데 가장 비싼 1건. 없으면 아무것도 만들지 않음(hero.png 삭제).
 - 배경: 국토교통부 브이월드(디지털트윈국토) 위성 사진 (공공누리 제1유형·출처표시).
   ① 브이월드 검색 API(VWORLD_KEY)로 단지 좌표 → ② 브이월드 위성 WMTS 타일로 단지 중심 사진
-  ③ 단지 사진을 못 가져오면 일반 배경(자동 그림). 카드는 항상 만들어짐. (2단계: 3D 비스듬한 사진으로 교체 예정)
+  ③ 단지 사진을 못 가져오면 일반 배경(자동 그림). 카드는 항상 만들어짐.
+  ※ 브이월드는 해외(GitHub 서버) 접속을 막아서, 사진 카드는 PC 실행기(hero_photo.yml)가 HERO_PHOTO_ONLY=1 로 다시 만듭니다. (2단계: 3D 비스듬한 사진으로 교체 예정)
 - 글씨: 단지명(흰 글씨 + 글로우), 가격(빨강), 위치·준공·층·이전 최고, 아래 표, 노란 버튼, 출처, @data_jaetech
 필요: Pillow, 한글 폰트, 환경변수 VWORLD_KEY (없으면 일반 배경)
 """
@@ -26,8 +27,12 @@ DAY = datetime.date.fromisoformat(S['day'])
 print('주요 지역 신고가 1위:', T['region'], T['apt'], T['area'], T['price_man'])
 
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+PHOTO_ONLY = os.environ.get('HERO_PHOTO_ONLY') == '1'          # PC 실행기용: 단지 사진을 못 받으면 카드를 만들지 않음
+
+
 def font_path(weight):
-    for pat in [f'/usr/share/fonts/**/NotoSansCJK-{weight}.ttc', f'/usr/share/fonts/**/NotoSansCJKkr-{weight}.otf', f'/usr/share/fonts/**/*CJK*{weight}*']:
+    for pat in [os.path.join(HERE, 'fonts', f'NotoSansCJKkr-{weight}.otf'), f'/usr/share/fonts/**/NotoSansCJK-{weight}.ttc', f'/usr/share/fonts/**/NotoSansCJKkr-{weight}.otf', f'/usr/share/fonts/**/*CJK*{weight}*']:
         hits = glob.glob(pat, recursive=True)
         if hits: return hits[0]
     raise SystemExit('한글 폰트(Noto Sans CJK)를 찾지 못했습니다')
@@ -124,6 +129,8 @@ if xy:
         bg = satellite(*xy); src = '항공사진'
     except Exception as e:
         print('위성 사진을 못 받음:', str(e)[:200])
+if bg is None and PHOTO_ONLY:
+    print('단지 사진을 못 받아 사진 카드를 만들지 않습니다 (새벽에 만든 일반 배경 카드를 그대로 씀)'); sys.exit(0)
 if bg is None:                                                  # 단지 사진을 못 가져오면 일반 배경
     bg, src = drawn_background(), ''
     print('단지 사진을 못 가져와 일반 배경으로 만듭니다')
@@ -180,6 +187,7 @@ credit = '자료 국토교통부 실거래가' + (f' · {src} 국토교통부 �
 text((60, 1282), credit, F(21, 'Medium'), WHITE, 3)
 text((W - 60 - tl('@data_jaetech', F(26)), 1278), '@data_jaetech', F(26), WHITE, 3)
 im.save(DST)
+im.convert('RGB').save(os.path.join(OUT, 'hero.jpg'), quality=90)   # 인스타·카톡용
 json.dump({'apt': T['apt'], 'region': T['region'], 'umd': T.get('umd', ''), 'price_man': T['price_man'], 'area': T['area'], 'floor': T['floor'],
            'built': T['built'], 'prev_high_man': T['prev_high_man'], 'day': S['day'], 'src': src or '그림'},
           open(os.path.join(OUT, 'hero.json'), 'w', encoding='utf-8'), ensure_ascii=False)
