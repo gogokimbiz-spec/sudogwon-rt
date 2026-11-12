@@ -85,14 +85,32 @@ def badge(d, F, x, cy, n, size, hot):
 
 
 def cta(d, F, msg):
-    d.rounded_rectangle((40, SH - 150, W - 40, SH - 60), 10 if T.get('flat') else 45, fill=T['accent'])
-    d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 136), msg, font=F(38), fill=T.get('cta_t', T.get('pill_t', WHITE) if T['accent'] == T['pill'] else WHITE))
+    d.rounded_rectangle((40, SH - 156, W - 40, SH - 66), 10 if T.get('flat') else 45, fill=T['accent'])
+    d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 142), msg, font=F(38), fill=T.get('cta_t', T.get('pill_t', WHITE) if T['accent'] == T['pill'] else WHITE))
+
+
+def watermark(d, F, text=None, alpha=40, size=66):
+    """내용 중간에 반투명 아이디 3개(비스듬히) – 캡처·퍼가기에도 아이디가 남게. 글씨 읽기를 방해하지 않을 만큼만 옅게"""
+    im = getattr(d, '_image', None)
+    if im is None: return
+    text = text or IG; f = F(size, 'Black'); tw = int(d.textlength(text, font=f)) + 30
+    tile = Image.new('RGBA', (tw, size + 36), (0, 0, 0, 0)); col = tuple(T['ink'][:3]) + (alpha,)
+    ImageDraw.Draw(tile).text((15, 6), text, font=f, fill=col)
+    tile = tile.rotate(24, expand=True, resample=Image.BICUBIC)
+    for cx, cy in ((290, 560), (790, 820), (290, 1080)):
+        im.paste(tile, (int(cx - tile.width / 2), int(cy - tile.height / 2)), tile)
 
 
 def footer(d, F, text):
-    """하단 한 줄: 왼쪽 '브랜드 · 출처', 오른쪽 인스타 아이디. 겹치면 왼쪽 글씨를 줄임"""
-    hf = F(24); hw = d.textlength(IG, font=hf)
-    d.text((W - 64 - hw, SH - 48), IG, font=hf, fill=T['ink'])
-    left = f'{BRAND} · {text}'; size = 22
-    while size > 16 and d.textlength(left, font=F(size, 'Regular')) > W - 64 - 64 - hw - 24: size -= 1
-    d.text((64, SH - 46 + (22 - size) // 2), left, font=F(size, 'Regular'), fill=T['ink2'])
+    """하단 한 줄: 왼쪽 '브랜드 · 출처', 오른쪽 인스타 아이디(큰 알약 배지). 겹치면 왼쪽 글씨를 줄임. 내용 중간에 반투명 아이디도 넣음"""
+    watermark(d, F)
+    hf = F(34, 'Black'); hw = d.textlength(IG, font=hf)
+    pad = 22; bh = 48; bx1 = W - 40; bx0 = bx1 - hw - pad * 2; by0 = SH - 56
+    on_accent = T.get('cta_t', T.get('pill_t', WHITE) if T['accent'] == T['pill'] else WHITE)
+    d.rounded_rectangle((bx0, by0, bx1, by0 + bh), 10 if T.get('flat') else 24, fill=T['accent'])
+    d.text((bx0 + pad, by0 + (bh - 34) / 2 - 6), IG, font=hf, fill=on_accent)
+    left = f'{BRAND} · {text}'; room = bx0 - 64 - 20; size = 22
+    while size > 16 and d.textlength(left, font=F(size, 'Regular')) > room: size -= 1
+    if d.textlength(left, font=F(size, 'Regular')) > room: left = text; size = 18
+    while size > 14 and d.textlength(left, font=F(size, 'Regular')) > room: size -= 1
+    d.text((64, SH - 46 + (22 - size) // 2 + 4), left, font=F(size, 'Regular'), fill=T['ink2'])

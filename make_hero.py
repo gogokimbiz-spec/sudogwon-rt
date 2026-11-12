@@ -357,8 +357,14 @@ for k, (h, v) in enumerate(cols):
 d.rounded_rectangle((60, 1172, W - 60, 1252), 40, fill=YEL)
 m = '오늘의 실거래 전체 → 프로필 링크'; d.text(((W - d.textlength(m, font=F(36))) / 2, 1188), m, font=F(36), fill=INK)
 credit = '자료 국토교통부 실거래가' + (' · 지도 국토교통부 브이월드' if src else ' · 배경은 예시 그림')
-text((60, 1282), credit, F(21, 'Medium'), WHITE, 3)
-text((W - 60 - tl('@data_jaetech', F(26)), 1278), '@data_jaetech', F(26), WHITE, 3)
+text((60, 1286), credit, F(21, 'Medium'), WHITE, 3)
+idf = F(40, 'Black'); idw = tl('@data_jaetech', idf)               # 인스타 아이디: 크게, 어두운 알약 + 노란 글씨 (2026-11-12 시인성 개선)
+d = ImageDraw.Draw(im); d.rounded_rectangle((W - 50 - idw - 44, 1262, W - 50, 1262 + 62), 31, fill=(20, 22, 26)); d.text((W - 50 - idw - 22, 1262 + 3), '@data_jaetech', font=idf, fill=YEL)
+_wm = Image.new('RGBA', (int(tl('@data_jaetech', F(46, 'Black'))) + 30, 76), (0, 0, 0, 0))   # 내용 중간 반투명 아이디 (지도·글씨를 가리지 않게 그래프 오른쪽 빈 곳에 2개)
+ImageDraw.Draw(_wm).text((15, 6), '@data_jaetech', font=F(46, 'Black'), fill=(255, 255, 255, 80))
+_wm = _wm.rotate(24, expand=True, resample=Image.BICUBIC)
+for _cx, _cy in ((865, 668), (865, 880)): im.paste(_wm, (_cx - _wm.width // 2, _cy - _wm.height // 2), _wm)
+d = ImageDraw.Draw(im)
 im.save(DST)
 im.convert('RGB').save(os.path.join(OUT, 'hero.jpg'), quality=90)   # 인스타·카톡용
 json.dump({'apt': T['apt'], 'region': T['region'], 'umd': T.get('umd', ''), 'price_man': T['price_man'], 'area': T['area'], 'floor': T['floor'],
