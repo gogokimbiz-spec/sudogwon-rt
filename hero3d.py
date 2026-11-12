@@ -11,6 +11,8 @@ import os, io, json, math, time
 TILT = float(os.environ.get('HERO_3D_TILT', '-32'))      # -90 = 수직, -30 = 비스듬
 ALT = float(os.environ.get('HERO_3D_ALT', '330'))        # 카메라 높이(m)
 HEADING = float(os.environ.get('HERO_3D_HEADING', '20'))  # 0 = 북쪽을 바라봄
+RANGE = float(os.environ.get('HERO_3D_RANGE', '380'))    # 단지(지면)에서 카메라까지 거리(m) – 작을수록 단지가 크게 보임
+PULL = float(os.environ.get('HERO_3D_PULL', '35'))        # 바라보는 점을 카메라 쪽으로 당김(m) → 단지가 화면 중앙보다 위로 올라감 (아래 그래프에 안 가려짐)
 PAGE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/hero3d.html'
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
@@ -43,8 +45,13 @@ window.__aim=function(){                       // 첫 화면 애니메이션이 
   try{
     var v=(window.ws3d&&ws3d.viewer)||null, C=window.Cesium||(window.ws3d&&ws3d.Cesium);
     if(v&&C){v.camera.cancelFlight&&v.camera.cancelFlight();
-      v.camera.setView({destination:C.Cartesian3.fromDegrees(CAM.lon,CAM.lat,CAM.alt),
-        orientation:{heading:C.Math.toRadians(CAM.heading),pitch:C.Math.toRadians(CAM.tilt),roll:0}});done.push('setView');}
+      var h=0;try{h=v.scene.globe.getHeight(C.Cartographic.fromDegrees(CAM.tlon,CAM.tlat))||0;}catch(e){}
+      window.__st.ground=h;
+      var tgt=C.Cartesian3.fromDegrees(CAM.plon,CAM.plat,h+12);   // 단지 지면 높이 기준
+      var pitch=C.Math.toRadians(CAM.tilt);
+      v.camera.lookAt(tgt,new C.HeadingPitchRange(C.Math.toRadians(CAM.heading),pitch,CAM.range));
+      v.camera.lookAtTransform(C.Matrix4.IDENTITY);                // 카메라 고정 해제
+      done.push('lookAt h='+Math.round(h));}
   }catch(e){window.__st.err.push('setView:'+e);}
   return done.join(',');
 };
@@ -63,7 +70,7 @@ window.__clean=function(){                     // 캡처 전: 지명 글씨·버
   return n;
 };
 window.__state=function(){
-  var v=(window.ws3d&&ws3d.viewer)||null, s={step:window.__st.step,how:window.__st.how,err:window.__st.err.slice(-3),vw:typeof vw,ws3d:!!window.ws3d,viewer:!!v,
+  var v=(window.ws3d&&ws3d.viewer)||null, s={step:window.__st.step,how:window.__st.how,err:window.__st.err.slice(-3),ground:window.__st.ground,vw:typeof vw,ws3d:!!window.ws3d,viewer:!!v,
     canvas:document.querySelectorAll('canvas').length};
   try{var g=document.createElement('canvas');s.webgl=!!(g.getContext('webgl2')||g.getContext('webgl'));}catch(e){s.webgl='err';}
   try{if(window.ws3d&&!window.__k){window.__k=1;s.ws3dKeys=Object.keys(ws3d).slice(0,25);s.mapKeys=window.map?Object.keys(Object.getPrototypeOf(map)||{}).slice(0,40):[];}}catch(e){}
@@ -76,10 +83,14 @@ window.__state=function(){
 
 
 def cam_for(lon, lat):
-    off = ALT / math.tan(math.radians(abs(TILT)))          # 단지에서 카메라까지 수평 거리
+    """첫 화면용 카메라 + 지형 높이 반영 lookAt 에 쓸 값(단지 tlon/tlat, 바라보는 점 plon/plat, 거리 range)"""
+    mlon, mlat = 111320 * math.cos(math.radians(lat)), 111320
     back = math.radians(HEADING + 180)
-    return {'lon': lon + off * math.sin(back) / (111320 * math.cos(math.radians(lat))),
-            'lat': lat + off * math.cos(back) / 111320, 'alt': ALT, 'heading': HEADING, 'tilt': TILT}
+    sx, sy = math.sin(back), math.cos(back)
+    alt = RANGE * math.sin(math.radians(abs(TILT)))
+    off = RANGE * math.cos(math.radians(abs(TILT)))
+    return {'lon': lon + off * sx / mlon, 'lat': lat + off * sy / mlat, 'alt': alt + 40, 'heading': HEADING, 'tilt': TILT,
+            'tlon': lon, 'tlat': lat, 'plon': lon + PULL * sx / mlon, 'plat': lat + PULL * sy / mlat, 'range': RANGE}
 
 
 def oblique(lon, lat, key, out_dir, w=864, h=1080):
@@ -116,9 +127,9 @@ def oblique(lon, lat, key, out_dir, w=864, h=1080):
                 st = pg.evaluate('window.__state ? window.__state() : null') or {}
                 if st.get('step') in ('no-vw', 'map-fail'):
                     say('상태', json.dumps(st, ensure_ascii=False)); raise RuntimeError('3D 지도 시작 실패: ' + st.get('step'))
-                if st.get('step') == 'map' and (st.get('viewer') or time.time() - t0 > 30) and time.time() - t0 > 8 and aimed < 2 and (aimed == 0 or time.time() - t0 > 8 + aimed * 10):
+                if st.get('step') == 'map' and (st.get('viewer') or time.time() - t0 > 30) and time.time() - t0 > 8 and aimed < 3 and (aimed == 0 or time.time() - t0 > 8 + aimed * 10):
                     say('카메라 맞춤', pg.evaluate('window.__aim()')); aimed += 1
-                    if aimed == 2: t_aim2 = time.time()
+                    if aimed == 3: t_aim2 = time.time()
                 p_ = st.get('prim', 0)
                 same = same + 1 if (p_ == prev_prim and st.get('tiles') and not st.get('pend')) else 0
                 prev_prim = p_
