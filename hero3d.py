@@ -53,10 +53,9 @@ window.__clean=function(){                     // 캡처 전: 지명 글씨·버
   try{var v=ws3d.viewer, C=window.Cesium;
     (function walk(c){for(var i=0;c&&c.length!==undefined&&i<c.length;i++){var q=c.get(i);if(!q)continue;
       var nm=(q.constructor&&q.constructor.name)||'';
-      if((C&&(q instanceof C.LabelCollection||q instanceof C.BillboardCollection||q instanceof C.PointPrimitiveCollection))||/Label|Billboard|PointPrimitive/.test(nm)){q.show=false;n++;}
+      if((C&&(q instanceof C.LabelCollection||q instanceof C.BillboardCollection||q instanceof C.PointPrimitiveCollection))||/Label|Billboard|PointPrimitive/.test(nm)||q._labels||q._billboards||q._pointPrimitives){q.show=false;n++;}
       else if(q.length!==undefined&&q.get)walk(q);}})(v.scene.primitives);
     if(v.entities){v.entities.show=false;}
-    try{var L=v.imageryLayers;for(var k=1;k<L.length;k++){L.get(k).show=false;n++;}}catch(e){}   // 지명 글씨가 사진 위 겹침 층이면 숨김
     try{if(window.map&&map.getLayers){}}catch(e){}
     if(v.dataSources){for(var j=0;j<v.dataSources.length;j++){v.dataSources.get(j).show=false;n++;}}
     v.scene.requestRender();
