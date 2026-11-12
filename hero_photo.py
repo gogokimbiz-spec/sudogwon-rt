@@ -21,7 +21,14 @@ json.dump(S, open('hero_summary.json', 'w', encoding='utf-8'), ensure_ascii=Fals
 D = S['day']
 print('오늘 요약 날짜:', D)
 
-env = dict(os.environ, HERO_PHOTO_ONLY='1', HERO_3D='1')
+# 3년 거래 그래프: PC 에는 rt_data.json 이 없어서 새벽 카드(사이트 cards/hero.json)가 저장한 거래 목록을 씀
+try:
+    _hj = json.load(urllib.request.urlopen(f'{SITE}cards/hero.json?t={int(time.time())}', timeout=30))
+    if _hj.get('day') == D and _hj.get('series'):
+        json.dump(_hj['series'], open('hero_series.json', 'w', encoding='utf-8'))
+except Exception as e:
+    print('그래프 자료 못 받음 (저장소 hist 로 대신):', e)
+env = dict(os.environ, HERO_PHOTO_ONLY='1', HERO_3D='1', HERO_SERIES='hero_series.json')
 res = subprocess.run([sys.executable, 'make_hero.py', 'hero_summary.json', OUT], env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
 print(res.stdout); print(res.stderr)
 os.makedirs(OUT, exist_ok=True)

@@ -5,7 +5,7 @@
   ① 브이월드 검색 API(VWORLD_KEY)로 단지 좌표 → ② 브이월드 위성 WMTS 타일로 단지 중심 사진
   ③ 단지 사진을 못 가져오면 일반 배경(자동 그림). 카드는 항상 만들어짐.
   ※ 브이월드는 해외(GitHub 서버) 접속을 막아서, 사진 카드는 PC 실행기(hero_photo.yml)가 HERO_PHOTO_ONLY=1 로 다시 만듭니다. (2단계: 3D 비스듬한 사진으로 교체 예정)
-- 글씨: 단지명(흰 글씨 + 글로우), 가격(빨강), 위치·준공·층·이전 최고, 아래 표, 노란 버튼, 출처, @data_jaetech
+- 글씨: 단지명(흰 글씨 + 글로우), 가격(빨강), 위치·준공·층·이전 최고, 같은 면적 3년 거래 그래프(반투명 판), 아래 표, 노란 버튼, 출처, @data_jaetech
 필요: Pillow, 한글 폰트, 환경변수 VWORLD_KEY (없으면 일반 배경)
 """
 import os, sys, json, glob, random, datetime, urllib.request, urllib.parse
@@ -124,18 +124,15 @@ def drawn_background():                                        # 마지막 대�
 
 bg, src = None, ''
 xy = geocode()
-if xy and os.environ.get('HERO_3D') == '1':                    # PC 실행기: 3D 지도 비스듬한 사진 먼저 (2단계, 2026-11-11)
-    try:
-        import hero3d
-        bg = hero3d.oblique(*xy, KEY, OUT); src = '3D 지도'
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        print('3D 사진을 못 받음 → 위성 사진으로:', str(e)[:300])
-if xy and bg is None:
-    try:
-        bg = satellite(*xy); src = '항공사진'
-    except Exception as e:
-        print('위성 사진을 못 받음:', str(e)[:200])
+if xy and os.environ.get('HERO_3D') == '1':                    # PC 실행기: 3D 지도 비스듬한 사진 (2026-11-12 사용자: 위성사진 말고 비스듬히만)
+    import hero3d
+    for attempt in (1, 2, 3):                                   # 실패하면 두 번 더 시도
+        try:
+            bg = hero3d.oblique(*xy, KEY, OUT); src = '3D 지도'; break
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            print(f'3D 사진 {attempt}번째 실패:', str(e)[:300])
+    # 위성(수직) 사진은 쓰지 않음 – 3D 가 끝내 안 되면 새벽에 만든 일반 배경 카드를 그대로 둠
 if bg is None and PHOTO_ONLY:
     print('단지 사진을 못 받아 사진 카드를 만들지 않습니다 (새벽에 만든 일반 배경 카드를 그대로 씀)'); sys.exit(0)
 if bg is None:                                                  # 단지 사진을 못 가져오면 일반 배경
@@ -144,6 +141,75 @@ if bg is None:                                                  # 단지 사진�
 r = max(W / bg.width, H / bg.height); bg = bg.resize((int(bg.width * r) + 1, int(bg.height * r) + 1), Image.LANCZOS)
 x0, y0 = (bg.width - W) // 2, (bg.height - H) // 2
 im = bg.crop((x0, y0, x0 + W, y0 + H))
+
+
+# ── 2-1. 같은 단지·면적 최근 3년 거래 (hist/ + rt_data.json, PC 에서는 새벽 카드가 저장한 값 HERO_SERIES 사용)
+import statistics
+def hero_series():
+    sf = os.environ.get('HERO_SERIES', '')
+    if sf and os.path.exists(sf):
+        try: return [(datetime.date.fromisoformat(a), b) for a, b in json.load(open(sf, encoding='utf-8'))]
+        except Exception: pass
+    try: code = {v: k for k, v in json.load(open(os.path.join(HERE, 'names.json'), encoding='utf-8')).items()}.get(T['region'])
+    except Exception: code = None
+    if not code: return []
+    apt, umd, ar = T['apt'], T.get('umd', ''), round(T['area'])
+    cut = (DAY - datetime.timedelta(365 * 3)).isoformat()
+    pts = set()
+    try:
+        for r in json.load(open('rt_data.json', encoding='utf-8'))['trade']:   # [code, date, apt, umd, area, floor, price, built, 해제]
+            if r[0] == code and r[2] == apt and r[3] == umd and round(r[4]) == ar and r[8] != 'O' and r[1] >= cut: pts.add((r[1], r[5], r[6]))
+    except Exception: pass
+    for f in glob.glob(os.path.join('hist', code, '*.json')):
+        try:
+            for r in json.load(open(f, encoding='utf-8')):                      # [date, apt, umd, area, floor, price, 해제]
+                if r[1] == apt and r[2] == umd and round(r[3]) == ar and r[6] != 'O' and r[0] >= cut: pts.add((r[0], r[4], r[5]))
+        except Exception: pass
+    return sorted((datetime.date.fromisoformat(dt), p) for dt, fl, p in pts)
+SERIES = hero_series()
+if all(not (p == T['price_man'] and dt == DAY) for dt, p in SERIES): SERIES = sorted(SERIES + [(DAY, T['price_man'])])
+print('3년 거래 그래프 점:', len(SERIES))
+
+
+def eok(v):
+    return (f'{v / 10000:.1f}억'.replace('.0억', '억')) if v >= 10000 else f'{v / 10000:.2f}억'
+
+
+def hero_chart(box):                                           # 반투명 어두운 판 위에 3년 거래 흐름
+    global im
+    bx0, by0, bx1, by1 = box
+    ov = Image.new('RGBA', im.size, (0, 0, 0, 0))
+    ImageDraw.Draw(ov).rounded_rectangle(box, 22, fill=(18, 22, 28, 200))
+    base = im.convert('RGBA'); base.alpha_composite(ov); im = base.convert('RGB'); d = ImageDraw.Draw(im)
+    pts = SERIES
+    t0, t1 = pts[0][0], pts[-1][0]
+    ps = [p for _, p in pts]; lo, hi = min(ps), max(ps); pad = (hi - lo) * 0.15 or hi * 0.05; lo -= pad; hi += pad
+    x0, x1, y0, y1 = bx0 + 100, bx1 - 30, by0 + 70, by1 - 44
+    X = lambda t: x0 + (t - t0).days / max(1, (t1 - t0).days) * (x1 - x0)
+    Y = lambda v: y1 - (v - lo) / (hi - lo) * (y1 - y0)
+    mon = {}
+    for t, v in pts: mon.setdefault((t.year, t.month), []).append(v)
+    first, last = statistics.median(mon[min(mon)]), statistics.median(mon[max(mon)])
+    nmon = (t1.year - t0.year) * 12 + t1.month - t0.month
+    chg = (last / first - 1) * 100
+    d.text((bx0 + 26, by0 + 18), '3년 거래 흐름', font=F(30, 'Black'), fill=WHITE)
+    per = f"최근 {round(nmon / 12)}년" if nmon >= 24 else f"최근 {max(1, nmon)}개월"
+    s2 = f"{per} {'+' if chg >= 0 else ''}{chg:.0f}% · {len(pts)}건"
+    sf = F(27); col = (255, 90, 100) if chg >= 0 else (110, 170, 255)
+    if len(pts) < 3: s2, col = f"최근 3년 거래 {len(pts)}건", (210, 216, 224)     # 거래가 적으면 상승률 대신 건수만
+    d.text((bx1 - 26 - d.textlength(s2, font=sf), by0 + 21), s2, font=sf, fill=col)
+    for k in range(3):
+        v = lo + (hi - lo) * (k + 0.5) / 3; yy = Y(v)
+        d.line((x0, yy, x1, yy), fill=(70, 78, 90), width=1)
+        d.text((bx0 + 24, yy - 14), eok(v), font=F(22, 'Medium'), fill=(190, 198, 208))
+    clamp = lambda t: min(max(t, t0), t1)
+    line = [(X(clamp(datetime.date(y, m, 15))), Y(statistics.median(v))) for (y, m), v in sorted(mon.items())]
+    for t, v in pts: d.ellipse((X(t) - 4, Y(v) - 4, X(t) + 4, Y(v) + 4), fill=(150, 160, 172))
+    if len(line) > 1: d.line(line, fill=WHITE, width=4, joint='curve')
+    hx, hy = X(DAY), Y(T['price_man']); d.ellipse((hx - 12, hy - 12, hx + 12, hy + 12), fill=RED, outline=WHITE, width=3)
+    for t, right_ in ((t0, False), (t1, True)):
+        s_ = f"{t.year % 100}.{t.month}"; w_ = d.textlength(s_, font=F(22, 'Medium'))
+        d.text((x1 - w_ if right_ else x0, y1 + 10), s_, font=F(22, 'Medium'), fill=(190, 198, 208))
 
 
 # ── 3. 글씨
@@ -178,6 +244,8 @@ place = f"{T['region']} {T.get('umd', '')}".strip()
 prev = T['prev_high_man']; pd = datetime.date.fromisoformat(T['prev_high_date'])
 for j, s in enumerate([place, f"{T['built']}년 준공 · {T['floor']}층", f"이전 최고 {man_unit(prev)} ({pd.month}.{pd.day})"]):
     f = F(40, 'Black') if j == 0 else F(36); text((W - 60 - tl(s, f), 420 + j * 56), s, f, WHITE, 5)
+if SERIES:                                                     # 그래프는 항상 (거래가 이번 1건뿐이어도)
+    hero_chart((60, 744, 700, 994))                            # 표 바로 위, 왼쪽에 좁게 (사진이 더 보이게)
 d = ImageDraw.Draw(im)
 diff = T['price_man'] - prev
 cols = [('전용', f"{T['area']}㎡"), ('층', f"{T['floor']}층"), ('거래가', man(T['price_man'])), ('계약일', f'{DAY.month}.{DAY.day}'), ('상승', f'▲{man_unit(diff)}')]
@@ -196,6 +264,7 @@ text((W - 60 - tl('@data_jaetech', F(26)), 1278), '@data_jaetech', F(26), WHITE,
 im.save(DST)
 im.convert('RGB').save(os.path.join(OUT, 'hero.jpg'), quality=90)   # 인스타·카톡용
 json.dump({'apt': T['apt'], 'region': T['region'], 'umd': T.get('umd', ''), 'price_man': T['price_man'], 'area': T['area'], 'floor': T['floor'],
-           'built': T['built'], 'prev_high_man': T['prev_high_man'], 'day': S['day'], 'src': src or '그림'},
+           'built': T['built'], 'prev_high_man': T['prev_high_man'], 'day': S['day'], 'src': src or '그림',
+           'series': [[a.isoformat(), b] for a, b in SERIES]},
           open(os.path.join(OUT, 'hero.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print('주요 지역 신고가 1위 카드 →', DST, '(배경:', src or '자동 그림', ')')
