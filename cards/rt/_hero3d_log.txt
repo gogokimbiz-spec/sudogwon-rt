@@ -1,7 +1,7 @@
 ===== make_hero_log.txt
 주요 지역 신고가 1위: 용인 수지구 내대지마을건영캐스빌 85 90400
 좌표: 내대지마을건영캐스빌아파트입구 {'x': '127.12681608505144', 'y': '37.333053993023164'}
-[3D] 카메라 {"lon": 127.12557086002782, "lat": 37.33033369366589, "alt": 241.36932040861785, "heading": 20.0, "tilt": -32.0, "tlon": 127.12681608505144, "tlat": 37.333053993023164, "plon": 127.1266808429832, "plat": 37.33275854528936, "range": 380.0}
+[3D] 카메라 {"lon": 127.12598978860473, "lat": 37.3312488785657, "alt": 148.95771993749122, "heading": 20.0, "tilt": -27.0, "tlon": 127.12681608505144, "tlat": 37.333053993023164, "plon": 127.12671948357413, "plat": 37.332842958927586, "range": 240.0}
 [3D] 브라우저 msedge
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
@@ -19,23 +19,24 @@
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/vw.ol7.webgl2DMapClassInit.v30.min.js, is invoked vi
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/check2DNum.do?version=3.0&key=***, is invok
 [3D] console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/checkWGLNum.do?version=3.0&type=WGL&key=***
+[3D] 카메라 맞춤 moveTo,lookAt h=89
+[3D] 11초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 89.38107830315299, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": false, "prim": 169, "pend": 3, "cam": [127.1258953308207, 37.33103275180604, 210.34240230679876, -27.001923004787088]}
 [3D] 카메라 맞춤 moveTo,lookAt h=90
 [3D] 카메라 맞춤 moveTo,lookAt h=90
-[3D] 카메라 맞춤 moveTo,lookAt h=90
-[3D] 30초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-[3D] 40초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-[3D] 51초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-[3D] 기다린 시간 56초, 마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
+[3D] 31초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+[3D] 40초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+[3D] 50초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+[3D] 기다린 시간 54초, 마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
 [3D] 글씨 숨김 82
 [3D] 층 정보 {"img": 3, "prim": 169, "ds": 0, "names": ["Ja", "f_", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "du", "du", "du"]}
-[3D] 마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-[3D] 밝기 84 대비 43
+[3D] 마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+[3D] 밝기 89 대비 48
 3년 거래 그래프 점: 74
 주요 지역 신고가 1위 카드 → hero_out\hero.png (배경: 3D 지도 )
 
 
 ===== 3d_log.txt
-카메라 {"lon": 127.12557086002782, "lat": 37.33033369366589, "alt": 241.36932040861785, "heading": 20.0, "tilt": -32.0, "tlon": 127.12681608505144, "tlat": 37.333053993023164, "plon": 127.1266808429832, "plat": 37.33275854528936, "range": 380.0}
+카메라 {"lon": 127.12598978860473, "lat": 37.3312488785657, "alt": 148.95771993749122, "heading": 20.0, "tilt": -27.0, "tlon": 127.12681608505144, "tlat": 37.333053993023164, "plon": 127.12671948357413, "plat": 37.332842958927586, "range": 240.0}
 브라우저 msedge
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/WSViewerStartup.js, is invoked via document.write. T
@@ -53,14 +54,15 @@ console warning A parser-blocking, cross site (i.e. different eTLD+1) script, ht
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/js/ws3dmap/WS3DRelease3/vw.ol7.webgl2DMapClassInit.v30.min.js, is invoked vi
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/check2DNum.do?version=3.0&key=***, is invok
 console warning A parser-blocking, cross site (i.e. different eTLD+1) script, https://map.vworld.kr/checkWGLNum.do?version=3.0&type=WGL&key=***
+카메라 맞춤 moveTo,lookAt h=89
+11초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 89.38107830315299, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": false, "prim": 169, "pend": 3, "cam": [127.1258953308207, 37.33103275180604, 210.34240230679876, -27.001923004787088]}
 카메라 맞춤 moveTo,lookAt h=90
 카메라 맞춤 moveTo,lookAt h=90
-카메라 맞춤 moveTo,lookAt h=90
-30초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-40초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-51초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-기다린 시간 56초, 마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
+31초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+40초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+50초 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+기다린 시간 54초, 마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
 글씨 숨김 82
 층 정보 {"img": 3, "prim": 169, "ds": 0, "names": ["Ja", "f_", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "du", "du", "du"]}
-마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.12543833540884, 37.33003044797491, 303.4549867450318, -32.00289682516874]}
-밝기 84 대비 43
+마지막 상태 {"step": "map", "how": "3.0", "err": [], "ground": 90.0774893064885, "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "prim": 169, "pend": 0, "cam": [127.1258953309107, 37.331032752004674, 211.0388133809472, -27.00192300457689]}
+밝기 89 대비 48
