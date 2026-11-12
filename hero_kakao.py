@@ -1,4 +1,4 @@
-"""주요 지역 신고가 1위 카드를 카카오톡 '나에게 보내기'로 하루 한 번 보냅니다 (GitHub 서버용).
+"""오늘의 신고가 1위 카드를 카카오톡 '나에게 보내기'로 하루 한 번 보냅니다 (GitHub 서버용).
 - hero_photo.yml: PC 가 사진 카드를 만든 직후(보통 6시 전후) 실행 → 사진 카드 (사진을 못 받았으면 일반 배경 카드)
 - insta.yml(07:55): PC 가 꺼져 있어 아직 안 보냈으면 일반 배경 카드로 대신 보냄
 - 보낸 날은 cards/rt/<날짜>_hero_sent.txt(보낸 종류)를 남겨 두 번 보내지 않음. 단 그림 카드를 먼저 보냈는데 나중에 사진 카드가 생기면 사진으로 한 번 더 보냄
@@ -39,7 +39,7 @@ try:
 except Exception:
     hj = None
 if not hj or hj.get('day') != D:
-    print('오늘은 주요 지역 신고가 1위 카드가 없습니다'); sys.exit(0)
+    print('오늘은 신고가 1위 카드가 없습니다'); sys.exit(0)
 mark = f'cards/rt/{D}_hero_sent.txt'
 photo_sha = None                                    # PC 가 만든 사진 카드(json)의 버전 – 카드를 다시 만들면 바뀜
 try:
@@ -68,7 +68,7 @@ print('보낼 카드:', kind, img)
 tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', urllib.parse.urlencode({
     'grant_type': 'refresh_token', 'client_id': K['KAKAO_REST_KEY'], 'client_secret': K['KAKAO_CLIENT_SECRET'],
     'refresh_token': K['KAKAO_REFRESH_TOKEN']}).encode()))
-feed = {'object_type': 'feed', 'content': {'title': f"주요 지역 신고가 1위 | {hj['apt']} {man(hj['price_man'])}",
+feed = {'object_type': 'feed', 'content': {'title': f"오늘의 신고가 1위 | {hj['apt']} {man(hj['price_man'])}",
         'description': f"{hj['region']} · 전용 {hj['area']}㎡", 'image_url': f'{img}?v={VER}', 'image_width': 1080, 'image_height': 1350,
         'link': {'web_url': link, 'mobile_web_url': link}},
         'buttons': [{'title': '자세히 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}

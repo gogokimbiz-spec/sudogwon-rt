@@ -1,4 +1,4 @@
-"""주요 지역 신고가 1위 '사진 카드' 만들기 (PC 실행기용, hero_photo.yml – '매일 실거래 갱신'이 끝나면 자동 실행).
+"""오늘의 신고가 1위 '사진 카드' 만들기 (PC 실행기용, hero_photo.yml – '매일 실거래 갱신'이 끝나면 자동 실행).
 - 브이월드는 해외(GitHub 서버) 접속을 막아서, 한국 IP 인 사장님 PC 에서 단지 위성 사진을 받아 카드를 다시 만듭니다.
 - 사이트의 오늘 summary.json 으로 make_hero.py 를 HERO_PHOTO_ONLY=1 로 실행 → 사진을 받았을 때만
   cards/rt/<날짜>_hero.png / .jpg / .json 을 GitHub API 로 저장소에 올립니다 (git 설치 불필요).

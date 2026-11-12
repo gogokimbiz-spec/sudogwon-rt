@@ -19,7 +19,7 @@ OUT = 'hist'
 MAX = int(os.environ.get('HIST_MAX_CALLS', '300') or 300)
 CODE_OF = {v: k for k, v in json.load(open('names.json', encoding='utf-8')).items()}
 items = (S.get('new_highs') or [])[:8] or (S.get('day_trades') or [])[:5]     # make_cards.py 단지별 카드와 같은 기준
-items += [t for t in (S.get('major_tops') or []) if t.get('new_high')]       # 주요 지역 신고가 1위 카드(make_hero.py) 그래프용
+items += sorted(S.get('new_highs') or [], key=lambda t: -t['price_man'])[:1]   # 오늘의 신고가 1위 카드(make_hero.py) 그래프용
 codes = list(dict.fromkeys(CODE_OF[t['region']] for t in items if t['region'] in CODE_OF))
 KST = datetime.timezone(datetime.timedelta(hours=9))
 today = datetime.datetime.now(KST).date()

@@ -1,6 +1,6 @@
-"""주요 지역 신고가 1위 카드 (hero.png, 1080×1350) – 아파트 3D 사진을 꽉 채운 배경 위에 글씨 (GitHub Actions, 매일).
+"""오늘의 신고가 1위 카드 (hero.png, 1080×1350) – 아파트 3D 사진을 꽉 채운 배경 위에 글씨 (GitHub Actions, 매일).
 사용법: python make_hero.py site/summary.json site/cards
-- 대상: summary 'major_tops' 중 신고가인 거래 가운데 가장 비싼 1건. 없으면 아무것도 만들지 않음(hero.png 삭제).
+- 대상: 그날 신고가(summary 'new_highs', 수도권 전체) 가운데 가장 비싼 1건 (2026-11-12 변경 – 예전엔 주요 11개 지역만). 없으면 아무것도 만들지 않음(hero.png 삭제).
 - 배경: 국토교통부 브이월드(디지털트윈국토) 위성 사진 (공공누리 제1유형·출처표시).
   ① 브이월드 검색 API(VWORLD_KEY)로 단지 좌표 → ② 브이월드 위성 WMTS 타일로 단지 중심 사진
   ③ 단지 사진을 못 가져오면 일반 배경(자동 그림). 카드는 항상 만들어짐.
@@ -19,12 +19,12 @@ KEY = os.environ.get('VWORLD_KEY', '').strip()
 W, H = 1080, 1350
 RED, WHITE, INK, YEL = (255, 45, 61), (255, 255, 255), (30, 34, 40), (255, 204, 0)
 
-cand = [t for t in (S.get('major_tops') or []) if t.get('new_high')]
+cand = [t for t in (S.get('new_highs') or []) if t.get('new_high', True)]   # 수도권 전체 신고가 (2026-11-12)
 if not cand:
-    print('오늘은 주요 지역 신고가가 없어 1위 카드를 만들지 않습니다'); sys.exit(0)
+    print('오늘은 신고가가 없어 1위 카드를 만들지 않습니다'); sys.exit(0)
 T = max(cand, key=lambda t: t['price_man'])
 DAY = datetime.date.fromisoformat(S['day'])
-print('주요 지역 신고가 1위:', T['region'], T['apt'], T['area'], T['price_man'])
+print('오늘의 신고가 1위:', T['region'], T['apt'], T['area'], T['price_man'])
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -326,7 +326,7 @@ def glow(xy, s, f, fill):                                      # 단지명: 흰 
     im = base.convert('RGB'); ImageDraw.Draw(im).text(xy, s, font=f, fill=fill, stroke_width=3, stroke_fill=(20, 22, 26))
 tl = lambda s, f: ImageDraw.Draw(im).textlength(s, font=f)
 
-text((60, 50), f'주요 지역 신고가 1위 · {DAY.month}월 {DAY.day}일 계약', F(36), WHITE, 4)
+text((60, 50), f'오늘의 신고가 1위 · {DAY.month}월 {DAY.day}일 계약', F(36), WHITE, 4)
 size = 76
 while size > 48 and tl(T['apt'], F(size, 'Black')) > W - 120: size -= 4
 glow((56, 104 + (76 - size) // 2), T['apt'], F(size, 'Black'), WHITE)
@@ -365,4 +365,4 @@ json.dump({'apt': T['apt'], 'region': T['region'], 'umd': T.get('umd', ''), 'pri
            'built': T['built'], 'prev_high_man': T['prev_high_man'], 'day': S['day'], 'src': src or '그림',
            'series': [[a.isoformat(), b] for a, b in SERIES]},
           open(os.path.join(OUT, 'hero.json'), 'w', encoding='utf-8'), ensure_ascii=False)
-print('주요 지역 신고가 1위 카드 →', DST, '(배경:', src or '자동 그림', ')')
+print('오늘의 신고가 1위 카드 →', DST, '(배경:', src or '자동 그림', ')')
