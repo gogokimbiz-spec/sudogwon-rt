@@ -108,7 +108,14 @@ jobs:
         run: |
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
-          python build_trend.py rt_data.json site
+          TP="${{ inputs.trend_post }}"; TM=""
+          if [ -n "$TP" ] && [ "$TP" != "none" ]; then TM="$TP"; else
+            if [ "$(TZ=Asia/Seoul date +%u)" = "1" ]; then
+              TM="week"                                                     # 매주 월요일: 주간
+              [ "$(TZ=Asia/Seoul date +%-d)" -le 7 ] && TM="week month"     # 매월 첫째 월요일: 월간도
+            fi
+          fi
+          TREND_MODES="$TM" python build_trend.py rt_data.json site
       - name: 청약홈 분양정보 수집
         id: cy
         continue-on-error: true
@@ -360,6 +367,17 @@ jobs:
           else
             echo '주말이라 청약 카톡은 건너뜁니다'
           fi
+      - name: 구별 상승률 카톡 (매주 월요일 · 첫째 월요일 월간)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "${{ needs.deploy.outputs.page_url }}trend/summary.json?t=$(date +%s)" -o trend_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/trend/summary.json?t=$(date +%s)" -o trend_summary.json
+          python3 kakao_send_trend.py trend_summary.json
       - name: 기업재무 카톡 (토)
         if: ${{ !cancelled() }}
         continue-on-error: true
