@@ -8,11 +8,11 @@ make_hero.py 가 HERO_3D=1 일 때 oblique(lon, lat) 를 부릅니다. 실패하
 """
 import os, io, json, math, time
 
-TILT = float(os.environ.get('HERO_3D_TILT', '-32'))      # -90 = 수직, -30 = 비스듬
+TILT = float(os.environ.get('HERO_3D_TILT', '-27'))      # -90 = 수직, -30 = 비스듬
 ALT = float(os.environ.get('HERO_3D_ALT', '330'))        # 카메라 높이(m)
 HEADING = float(os.environ.get('HERO_3D_HEADING', '20'))  # 0 = 북쪽을 바라봄
-RANGE = float(os.environ.get('HERO_3D_RANGE', '380'))    # 단지(지면)에서 카메라까지 거리(m) – 작을수록 단지가 크게 보임
-PULL = float(os.environ.get('HERO_3D_PULL', '35'))        # 바라보는 점을 카메라 쪽으로 당김(m) → 단지가 화면 중앙보다 위로 올라감 (아래 그래프에 안 가려짐)
+RANGE = float(os.environ.get('HERO_3D_RANGE', '240'))    # 단지(지면)에서 카메라까지 거리(m) – 작을수록 단지가 크게 보임
+PULL = float(os.environ.get('HERO_3D_PULL', '25'))        # 바라보는 점을 카메라 쪽으로 당김(m) → 단지가 화면 중앙보다 위로 올라감 (아래 그래프에 안 가려짐)
 PAGE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/hero3d.html'
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
@@ -65,6 +65,11 @@ window.__clean=function(){                     // 캡처 전: 지명 글씨·버
     if(v.entities){v.entities.show=false;}
     try{if(window.map&&map.getLayers){}}catch(e){}
     if(v.dataSources){for(var j=0;j<v.dataSources.length;j++){v.dataSources.get(j).show=false;n++;}}
+    if(!window.__hk){window.__hk=1;var hide=function(){try{(function walk(c){for(var i=0;c&&c.length!==undefined&&i<c.length;i++){var q=c.get(i);if(!q)continue;
+        var nm=(q.constructor&&q.constructor.name)||'';
+        if((C&&(q instanceof C.LabelCollection||q instanceof C.BillboardCollection||q instanceof C.PointPrimitiveCollection))||/Label|Billboard|PointPrimitive/.test(nm)||q._labels||q._billboards||q._pointPrimitives){q.show=false;}
+        else if(q.length!==undefined&&q.get)walk(q);}})(v.scene.primitives);}catch(e){}};
+      v.scene.preRender.addEventListener(hide);}
     v.scene.requestRender();
   }catch(e){window.__st.err.push('clean:'+e);}
   return n;
