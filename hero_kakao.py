@@ -41,20 +41,25 @@ except Exception:
 if not hj or hj.get('day') != D:
     print('오늘은 주요 지역 신고가 1위 카드가 없습니다'); sys.exit(0)
 mark = f'cards/rt/{D}_hero_sent.txt'
-photo = exists(f'cards/rt/{D}_hero.json')          # PC 가 만든 사진 카드가 있는지
+photo_sha = None                                    # PC 가 만든 사진 카드(json)의 버전 – 카드를 다시 만들면 바뀜
+try:
+    photo_sha = json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{REPO}/contents/cards/rt/{D}_hero.jpg?ref={BRANCH}', headers=GH), timeout=30))['sha'][:12]
+except urllib.error.HTTPError as e:
+    if e.code != 404: raise
+photo = bool(photo_sha) and exists(f'cards/rt/{D}_hero.json')
 sent, mark_sha = None, None                         # 이미 보낸 종류('사진' / '일반 배경')
 try:
     j = json.load(urllib.request.urlopen(urllib.request.Request(f'https://api.github.com/repos/{REPO}/contents/{mark}?ref={BRANCH}', headers=GH), timeout=30))
     mark_sha, sent = j['sha'], base64.b64decode(j['content']).decode('utf-8', 'replace').strip()
 except urllib.error.HTTPError as e:
     if e.code != 404: raise
-if sent == '사진' or (sent and not photo):
+if (sent and not photo) or sent == f'사진:{photo_sha}':   # 같은 사진 카드는 다시 안 보냄 (다시 만든 카드면 보냄)
     print(f'오늘 1위 카드는 이미 카톡으로 보냈습니다 ({sent})'); sys.exit(0)
 if sent:
-    print('그림 카드로 먼저 보냈지만 이제 사진 카드가 있어 사진으로 한 번 더 보냅니다')
+    print(f'이전에 보낸 카드({sent})와 달라 새 사진 카드를 한 번 더 보냅니다')
 
 if photo:                                           # PC 가 만든 사진 카드
-    img, kind = RAW + f'cards/rt/{D}_hero.jpg', '사진'
+    img, kind = RAW + f'cards/rt/{D}_hero.jpg', f'사진:{photo_sha}'
 else:                                               # 일반 배경 카드 (새벽에 만든 것)
     img, kind = SITE + 'cards/hero.png', '일반 배경'
 link = S.get('blog_url') or SITE

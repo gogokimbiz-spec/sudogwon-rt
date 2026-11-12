@@ -68,6 +68,7 @@ window.__state=function(){
   try{var g=document.createElement('canvas');s.webgl=!!(g.getContext('webgl2')||g.getContext('webgl'));}catch(e){s.webgl='err';}
   try{if(window.ws3d&&!window.__k){window.__k=1;s.ws3dKeys=Object.keys(ws3d).slice(0,25);s.mapKeys=window.map?Object.keys(Object.getPrototypeOf(map)||{}).slice(0,40):[];}}catch(e){}
   try{if(v){v.scene.requestRender();s.tiles=v.scene.globe.tilesLoaded;
+    var P=v.scene.primitives;s.prim=P.length;s.pend=0;for(var i=0;i<P.length;i++){var q=P.get(i);if(q&&q.tilesLoaded===false)s.pend++;}
     var c=v.camera.positionCartographic;s.cam=[c.longitude*57.29578,c.latitude*57.29578,c.height,v.camera.pitch*57.29578];}}catch(e){s.serr=String(e);}
   return s;
 };
@@ -109,16 +110,21 @@ def oblique(lon, lat, key, out_dir, w=864, h=1080):
             pg.route(PAGE, lambda r: r.fulfill(status=200, content_type='text/html; charset=utf-8', body=html))
             pg.goto(PAGE, wait_until='load', timeout=60000)
             t0, aimed, ok_n = time.time(), 0, 0
-            while time.time() - t0 < 100:
+            prev_prim, same, t_aim2 = -1, 0, None
+            while time.time() - t0 < 150:                      # 3D 건물은 땅 사진보다 늦게 붙음 → 건물 수가 멈출 때까지 기다림
                 time.sleep(2)
                 st = pg.evaluate('window.__state ? window.__state() : null') or {}
                 if st.get('step') in ('no-vw', 'map-fail'):
                     say('상태', json.dumps(st, ensure_ascii=False)); raise RuntimeError('3D 지도 시작 실패: ' + st.get('step'))
-                if st.get('step') == 'map' and (st.get('viewer') or time.time() - t0 > 30) and time.time() - t0 > 8 and aimed < 3 and (aimed == 0 or time.time() - t0 > 8 + aimed * 10):
-                    say('카메라 맞춤', pg.evaluate('window.__aim()')); aimed += 1; ok_n = 0
-                ok_n = ok_n + 1 if (st.get('tiles') and aimed >= 2) else 0
-                if int(time.time() - t0) % 10 < 2: say('상태', json.dumps(st, ensure_ascii=False))
-                if ok_n >= 3: break                              # 타일 다 받은 상태가 6초 이상 유지
+                if st.get('step') == 'map' and (st.get('viewer') or time.time() - t0 > 30) and time.time() - t0 > 8 and aimed < 2 and (aimed == 0 or time.time() - t0 > 8 + aimed * 10):
+                    say('카메라 맞춤', pg.evaluate('window.__aim()')); aimed += 1
+                    if aimed == 2: t_aim2 = time.time()
+                p_ = st.get('prim', 0)
+                same = same + 1 if (p_ == prev_prim and st.get('tiles') and not st.get('pend')) else 0
+                prev_prim = p_
+                if int(time.time() - t0) % 10 < 2: say(f'{int(time.time() - t0)}초 상태', json.dumps(st, ensure_ascii=False))
+                if t_aim2 and time.time() - t_aim2 > 25 and same >= 5: break   # 맞춘 뒤 25초 이상 + 10초 동안 변화 없음
+            say(f'기다린 시간 {int(time.time() - t0)}초, 마지막 상태', json.dumps(st, ensure_ascii=False))
             if not st.get('viewer') and aimed == 0:
                 pg.evaluate('window.__aim && window.__aim()'); time.sleep(15)
             time.sleep(2)
