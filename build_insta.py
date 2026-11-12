@@ -71,6 +71,15 @@ if HJ and hero_img:
     sections.append(dict(key='hero', title='오늘의 신고가 1위', when='있는 날', today=True,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=hero_img, alt=[], caption='\n'.join(x for x in hcap if x is not None)))
 
+# ── 1-3. 구별 아파트값 상승률 (매주 월요일 주간 · 매월 첫째 월요일 월간, 2026-11-12)
+TR = load('trend/summary.json')
+if TR:
+    for m, title, when in (('week', '구별 상승률 (주간)', '매주 월요일'), ('month', '구별 상승률 (월간)', '첫째 월요일')):
+        im_ = imgs('trend', [f'{m}.png']); c_ = read(f'trend/caption_{m}.txt')
+        if im_ and c_ and m in (TR.get('today') or []):
+            sections.append(dict(key=f'trend_{m}', title=title, when=when, today=True,
+                                 guide='사진 1장 선택 → 캡션 붙여넣기', images=im_, alt=[], caption=c_))
+
 # ── 2. 청약 (월: 이번 주 청약 / 화: 1순위 결과 / 수: 줍줍·로또 / 목: 가점 커트라인 / 금: 단지분석 – 2026-11-11)
 CY = load('cheongyak/summary.json')
 CYV = {0: ('이번 주 청약', 'cheongyak/cards', ['single.png']),

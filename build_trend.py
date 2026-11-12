@@ -95,8 +95,32 @@ for y, m, a, b in months:
 month = {'key': f'{ly}-{lm:02d}_month', 'label': f'{ly}년 {lm}월', 'cur': [m1a.isoformat(), m1b.isoformat()],
          'prev': [m0a.isoformat(), m0b.isoformat()], 'rows': mrows, 'sido': msido, 'series': series}
 
-summary = {'asof': asof.isoformat(), 'min_n': MIN_N, 'week': week, 'month': month}
+TODAY_MODES = [m for m in os.environ.get('TREND_MODES', '').split() if m in ('week', 'month')]   # daily.yml 이 정함 (월요일 week, 첫째 월요일 month)
+summary = {'asof': asof.isoformat(), 'min_n': MIN_N, 'today': TODAY_MODES, 'week': week, 'month': month}
 json.dump(summary, open(os.path.join(OUT, 'summary.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+# 인스타·스레드 게시 문구 (build_insta.py 가 오늘 올릴 때 사용)
+def _short(r):
+    p = r.split(' ')
+    if len(p) == 1: return p[0][:-1] if p[0][-1] in '시군' and len(p[0]) > 2 else p[0]
+    if p[0] in ('서울', '인천'): return p[1] if len(p[1]) > 2 else f'{p[0]} {p[1]}'
+    return f'{p[0]} {p[1][:-1]}'
+def _tag(r): return '#' + _short(r).replace(' ', '') + '아파트'
+_pc = lambda v: '-' if v is None else f'{v:+.1f}%'
+_md = lambda s: f'{D(s).month}.{D(s).day}'
+for m, P_ in (('week', week), ('month', month)):
+    rs = P_['rows']
+    if not rs: continue
+    up_ = [r for r in rs if r['chg'] > 0][:5]; dn_ = [r for r in rs[::-1] if r['chg'] < 0][:5]
+    sd_ = P_['sido']
+    head = (f"📈 {P_['label']} 구별 아파트값 상승률 (최근 4주)" if m == 'week' else f"🗺 {P_['label']} 구별 아파트값 순위 (전월 대비)")
+    L = [head, (f"{_md(P_['cur'][0])}~{_md(P_['cur'][1])} vs {_md(P_['prev'][0])}~{_md(P_['prev'][1])} · 3.3㎡당 중앙값" if m == 'week'
+                else f"수도권 {_pc(sd_['수도권']['chg'])} · 서울 {_pc(sd_['서울']['chg'])} · 인천 {_pc(sd_['인천']['chg'])} · 경기 {_pc(sd_['경기']['chg'])}"), '']
+    if up_: L += ['🔺 상승 TOP ' + str(len(up_))] + [f"{i}. {_short(r['region'])} {_pc(r['chg'])}" for i, r in enumerate(up_, 1)] + ['']
+    if dn_: L += ['🔻 하락 TOP ' + str(len(dn_))] + [f"{i}. {_short(r['region'])} {_pc(r['chg'])}" for i, r in enumerate(dn_, 1)] + ['']
+    L += [f'※ 두 기간 모두 거래 {MIN_N}건 이상 지역 · 최근 기간은 신고가 다 안 들어온 잠정치', '자료: 국토교통부 실거래가 · 참고용 정보',
+          '', '구별 전체 순위는 프로필 링크에서 👆', '',
+          ' '.join(dict.fromkeys(['#데이터로보는재테크', '#아파트값', '#집값'] + [_tag(r['region']) for r in (up_[:1] + dn_[:1])]))]
+    open(os.path.join(OUT, f'caption_{m}.txt'), 'w', encoding='utf-8').write('\n'.join(L))
 print(f"주간 {week['label']} ({week['cur'][0]}~{week['cur'][1]} vs {week['prev'][0]}~{week['prev'][1]}): {len(wrows)}곳")
 print(f"월간 {month['label']} vs 전월: {len(mrows)}곳, 6개월 추이 {len(months)}개월")
 
