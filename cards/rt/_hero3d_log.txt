@@ -25,7 +25,7 @@
 [3D] 글씨 숨김 82
 [3D] 층 정보 {"img": 3, "prim": 169, "ds": 0, "names": ["Ja", "f_", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "du", "du", "du"]}
 [3D] 마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
-[3D] 밝기 79 대비 40
+[3D] 밝기 78 대비 39
 3년 거래 그래프 점: 62
 주요 지역 신고가 1위 카드 → hero_out\hero.png (배경: 3D 지도 )
 
@@ -55,4 +55,4 @@ console warning A parser-blocking, cross site (i.e. different eTLD+1) script, ht
 글씨 숨김 82
 층 정보 {"img": 3, "prim": 169, "ds": 0, "names": ["Ja", "f_", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "Jy", "Fm", "f_", "mu", "du", "du", "du"]}
 마지막 상태 {"step": "map", "how": "3.0", "err": [], "vw": "object", "ws3d": true, "viewer": true, "canvas": 6, "webgl": true, "tiles": true, "cam": [127.12477651562597, 37.328596338273954, 330.00000000079643, -32.000000271946156]}
-밝기 79 대비 40
+밝기 78 대비 39
