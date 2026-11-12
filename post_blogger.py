@@ -113,11 +113,28 @@ def cta(href, icon, title, sub, primary):
 parts.append('<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
              + cta(SITE, '🗺️', '지역별 지도로 보기', '76개 시군구 가격·변동을 한눈에', True)
              + cta(f'{SITE}r/', '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>')
-# 3-0. 주요 지역 최고가 표 (2026-11-11 추가)
-_mt = S.get('major_tops') or []
-if _mt:
-    parts.append(f"<h3>주요 지역 최고가 {len(_mt)}곳</h3><p><small>강남·서초·송파·용산·성동·마포·분당·과천·수원 영통·용인 수지·동탄 가운데 이 날 계약이 신고된 지역의 최고가 거래입니다.</small></p>")
-    parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(_mt, True)}</table>")
+# 3-0. 오늘의 주요 거래 6건 (2026-11-12 변경): 최고가 3 + 신고가 3.
+#      한쪽이 모자라면(신고가가 없는 날 등) 다른 쪽으로 채워 늘 6건. 최고가이면서 신고가인 거래는 최고가 쪽에 한 번만.
+_key6 = lambda t: (t['region'], t['apt'], t['area'], t.get('floor'), t['price_man'])
+_top_all = sorted(S.get('day_trades') or [], key=lambda t: -t['price_man'])
+_nh_all = sorted(nh, key=lambda t: -t['price_man'])
+_tp = _top_all[:3]
+_seen = {_key6(t) for t in _tp}
+_nh6 = [t for t in _nh_all if _key6(t) not in _seen][:3]
+_need = 6 - len(_tp) - len(_nh6)
+if _need > 0:                                      # 신고가가 모자라면 최고가를 더
+    _more = [t for t in _top_all[3:] if _key6(t) not in {_key6(x) for x in _nh6}][:_need]
+    _tp += _more; _need -= len(_more)
+if _need > 0:                                      # 최고가가 모자라면 신고가를 더
+    _seen = {_key6(t) for t in _tp + _nh6}
+    _nh6 += [t for t in _nh_all if _key6(t) not in _seen][:_need]
+if _tp or _nh6:
+    _GH = lambda txt: f'<tr><td colspan="4" style="padding:10px 4px 4px;font-weight:bold;border-bottom:2px solid #ccc">{txt}</td></tr>'
+    _rows = (_GH(f'💰 오늘의 실거래가격 {len(_tp)}건') + trade_rows(_tp, True) if _tp else '') + \
+            (_GH(f'🔺 오늘 신고가 {len(_nh6)}건') + trade_rows(_nh6, True) if _nh6 else '')
+    parts.append(f"<h3>오늘의 주요 거래 {len(_tp) + len(_nh6)}건</h3><p><small>{LB} 계약 중 가장 비싸게 거래된 아파트와 신고가 거래입니다. "
+                 "신고가는 같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")
+    parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{_rows}</table>")
 # 3. 신고가 표
 if nh:
     parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")
