@@ -8,6 +8,7 @@
 import os, sys, json, glob, statistics, datetime
 os.environ.setdefault('CARD_THEME', 'slate')   # 실거래 카드와 같은 테마
 from PIL import Image, ImageDraw, ImageFont
+import math
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 raw = json.load(open(sys.argv[1], encoding='utf-8'))
@@ -156,34 +157,6 @@ md = lambda s: f'{D(s).month}.{D(s).day}'
 pct = lambda v: f'{v:+.1f}%'
 
 
-def week_card():
-    if not wrows: return
-    up = [r for r in wrows if r['chg'] > 0][:5]; dn = [r for r in wrows[::-1] if r['chg'] < 0][:5]
-    im, d = C.canvas()
-    C.header(d, F, f"{week['label']} · 최근 4주", '구별 아파트값 상승률', '',
-             f"{md(week['cur'][0])}~{md(week['cur'][1])} vs {md(week['prev'][0])}~{md(week['prev'][1])} · 3.3㎡당 중앙값")
-    secs = [('상승 TOP', up, C.UP), ('하락 TOP', dn, C.DOWN)]
-    secs = [s for s in secs if s[1]]
-    n = sum(len(s[1]) for s in secs)
-    rh = min(92, (SH - 180 - 340 - 58 * len(secs) - 20) // max(1, n))   # 한 줄짜리 행
-    y = 340
-    for si, (title, rows, col) in enumerate(secs):
-        if si: y += 20
-        d.text((64, y), f'{title} {len(rows)}', font=F(34, 'Black'), fill=col)
-        y += 58
-        for i, r in enumerate(rows, 1):
-            C.row_box(d, y, rh - 8); cy = y + (rh - 8) // 2
-            d.text((64, cy - 22), f'{i}', font=F(36, 'Black'), fill=C.INK)
-            cw = C.chip(d, F, 104, cy - 21, short(r['region']), 28)
-            d.text((104 + cw + 16, cy - 15), f"3.3㎡당 {man(r['pp_cur'])} · {r['n_cur']}건", font=F(24, 'Medium'), fill=C.INK2)
-            v = pct(r['chg']); vf = F(46, 'Black')
-            d.text((W - 64 - d.textlength(v, font=vf), cy - 30), v, font=vf, fill=col)
-            y += rh
-    C.cta(d, F, '구별 전체 순위 → 프로필 링크')
-    C.footer(d, F, f'자료 국토교통부 실거래가 · 두 기간 모두 거래 {MIN_N}건 이상 지역')
-    im.save(os.path.join(OUT, 'week.png')); print('주간 카드 → trend/week.png')
-
-
 # 지도 색 (지도 사이트와 같은 구간: ±1 보합, 3, 6, 10%)
 UPC = [(248, 198, 192), (236, 133, 122), (212, 68, 58), (158, 28, 28)]
 DNC = [(198, 217, 244), (130, 170, 228), (59, 116, 204), (27, 69, 148)]
@@ -195,62 +168,113 @@ def color(v):
     return (UPC if v > 0 else DNC)[k]
 
 
-def month_card():
-    if not mrows: return
-    chg = {r['code']: r['chg'] for r in mrows}
-    im, d = C.canvas()
-    sd = month['sido']['수도권']
-    C.header(d, F, f"{month['label']} · 전월 대비", '구별 아파트값 변동', pct(sd['chg']) if sd['chg'] is not None else '',
-             f"3.3㎡당 매매가 중앙값 · 거래 {MIN_N}건 이상 지역만 색칠 (잠정)")
-    # 지도 투영
+def draw_map(d, rows, box, nlabel=3):
+    """구별 변동률로 수도권 지도를 색칠. box=(x0,y0,x1,y1).
+    상승 1~nlabel위는 지도 왼쪽, 하락은 오른쪽에 이름표를 두고 화살표로 그 구를 가리킴(구는 굵은 테두리로 강조)."""
+    import math
+    chg = {r['code']: r['chg'] for r in rows}
     pts = [pt for f in geo['features'] for ring in (f['geometry']['coordinates'] if f['geometry']['type'] == 'Polygon'
            else [r for poly in f['geometry']['coordinates'] for r in poly]) for pt in ring]
     x0, x1 = min(p[0] for p in pts), max(p[0] for p in pts); y0, y1 = min(p[1] for p in pts), max(p[1] for p in pts)
-    import math
     kx = math.cos(math.radians((y0 + y1) / 2))
-    box = (60, 330, W - 60, 960)
-    s = min((box[2] - box[0]) / ((x1 - x0) * kx), (box[3] - box[1]) / (y1 - y0))
-    ox = box[0] + ((box[2] - box[0]) - (x1 - x0) * kx * s) / 2; oy = box[1] + ((box[3] - box[1]) - (y1 - y0) * s) / 2
-    P = lambda p: (ox + (p[0] - x0) * kx * s, oy + (y1 - p[1]) * s)
-    cent = {}
+    s_ = min((box[2] - box[0]) / ((x1 - x0) * kx), (box[3] - box[1]) / (y1 - y0))
+    mw, mh = (x1 - x0) * kx * s_, (y1 - y0) * s_
+    ox = box[0] + ((box[2] - box[0]) - mw) / 2; oy = box[1] + ((box[3] - box[1]) - mh) / 2
+    P = lambda p: (ox + (p[0] - x0) * kx * s_, oy + (y1 - p[1]) * s_)
+    cent, rings = {}, {}
     for f in geo['features']:
         c = f['properties']['c']
         polys = [f['geometry']['coordinates']] if f['geometry']['type'] == 'Polygon' else f['geometry']['coordinates']
         big = max(polys, key=lambda pl: len(pl[0]))
-        for pl in polys:
-            d.polygon([P(p) for p in pl[0]], fill=color(chg.get(c)), outline=C.T['bg'])
+        rings[c] = [[P(p) for p in pl[0]] for pl in polys]
+        for ring in rings[c]:
+            d.polygon(ring, fill=color(chg.get(c)), outline=C.T['bg'])
         xs = [P(p) for p in big[0]]; cent[c] = (sum(x for x, _ in xs) / len(xs), sum(y for _, y in xs) / len(xs))
-    # 상승·하락 1~2위 이름표 (겹치면 아래로 비킴)
+    DARK = (30, 34, 40)
+    # 지도 영역 마스크 (이름표가 지도 위에 올라가지 않게)
+    mask = Image.new('L', (W, SH), 0); md_ = ImageDraw.Draw(mask)
+    for c in rings:
+        for ring in rings[c]: md_.polygon(ring, fill=255)
+    area = (44, box[1] - 4, W - 44, box[3] + 4)          # 이름표를 둘 수 있는 범위
     placed = []
-    for rows, col in ((mrows[:2], C.UP), (mrows[::-1][:2], C.DOWN)):
-        for r in rows:
-            if r['code'] not in cent: continue
-            cx, cy = cent[r['code']]; t = f"{short(r['region'])} {pct(r['chg'])}"; tf = F(24, 'Black'); tw = d.textlength(t, font=tf)
-            bx = min(max(cx - tw / 2 - 10, 50), W - 50 - tw - 20)
-            box_ = [bx, cy - 18, bx + tw + 20, cy + 18]
-            while any(not (box_[2] < q[0] or box_[0] > q[2] or box_[3] < q[1] or box_[1] > q[3]) for q in placed):
-                box_[1] += 40; box_[3] += 40
-            placed.append(box_)
-            d.ellipse((cx - 5, cy - 5, cx + 5, cy + 5), fill=(30, 34, 40))
-            if box_[1] != cy - 18: d.line((cx, cy, (box_[0] + box_[2]) / 2, box_[1]), fill=(30, 34, 40), width=3)
-            d.rounded_rectangle(box_, 8, fill=(30, 34, 40))
-            d.text((box_[0] + 10, box_[1] + 3), t, font=tf, fill=col)
-    # 범례
-    ly_ = 980; items = [('하락', None)] + [(None, c) for c in DNC[::-1]] + [(None, (245, 245, 245))] + [(None, c) for c in UPC] + [('상승', None)]
+    def free(rc):
+        if rc[0] < area[0] or rc[1] < area[1] or rc[2] > area[2] or rc[3] > area[3]: return False
+        if mask.crop(tuple(int(v) for v in (rc[0] - 6, rc[1] - 6, rc[2] + 6, rc[3] + 6))).getbbox(): return False
+        return not any(not (rc[2] + 8 < q[0] or rc[0] - 8 > q[2] or rc[3] + 8 < q[1] or rc[1] - 8 > q[3]) for q in placed)
+    labels = [(r, C.UP) for r in [x for x in rows if x['chg'] > 0][:nlabel]] + [(r, C.DOWN) for r in [x for x in rows[::-1] if x['chg'] < 0][:nlabel]]
+    for r, col in labels:
+        if r['code'] not in cent: continue
+        cx, cy = cent[r['code']]
+        t = f"{short(r['region'])} {pct(r['chg'])}"; tf = F(25, 'Black'); tw = tf.getlength(t); h = 25 + 18; w = tw + 24
+        best = None
+        for rad in range(30, 700, 12):                     # 가까운 곳부터: 지도 밖 빈자리 중 구에서 가장 가까운 위치
+            for k in range(36):
+                ang = math.radians(k * 10)
+                px, py = cx + rad * math.cos(ang), cy + rad * math.sin(ang)
+                rc = (px - w / 2, py - h / 2, px + w / 2, py + h / 2)
+                if free(rc):
+                    dist = math.hypot(max(rc[0] - cx, 0, cx - rc[2]), max(rc[1] - cy, 0, cy - rc[3]))
+                    if best is None or dist < best[0]: best = (dist, rc)
+            if best and best[0] < rad - 30: break
+        if not best: continue
+        rc = best[1]; placed.append(rc)
+        # 구 강조: 굵은 테두리
+        for ring in rings[r['code']]:
+            d.line(ring + [ring[0]], fill=DARK, width=7); d.line(ring + [ring[0]], fill=col, width=3)
+        # 화살표: 이름표에서 가장 가까운 점 → 구 중심
+        ax, ay = min(max(cx, rc[0]), rc[2]), min(max(cy, rc[1]), rc[3])
+        d.line((ax, ay, cx, cy), fill=DARK, width=6); d.line((ax, ay, cx, cy), fill=col, width=3)
+        ang = math.atan2(cy - ay, cx - ax); L_, Wd = 16, 9
+        base = (cx - L_ * math.cos(ang), cy - L_ * math.sin(ang))
+        d.polygon([(cx, cy), (base[0] + Wd * math.sin(ang), base[1] - Wd * math.cos(ang)), (base[0] - Wd * math.sin(ang), base[1] + Wd * math.cos(ang))],
+                  fill=col, outline=DARK)
+        d.rounded_rectangle(rc, 8, fill=DARK, outline=col, width=2)
+        d.text((rc[0] + 12, rc[1] + 7), t, font=tf, fill=col)
+
+
+def legend(d, y):
+    d.text((64, y - 4), '하락', font=F(24, 'Medium'), fill=C.INK2)
     x = 140
-    d.text((64, ly_ - 4), '하락', font=F(24, 'Medium'), fill=C.INK2)
     for c in DNC[::-1] + [(245, 245, 245)] + UPC:
-        d.rectangle((x, ly_, x + 56, ly_ + 22), fill=c); x += 60
-    d.text((x + 10, ly_ - 4), '상승', font=F(24, 'Medium'), fill=C.INK2)
-    d.text((x + 90, ly_ - 4), '회색: 거래 부족', font=F(22, 'Regular'), fill=C.INK2)
-    # 아래: 상승·하락 3곳
-    y = 1030
-    for i, (title, rows, col) in enumerate((('상승', mrows[:3], C.UP), ('하락', mrows[::-1][:3], C.DOWN))):
+        d.rectangle((x, y, x + 56, y + 22), fill=c); x += 60
+    d.text((x + 10, y - 4), '상승', font=F(24, 'Medium'), fill=C.INK2)
+    d.text((x + 90, y - 4), '회색: 거래 부족', font=F(22, 'Regular'), fill=C.INK2)
+
+
+def top_lists(d, rows, y, n, size=26, gap=36):
+    for i, (title, rs, col) in enumerate((('상승', [r for r in rows if r['chg'] > 0][:n], C.UP),
+                                          ('하락', [r for r in rows[::-1] if r['chg'] < 0][:n], C.DOWN))):
         x = 64 + i * 480
-        d.text((x, y), f'{title} TOP 3', font=F(28, 'Black'), fill=C.INK)
-        for k, r in enumerate(rows):
-            d.text((x, y + 42 + k * 36), f"{k + 1}. {short(r['region'])}", font=F(26, 'Medium'), fill=C.INK)
-            v = pct(r['chg']); d.text((x + 420 - d.textlength(v, font=F(26, 'Black')), y + 42 + k * 36), v, font=F(26, 'Black'), fill=col)
+        d.text((x, y), f'{title} TOP {len(rs)}', font=F(28, 'Black'), fill=col)
+        for k, r in enumerate(rs):
+            d.text((x, y + 42 + k * gap), f"{k + 1}. {short(r['region'])}", font=F(size, 'Medium'), fill=C.INK)
+            v = pct(r['chg']); d.text((x + 420 - d.textlength(v, font=F(size, 'Black')), y + 42 + k * gap), v, font=F(size, 'Black'), fill=col)
+
+
+def week_card():
+    """주간: 색칠한 지도 + 아래 상승 TOP 5 · 하락 TOP 5 (2026-11-12 사용자 요청으로 지도형으로 변경)"""
+    if not wrows: return
+    im, d = C.canvas()
+    sd = week['sido']['수도권']
+    C.header(d, F, f"{week['label']} · 최근 4주", '구별 아파트값 상승률', pct(sd['chg']) if sd['chg'] is not None else '',
+             f"{md(week['cur'][0])}~{md(week['cur'][1])} vs {md(week['prev'][0])}~{md(week['prev'][1])} · 3.3㎡당 중앙값")
+    draw_map(d, wrows, (60, 326, W - 60, 862))
+    legend(d, 880)
+    top_lists(d, wrows, 922, 5, 25, 33)
+    C.cta(d, F, '구별 전체 순위 → 프로필 링크')
+    C.footer(d, F, f'자료 국토교통부 실거래가 · 두 기간 모두 거래 {MIN_N}건 이상 지역')
+    im.save(os.path.join(OUT, 'week.png')); print('주간 지도 카드 → trend/week.png')
+
+
+def month_card():
+    if not mrows: return
+    im, d = C.canvas()
+    sd = month['sido']['수도권']
+    C.header(d, F, f"{month['label']} · 전월 대비", '구별 아파트값 변동', pct(sd['chg']) if sd['chg'] is not None else '',
+             f"3.3㎡당 매매가 중앙값 · 거래 {MIN_N}건 이상 지역만 색칠 (잠정)")
+    draw_map(d, mrows, (60, 326, W - 60, 862))
+    legend(d, 880)
+    top_lists(d, mrows, 922, 5, 25, 33)
     C.cta(d, F, '구별 전체 순위 → 프로필 링크')
     C.footer(d, F, '자료 국토교통부 실거래가 · 계약 후 30일 안 신고라 최근 달은 잠정치')
     im.save(os.path.join(OUT, 'month.png')); print('월간 지도 카드 → trend/month.png')
