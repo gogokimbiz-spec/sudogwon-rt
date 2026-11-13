@@ -2,7 +2,7 @@
 사용법: python build_regions.py rt_data.json site
 결과: site/r/<시군구코드>.html 76개, site/r/index.html (지역 목록), site/sitemap.xml (전체 페이지 목록)
 """
-import json, sys, os, html, datetime, statistics
+import json, sys, os, html, datetime, statistics, glob
 from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -47,6 +47,11 @@ for r in J: byJ[r[0]].append(r)
 pp = lambda r: r[6] / r[4] * PY
 
 # 신고가: 같은 지역·단지·법정동·전용면적(㎡ 반올림) 이전 거래 최고가 초과
+HIGH, _hf = {}, []
+for _f in glob.glob(os.path.join(os.environ.get('HIGH_DIR', 'state/high'), '*.json')):
+    _h = json.load(open(_f, encoding='utf-8')); HIGH[os.path.basename(_f)[:-5]] = _h.get('max', {}); _hf.append(_h.get('from'))
+HIGH_TEXT = (('2006년 이후 역대 최고가' if max(int(v[:4]) for v in _hf) <= 2006 else f"{max(int(v[:4]) for v in _hf)}년 이후 최고가")
+             if _hf and all(_hf) and len(_hf) >= 70 else '최근 약 6개월 최고가')
 def new_highs(rows):
     hist = defaultdict(list)
     for r in sorted(rows, key=lambda r: r[1]): hist[(r[2], r[3], round(r[4]))].append(r)
@@ -55,6 +60,8 @@ def new_highs(rows):
         for i, r in enumerate(a):
             if D(r[1]) < d30: continue
             prev = [x for x in a[:i] if x[1] < r[1]]
+            hh = HIGH.get(r[0], {}).get(f'{r[2]}|{r[3]}|{round(round(r[4] * 10) / 10)}')   # 역대 최고가 표 (build_high.py)
+            if hh and hh[1] < r[1]: prev = prev + [[r[0], hh[1], r[2], r[3], r[4], 0, hh[0], 0, '']]
             if prev:
                 pm = max(prev, key=lambda x: x[6])
                 if r[6] > pm[6]: out.append((r, pm))
@@ -147,7 +154,7 @@ for c in codes:
 <div><span class="s">신고가 (30일)</span><b>{len(nh)}건</b></div></div>
 <p>{esc(' '.join(s))}</p>
 <div class="ctas"><a class="cta pri" href="{SITE}"><span class="i">🗺️</span><span class="tx"><b>지역별 지도로 보기</b><small>76개 시군구 가격·변동을 한눈에</small></span><span class="go">보기 ›</span></a><a class="cta" href="{SITE}cheongyak/"><span class="i">🏗️</span><span class="tx"><b>이번 주 청약 일정</b><small>수도권 1순위 접수·분양가 비교</small></span><span class="go">보기 ›</span></a></div></section>
-{f'<section class="p"><h2>최근 30일 신고가 {len(nh)}건</h2><p class="s">같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래</p><div class="t"><table><tr><th>계약일</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>{nh_html}</table></div></section>' if nh else ''}
+{f'<section class="p"><h2>최근 30일 신고가 {len(nh)}건</h2><p class="s">같은 단지·같은 전용면적의 {HIGH_TEXT}보다 비싸게 팔린 거래</p><div class="t"><table><tr><th>계약일</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>{nh_html}</table></div></section>' if nh else ''}
 {f'<section class="p"><h2>최근 30일 거래 많은 단지</h2><div class="t"><table><tr><th>단지</th><th class="n">거래</th><th class="n">거래가 중앙값</th><th class="n">3.3㎡당</th></tr>{top_html}</table></div></section>' if top else ''}
 <section class="p"><h2>월별 추이</h2><div class="t"><table><tr><th>월</th><th class="n">매매</th><th class="n">3.3㎡당 매매</th><th class="n">전세</th><th class="n">3.3㎡당 전세</th></tr>{mrows}</table></div><p class="s">이번 달은 아직 신고 중이라 건수가 적게 보입니다.</p></section>
 <section class="p"><h2>최근 거래 {len(recent)}건</h2><div class="t"><table><tr><th>계약일</th><th>단지</th><th class="n">전용·층</th><th class="n">거래가</th></tr>{rec_html}</table></div></section>

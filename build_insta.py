@@ -64,7 +64,7 @@ if HJ and hero_img:
     hcap = [f"🏆 오늘의 신고가 1위 | {HJ['apt']} {_man(HJ['price_man'])}", '',
             f"· {HJ['region']} {HJ.get('umd', '')} · 전용 {HJ['area']}㎡ · {HJ.get('floor', '')}층 · {HJ.get('built', '')}년",
             f"· 이전 최고 {_man(HJ['prev_high_man'])} → {_man(HJ['price_man'])} (▲{_man(HJ['price_man'] - HJ['prev_high_man'])})" if HJ.get('prev_high_man') else '',
-            '', '※ 그날 수도권 아파트 신고가(같은 단지·같은 면적 최근 6개월 최고가 경신) 중 가장 비싼 거래',
+            '', f"※ 그날 수도권 아파트 신고가(같은 단지·같은 면적 {S.get('high_text') or '최근 6개월 최고가'} 경신) 중 가장 비싼 거래",
             '자료: 국토교통부 실거래가' + (' · 항공사진 국토교통부 브이월드' if HJ.get('src') not in (None, '그림') else ''),
             '', '전체 실거래·지역별 지도는 프로필 링크에서 👆', '',
             ' '.join(dict.fromkeys([BRAND_TAG, '#신고가', '#아파트실거래가', f'#{city}아파트', '#' + HJ['apt'].replace(' ', '')[:15]]))]

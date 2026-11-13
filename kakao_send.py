@@ -36,7 +36,7 @@ if S.get('news'):
     L += [f"📰 {S['news']['title']}", '']
 nh = S.get('new_highs') or []
 if nh:
-    L.append(f"🔺 신고가 {len(nh)}건 (최근 6개월 기준)")
+    L.append(f"🔺 신고가 {len(nh)}건 ({(S.get('high_text') or '최근 6개월 최고가').replace(' 최고가', '')} 기준)")
     L += [f"· {city(t['region'])} {cut(t['apt'])} {t['area']}㎡ {man(t['price_man'])}" for t in nh[:3]]
     if len(nh) > 3: L.append(f"  외 {len(nh) - 3}건")
 else:

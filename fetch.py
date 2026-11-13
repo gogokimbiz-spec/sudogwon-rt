@@ -68,7 +68,11 @@ if failed:  # 한 번 더, 천천히
 print(f'months {MONTHS[0]}~{MONTHS[-1]} jobs {len(jobs)} failed {len(failed)} trade {len(raw["trade"])} rent {len(raw["rent"])}')
 if len(failed) > len(jobs) * 0.05 or not raw['trade']:
     sys.exit('too many failures: ' + str(failed[:5]))
-out = {'asof': today.isoformat(), 'trade': raw['trade'],
+# 성공한 (종류, 지역, 달) 목록 – build.py 가 어제 자료와 비교해 '새로 신고된 거래'를 찾을 때, 실패해서 빠진 달을 새 거래로 착각하지 않게
+ok = {'trade': [], 'rent': []}
+for k, c, m in jobs:
+    if (k, c, m) not in failed: ok[k].append(f'{c}|{m[:4]}-{m[4:]}')
+out = {'asof': today.isoformat(), 'ok': ok, 'trade': raw['trade'],
        'jeonse': [[r[0], r[1], r[3], r[4], r[5]] for r in raw['rent'] if r[6] == 0],
        'wolse': sum(1 for r in raw['rent'] if r[6] > 0)}
 json.dump(out, open('rt_data.json', 'w', encoding='utf-8'), ensure_ascii=False)

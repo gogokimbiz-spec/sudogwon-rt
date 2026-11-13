@@ -23,7 +23,7 @@ cand = [t for t in (S.get('new_highs') or []) if t.get('new_high', True)]   # �
 if not cand:
     print('오늘은 신고가가 없어 1위 카드를 만들지 않습니다'); sys.exit(0)
 T = max(cand, key=lambda t: t['price_man'])
-DAY = datetime.date.fromisoformat(S['day'])
+DAY = datetime.date.fromisoformat(T.get('date') or S['day'])          # 이 거래의 실제 계약일
 print('오늘의 신고가 1위:', T['region'], T['apt'], T['area'], T['price_man'])
 
 
@@ -340,7 +340,7 @@ text((sx, sy), sub, F(44), WHITE, 5)
 p_ = T['region'].split(' ')
 place = f"{T['region']} {T.get('umd', '')}".strip()
 prev = T['prev_high_man']; pd = datetime.date.fromisoformat(T['prev_high_date'])
-for j, s in enumerate([place, f"{T['built']}년 준공 · {T['floor']}층", f"이전 최고 {man_unit(prev)} ({pd.month}.{pd.day})"]):
+for j, s in enumerate([place, f"{T['built']}년 준공 · {T['floor']}층", f"이전 최고 {man_unit(prev)} ({pd.month}.{pd.day})" if pd.year == DAY.year else f"이전 최고 {man_unit(prev)} ({pd.year}.{pd.month})"]):
     f = F(40, 'Black') if j == 0 else F(36); text((W - 60 - tl(s, f), 420 + j * 56), s, f, WHITE, 5)
 if SERIES:                                                     # 그래프는 항상 (거래가 이번 1건뿐이어도)
     hero_chart((60, 744, 700, 994))                            # 표 바로 위, 왼쪽에 좁게 (사진이 더 보이게)

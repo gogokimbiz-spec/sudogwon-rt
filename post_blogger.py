@@ -70,17 +70,19 @@ def trade_rows(rows, with_prev=False):
     out = []
     for t in rows:
         badge = f' <span {RED}>[신고가]</span>' if t.get('new_high') else ''
-        prev = f"<br><small>이전 최고 {man(t['prev_high_man'])} ({t['prev_high_date'][5:].replace('-', '.')})</small>" if with_prev and t.get('new_high') else ''
+        prev = f"<br><small>이전 최고 {man(t['prev_high_man'])} ({t['prev_high_date'][5:].replace('-', '.') if t['prev_high_date'][:4] == (t.get('date') or S['day'])[:4] else t['prev_high_date'][:7].replace('-', '.')})</small>" if with_prev and t.get('new_high') else ''
         out.append(f"<tr><td {TD}>{reg(t['region'])}</td><td {TD}>{esc(t['apt'])}{badge}<br><small>{esc(t['umd'])} · {t['built']}년</small></td>"
                    f"<td {TDR}>{t['area']}㎡ · {t['floor']}층</td><td {TDR}><b>{man(t['price_man'])}</b><br><small>3.3㎡당 {man(t['pp_man'])}</small>{prev}</td></tr>")
     return ''.join(out)
 
 parts = []
 # 3. 맨 위 요약 문장 (검색엔진·독자가 글 내용을 바로 알 수 있게)
-_s = [f"{LB} 계약된 수도권 아파트 매매는 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세는 {S['jeonse_count']}건입니다."]
+HT = S.get('high_text') or '최근 6개월 최고가'                      # 신고가 비교 기준 (역대 최고가 표가 채워지면 '2006년 이후 역대 최고가')
+VB = '신고된' if S.get('basis') == 'reported' else '계약된'          # 2026-11-13: 어제 새로 신고된 거래 기준
+_s = [f"{LB} {VB} 수도권 아파트 매매는 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세는 {S['jeonse_count']}건입니다."]
 if nh:
     _a, _k = _cnt.most_common(1)[0]
-    _s.append(f"이 가운데 같은 단지·같은 전용면적에서 최근 6개월 최고가를 넘긴 신고가 거래는 {len(nh)}건이며, {_a}에서 {_k}건으로 가장 많았습니다.")
+    _s.append(f"이 가운데 같은 단지·같은 전용면적에서 {HT}를 넘긴 신고가 거래는 {len(nh)}건이며, {_a}에서 {_k}건으로 가장 많았습니다.")
 _dt = S.get('day_trades') or []
 if _dt:
     t0 = _dt[0]
@@ -132,12 +134,12 @@ if _tp or _nh6:
     _GH = lambda txt: f'<tr><td colspan="4" style="padding:10px 4px 4px;font-weight:bold;border-bottom:2px solid #ccc">{txt}</td></tr>'
     _rows = (_GH(f'💰 오늘의 실거래가격 {len(_tp)}건') + trade_rows(_tp, True) if _tp else '') + \
             (_GH(f'🔺 오늘 신고가 {len(_nh6)}건') + trade_rows(_nh6, True) if _nh6 else '')
-    parts.append(f"<h3>오늘의 주요 거래 {len(_tp) + len(_nh6)}건</h3><p><small>{LB} 계약 중 가장 비싸게 거래된 아파트와 신고가 거래입니다. "
-                 "신고가는 같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")
+    parts.append(f"<h3>오늘의 주요 거래 {len(_tp) + len(_nh6)}건</h3><p><small>{LB} {VB} 거래 중 가장 비싸게 거래된 아파트와 신고가 거래입니다. "
+                 f"신고가는 같은 단지·같은 전용면적의 {HT}보다 비싸게 팔린 거래입니다.</small></p>")
     parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{_rows}</table>")
 # 3. 신고가 표
 if nh:
-    parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적에서 최근 약 6개월 거래보다 비싸게 팔린 거래입니다.</small></p>")
+    parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적의 {HT}보다 비싸게 팔린 거래입니다.</small></p>")
     parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(nh, True)}</table>")
 else:
     parts.append('<h3>신고가</h3><p>이 날 신고된 거래 중 신고가는 아직 없습니다.</p>')
@@ -149,8 +151,8 @@ if ad_client and ad_slot:
                  '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>')
 # 5. 전날 거래가 높은 순 20건
 parts.append(f"<h3>전날 거래가 높은 순 {min(20, len(S['day_trades']))}건</h3>"
-             f"<p><small>{LB} 계약 매매 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세 {S['jeonse_count']}건. "
-             "실거래는 계약 후 30일 안에 신고하므로 건수는 앞으로 늘어납니다.</small></p>")
+             f"<p><small>{LB} {VB} 매매 {S['trade_count']}건(서울 {bs['11']} · 인천 {bs['28']} · 경기 {bs['41']}), 전세 {S['jeonse_count']}건. "
+             + ("계약일이 며칠 전이어도 이 날 새로 신고된 거래를 모두 담았습니다.</small></p>" if S.get('basis') == 'reported' else "실거래는 계약 후 30일 안에 신고하므로 건수는 앞으로 늘어납니다.</small></p>"))
 parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(S['day_trades'])}</table>")
 # 6. 최근 30일 상승·하락 5곳
 up = ' · '.join(f"{esc(short(x['region']))} <span style=\"color:#d23c3c\">+{x['chg']}%</span>" for x in S.get('up5', []))
