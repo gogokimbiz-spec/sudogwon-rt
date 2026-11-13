@@ -83,6 +83,8 @@ jobs:
           WATCH_FIXED: ${{ vars.WATCH_FIXED }}
         run: |
           mkdir -p site
+          # 어제 자료(배포된 거래 목록)와 비교해 '어제 새로 신고된 거래'를 찾음. 신고가 비교는 역대 최고가 표(state/high, high.yml)도 같이 봄
+          curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/state/rt_keys.json.gz -o prev_keys.json.gz || echo '어제 자료 없음 - 계약일 기준으로 만듭니다'
           python build.py rt_data.json site/index.html site/summary.json --standalone
           cp privacy.html site/ 2>/dev/null || true
           [ -d unse ] && cp -r unse site/ || true   # 내 집 마련 타로

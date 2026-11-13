@@ -1,0 +1,45 @@
+name: 역대 최고가 표 쌓기 (매일 오후)
+
+# 신고가 판단용 '역대 최고가 표'(state/high/)를 2006년부터 채웁니다.
+# 처음 4일쯤은 하루 5000번씩 받으며 채우고, 다 채운 뒤에는 매달 새 달 하나만 받아서 1~2분이면 끝납니다.
+# 새벽 '매일 실거래 갱신'과 겹치지 않게 오후에 돕니다. Actions 탭에서 바로 실행해도 됩니다.
+on:
+  schedule:
+    - cron: '17 4 * * *'    # 매일 13:17 KST
+  workflow_dispatch:
+    inputs:
+      max_calls:
+        description: '오늘 최대 호출 수 (공공데이터 일일 한도 안에서)'
+        default: '5000'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: high-table
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 역대 최고가 표 채우기
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          HIGH_MAX_CALLS: ${{ inputs.max_calls || '5000' }}
+        run: python build_high.py
+      - name: 저장소에 저장
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add state/high
+          if git diff --cached --quiet; then echo '바뀐 내용 없음'; exit 0; fi
+          git commit -q -m "역대 최고가 표 $(TZ=Asia/Seoul date +%F)"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && exit 0; sleep 10; done
+          exit 1
