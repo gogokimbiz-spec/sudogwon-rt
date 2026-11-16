@@ -75,12 +75,22 @@ def geocode():
             items = ((r.get('response') or {}).get('result') or {}).get('items') or []
         except Exception as e:
             print('브이월드 검색 실패:', str(e)[:150]); items = []
+        # 2026-11-17: '서울'+'아파트'만 맞아도 통과하던 탓에 압구정 현대10차 → 광진구 '광장현대파크빌10차'로 잘못 찍힘.
+        # 이제는 법정동(압구정동)과 구(강남구)가 주소에 반드시 있어야 하고, 단지명이 제목에 들어 있으면 우선.
+        gu = T['region'].split(' ')[-1]
+        def ok(it):
+            a = json.dumps(it.get('address') or {}, ensure_ascii=False)
+            _p = T['region'].split(' ')
+            gu_ok = gu in a or (len(_p) == 2 and _p[0] not in ('서울', '인천') and _p[0] in a)   # '화성 동탄구'처럼 새 구는 주소에 '화성시'만 있을 수 있음
+            return (not T.get('umd') or T['umd'] in a) and gu_ok
         def score(it):
             a = json.dumps(it.get('address') or {}, ensure_ascii=False) + (it.get('title') or '')
-            return (T.get('umd', '') in a) * 2 + (city in a) + ('아파트' in (it.get('category') or '') or '아파트' in a)
-        items = sorted(items, key=score, reverse=True)
-        if items and score(items[0]) >= 2:
+            t = (it.get('title') or '').replace(' ', '')
+            return (base.replace(' ', '') in t) * 4 + (T['apt'].replace(' ', '') in t) * 2 + ('아파트' in (it.get('category') or '') or '아파트' in a)
+        items = sorted([it for it in items if ok(it)], key=score, reverse=True)
+        if items:
             p = items[0]['point']; print('좌표:', items[0].get('title'), p); return float(p['x']), float(p['y'])
+        print('검색어', repr(q.strip()), '- 같은 구·동의 결과 없음')
     return None
 
 
@@ -229,7 +239,14 @@ def map_card(lon, lat):
 
 bg, src = None, ''
 xy = geocode()
-if xy and (os.environ.get('HERO_3D') == '1' or os.environ.get('HERO_MAP') == '1'):   # PC 실행기: 일반 지도 + 노란 테두리 (3D 는 건물이 입체로 안 나와 폐기)
+# 3D 시험 (2026-11-17): 'Run workflow'에서 배경을 3d 로 고르면 브이월드 3D 비스듬한 사진을 먼저 시도, 안 되면 아래 지도로
+if xy and os.environ.get('HERO_BG') == '3d':
+    try:
+        sys.path.insert(0, HERE); import hero3d
+        bg = hero3d.oblique(*xy, KEY, OUT); src = '3D'; print('3D 사진으로 만듭니다')
+    except Exception as e:
+        print('3D 실패 → 지도로:', str(e)[:200]); bg = None
+if bg is None and xy and (os.environ.get('HERO_3D') == '1' or os.environ.get('HERO_MAP') == '1'):   # PC 실행기: 일반 지도 + 노란 테두리 (3D 는 건물이 입체로 안 나와 폐기)
     for attempt in (1, 2, 3):
         try:
             bg = map_card(*xy); src = '지도'; break
@@ -361,7 +378,7 @@ for k, (h, v) in enumerate(cols):
     d.text((x + (cw - 6 - d.textlength(v, font=vf)) / 2, ty + 91 - vf.size * 0.62), v, font=vf, fill=(210, 40, 40) if k >= 2 else INK)
 d.rounded_rectangle((60, 1172, W - 60, 1252), 40, fill=YEL)
 m = '오늘의 실거래 전체 → 프로필 링크'; d.text(((W - d.textlength(m, font=F(36))) / 2, 1188), m, font=F(36), fill=INK)
-credit = '자료 국토교통부 실거래가' + (' · 지도 국토교통부 브이월드' if src else ' · 배경은 예시 그림')
+credit = '자료 국토교통부 실거래가' + ((' · 3D 국토교통부 브이월드' if src == '3D' else ' · 지도 국토교통부 브이월드') if src else ' · 배경은 예시 그림')
 text((60, 1286), credit, F(21, 'Medium'), WHITE, 3)
 idf = F(40, 'Black'); idw = tl('@data_jaetech', idf)               # 인스타 아이디: 크게, 어두운 알약 + 노란 글씨 (2026-11-12 시인성 개선)
 d = ImageDraw.Draw(im); d.rounded_rectangle((W - 50 - idw - 44, 1262, W - 50, 1262 + 62), 31, fill=(20, 22, 26)); d.text((W - 50 - idw - 22, 1262 + 3), '@data_jaetech', font=idf, fill=YEL)
