@@ -57,6 +57,52 @@ def man_unit(v):
 
 
 # ── 1. 단지 좌표 (브이월드 검색 API)
+def jibun_coord():
+    """이름 검색이 안 될 때: 국토부 실거래 API 에서 이 거래의 지번을 찾아 → 브이월드 주소(지번) 검색으로 좌표 (2026-11-17)
+    예) 현대10차(201,202동) → 압구정동 지번 → 좌표. 필요: DATA_GO_KR_KEY"""
+    dk = os.environ.get('DATA_GO_KR_KEY', '').strip()
+    if not dk or not T.get('date'): return None
+    try:
+        code = {v: k for k, v in json.load(open(os.path.join(HERE, 'names.json'), encoding='utf-8')).items()}[T['region']]
+    except Exception: return None
+    import xml.etree.ElementTree as ET
+    jib = None
+    for page in range(1, 6):
+        q = urllib.parse.urlencode({'serviceKey': dk, 'LAWD_CD': code, 'DEAL_YMD': T['date'][:7].replace('-', ''), 'numOfRows': 1000, 'pageNo': page})
+        try:
+            root = ET.fromstring(urllib.request.urlopen('https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev?' + q, timeout=60).read())
+        except Exception as e:
+            print('실거래 API(지번) 실패:', str(e)[:120]); return None
+        its = root.findall('.//item')
+        for it in its:
+            t = lambda k: (it.findtext(k) or '').strip()
+            if t('aptNm') == T['apt'] and t('umdNm') == T.get('umd') and t('jibun'):
+                same = int(t('dealAmount').replace(',', '') or 0) == T['price_man'] and t('floor') == str(T.get('floor'))
+                if same or not jib: jib = t('jibun')
+                if same: break
+        if len(its) < 1000: break
+    if not jib: print('지번을 찾지 못했습니다'); return None
+    p = T['region'].split(' ')
+    if p[0] == '서울': heads = [f'서울특별시 {p[1]}']
+    elif p[0] == '인천': heads = [f'인천광역시 {p[1]}']
+    elif len(p) == 2: heads = [f'경기도 {p[0]}시 {p[1]}', f'경기도 {p[0]}시']
+    else: heads = [f'경기도 {p[0]}']
+    for h in heads:
+        addr = f"{h} {T.get('umd', '')} {jib}"
+        url = 'https://api.vworld.kr/req/address?' + urllib.parse.urlencode({
+            'service': 'address', 'request': 'getcoord', 'version': '2.0', 'crs': 'epsg:4326', 'address': addr, 'refine': 'true',
+            'simple': 'false', 'format': 'json', 'type': 'parcel', 'key': KEY, 'domain': 'https://gogokimbiz-spec.github.io'})
+        try:
+            r = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={'Referer': 'https://gogokimbiz-spec.github.io/'}), timeout=30))
+            pt = (((r.get('response') or {}).get('result') or {}).get('point'))
+            if pt:
+                print('좌표(지번):', addr, pt); return float(pt['x']), float(pt['y'])
+            print('지번 주소 검색 결과 없음:', addr, (r.get('response') or {}).get('status'))
+        except Exception as e:
+            print('브이월드 주소 검색 실패:', str(e)[:150])
+    return None
+
+
 def geocode():
     if not KEY: return None
     city = T['region'].split(' ')[0]
@@ -91,7 +137,7 @@ def geocode():
         if items:
             p = items[0]['point']; print('좌표:', items[0].get('title'), p); return float(p['x']), float(p['y'])
         print('검색어', repr(q.strip()), '- 같은 구·동의 결과 없음')
-    return None
+    return jibun_coord()
 
 
 # ── 2. 브이월드 위성(항공) 사진 – 공식 WMTS 타일을 받아 단지 중심으로 이어 붙임 (1단계. 3D 비스듬한 사진은 2단계에서)
