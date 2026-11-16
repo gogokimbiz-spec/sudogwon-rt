@@ -40,6 +40,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           HERO_BG: ${{ inputs.bg || vars.HERO_BG || 'map' }}
         run: |
           set "PY=python"
