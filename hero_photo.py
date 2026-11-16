@@ -20,6 +20,10 @@ S = json.load(urllib.request.urlopen(f'{SITE}summary.json?t={int(time.time())}',
 json.dump(S, open('hero_summary.json', 'w', encoding='utf-8'), ensure_ascii=False)
 D = S['day']
 print('오늘 요약 날짜:', D)
+import datetime
+_today = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).date().isoformat()
+if S.get('asof', '')[:10] != _today:   # 갱신(배포)이 실패해 사이트가 어제 자료면 만들지 않음
+    print(f"사이트 자료가 오늘({_today}) 것이 아니라({S.get('asof')}) 사진 카드를 만들지 않습니다"); sys.exit(0)
 
 # 3년 거래 그래프: PC 에는 rt_data.json 이 없어서 새벽 카드(사이트 cards/hero.json)가 저장한 거래 목록을 씀
 try:
