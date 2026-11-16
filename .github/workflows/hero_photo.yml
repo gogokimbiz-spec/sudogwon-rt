@@ -10,6 +10,12 @@ on:
     workflows: ['매일 실거래 갱신']
     types: [completed]
   workflow_dispatch:
+    inputs:
+      bg:
+        description: '배경 (map=일반 지도+노란 테두리, 3d=브이월드 3D 비스듬한 사진 시험 – 실패하면 지도)'
+        type: choice
+        options: ['map', '3d']
+        default: 'map'
 
 permissions:
   contents: write
@@ -34,6 +40,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          HERO_BG: ${{ inputs.bg || vars.HERO_BG || 'map' }}
         run: |
           set "PY=python"
           if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
