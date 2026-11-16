@@ -24,7 +24,8 @@ concurrency:          # 두 실행이 동시에 돌면 서로 '아직 안 올렸
 
 jobs:
   post:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    # 갱신이 '실패'로 끝나도(카톡 단계만 실패 등) 오늘 게시물이 배포됐으면 게시 – 날짜는 각 스크립트가 확인
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   photo:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # 갱신이 '실패'로 끝나도(예: 카톡 토큰 오류로 notify 만 실패) 사이트가 오늘 자료로 배포됐으면 사진 카드를 만듦 – 오늘 자료인지는 hero_photo.py 가 확인
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
     runs-on: [self-hosted, Windows]
     timeout-minutes: 20
     env:
