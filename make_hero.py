@@ -60,7 +60,12 @@ def man_unit(v):
 def geocode():
     if not KEY: return None
     city = T['region'].split(' ')[0]
-    for q in (T['apt'], f"{T.get('umd', '')} {T['apt']}", f"{T['apt']} 아파트"):
+    import re
+    base = re.sub(r'\s+', ' ', re.sub(r'\(.*?\)|\[.*?\]', ' ', T['apt'])).strip()     # '현대10차(201,202동)' → '현대10차' (괄호 동 번호 때문에 검색이 안 됨)
+    dong = (T.get('umd', '') or '').removesuffix('동')                                    # '압구정동' → '압구정'
+    qs = [T['apt'], f"{T.get('umd', '')} {T['apt']}", f"{T['apt']} 아파트", base, f"{T.get('umd', '')} {base}", f"{dong} {base}",
+          f"{base} 아파트", f"{dong}{base}"]
+    for q in dict.fromkeys(x.strip() for x in qs if x.strip()):
         url = 'https://api.vworld.kr/req/search?' + urllib.parse.urlencode({
             'service': 'search', 'request': 'search', 'version': '2.0', 'crs': 'EPSG:4326', 'size': 10, 'page': 1,
             'query': q.strip(), 'type': 'place', 'format': 'json', 'errorformat': 'json', 'key': KEY,
