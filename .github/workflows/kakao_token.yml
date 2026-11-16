@@ -1,0 +1,55 @@
+name: 카카오 토큰 다시 받기 (수동)
+
+# 카톡이 'HTTP Error 400'(토큰 만료·무효)으로 안 갈 때 한 번 실행합니다.
+# 1) 브라우저에서 카카오 인가 주소로 로그인·동의 → 주소창에 나온 code= 뒤 값을 복사
+# 2) Actions 탭 → 이 작업 → Run workflow → code(와 Redirect URI) 붙여넣기 → 실행
+# → 새 refresh_token 을 KAKAO_REFRESH_TOKEN Secret 에 저장하고, 시험 카톡 1통을 보냅니다. 토큰 값은 로그에 찍지 않습니다.
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: '카카오 인가 코드 (주소창 code= 뒤의 값)'
+        required: true
+      redirect_uri:
+        description: '카카오 개발자 콘솔에 등록한 Redirect URI (인가 주소에 쓴 것과 똑같이)'
+        required: true
+        default: 'https://localhost'
+
+jobs:
+  token:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 새 토큰 받아 Secret 에 저장 + 시험 카톡
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          CODE: ${{ inputs.code }}
+          REDIRECT: ${{ inputs.redirect_uri }}
+          REPO: ${{ github.repository }}
+        shell: python
+        run: |
+          import os, json, subprocess, urllib.request, urllib.parse, urllib.error
+          E = os.environ
+          code = E['CODE'].strip()
+          if 'code=' in code: code = code.split('code=')[1].split('&')[0]   # 주소 전체를 붙여넣어도 됨
+          body = urllib.parse.urlencode({'grant_type': 'authorization_code', 'client_id': E['KAKAO_REST_KEY'].strip(),
+                                         'client_secret': E['KAKAO_CLIENT_SECRET'].strip(), 'redirect_uri': E['REDIRECT'].strip(), 'code': code}).encode()
+          try:
+              tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', body))
+          except urllib.error.HTTPError as e:
+              raise SystemExit('토큰 받기 실패: ' + e.read().decode('utf-8', 'replace')[:300] +
+                               '\n(코드는 한 번만·몇 분 안에만 쓸 수 있어요. Redirect URI 가 콘솔에 등록한 것과 똑같은지도 확인)')
+          rt = tok.get('refresh_token')
+          if not rt: raise SystemExit('refresh_token 이 오지 않았습니다: ' + str({k: v for k, v in tok.items() if 'token' not in k}))
+          print('받은 권한:', tok.get('scope'), '/ refresh_token 유효(초):', tok.get('refresh_token_expires_in'))
+          if 'talk_message' not in (tok.get('scope') or ''):
+              print('::warning::talk_message 권한이 없습니다. 인가 주소 끝에 &scope=talk_message 를 붙여 다시 받아 주세요.')
+          subprocess.run(['gh', 'secret', 'set', 'KAKAO_REFRESH_TOKEN', '--body', rt, '-R', E['REPO']], check=True)
+          print('KAKAO_REFRESH_TOKEN Secret 저장 완료')
+          tpl = {'object_type': 'text', 'text': '✅ 카카오 토큰을 새로 받았습니다. 내일 아침부터 카톡이 정상으로 옵니다.',
+                 'link': {'web_url': 'https://sudogwon-rt.blogspot.com', 'mobile_web_url': 'https://sudogwon-rt.blogspot.com'}}
+          req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+                                       data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(),
+                                       headers={'Authorization': 'Bearer ' + tok['access_token']})
+          print('시험 카톡:', json.load(urllib.request.urlopen(req)))
