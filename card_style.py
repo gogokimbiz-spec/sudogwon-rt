@@ -42,25 +42,29 @@ def canvas():
     return im, ImageDraw.Draw(im)
 
 
-def header(d, F, pill, title, big='', sub=''):
-    d.rectangle((0, 0, W, 312), fill=T['head'])
+def header(d, F, pill, title, big='', sub='', gap=0):
+    # gap: 날짜칩 아래 제목·부제·아래 선을 그만큼 위로 당김 (실거래 요약 카드는 10줄을 넣으려고 gap 사용, 다른 카드는 0)
+    hb = 312 - gap
+    d.rectangle((0, 0, W, hb), fill=T['head'])
     if T.get('deco'): d.ellipse((W - 350, -160, W + 110, 300), fill=T['deco'])
     if T.get('flat'):
-        d.rectangle((40, 30, W - 40, 36), fill=T['ink']); d.rectangle((40, 302, W - 40, 312), fill=T['ink'])
+        d.rectangle((40, 30, W - 40, 36), fill=T['ink']); d.rectangle((40, hb - 10, W - 40, hb), fill=T['ink'])
     else:
-        d.rectangle((0, 308, W, 312), fill=T['accent'])
+        d.rectangle((0, hb - 4, W, hb), fill=T['accent'])
     pf = F(30); pw = d.textlength(pill, font=pf)
     d.rounded_rectangle((64, 58, 64 + pw + 44, 110), 8 if T.get('flat') else 26, fill=T['pill'])
     d.text((86, 63), pill, font=pf, fill=T.get('pill_t', WHITE))
-    tf = F(76, 'Black'); d.text((62, 134), title, font=tf, fill=T['h_ink'])
+    ts = 76
+    while ts > 56 and not big and d.textlength(title, font=F(ts, 'Black')) > W - 124: ts -= 2   # 긴 제목('인천·경기 남서부 …')은 글씨를 줄임
+    tf = F(ts, 'Black'); d.text((62, 134 - gap + (76 - ts) * 0.5), title, font=tf, fill=T['h_ink'])
     if big:
         room = W - 76 - (62 + d.textlength(title, font=tf) + 28)
         size = 120 if len(big) <= 3 else 72
         while size > 56 and d.textlength(big, font=F(size, 'Black')) > room: size -= 4
         bf = F(size, 'Black')
-        d.text((W - 76 - d.textlength(big, font=bf), 112 + (120 - size) * 0.45), big, font=bf, fill=T['big'])
+        d.text((W - 76 - d.textlength(big, font=bf), 112 - gap + (120 - size) * 0.45), big, font=bf, fill=T['big'])
     if sub:
-        d.text((64, 244), sub, font=F(28, 'Medium'), fill=T['h_ink2'])
+        d.text((64, 244 - gap), sub, font=F(28, 'Medium'), fill=T['h_ink2'])
 
 
 def row_box(d, y, h):

@@ -169,6 +169,12 @@ if os.path.exists(f'cards/rt/{_key}.png') and os.environ.get('GITHUB_REPOSITORY'
     _img = f"https://raw.githubusercontent.com/{os.environ['GITHUB_REPOSITORY']}/{os.environ.get('GITHUB_REF_NAME') or 'main'}/cards/rt/{_key}.png"
     _has_img = True
     parts.insert(1 if news else 0, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img}" alt="{esc(title)}" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
+    _rg = [i for i in range(1, 5) if os.path.exists(f'cards/rt/{_key}_r{i}.png')]   # 권역별 카드 5장 (2026-11-18)
+    if _rg:
+        _gn = {i + 1: g['name'] for i, g in enumerate(S.get('groups') or [])}
+        parts.insert((1 if news else 0) + 1, '<h3>권역별 실거래 (서울 · 경기 북부 · 인천·경기 남서부 · 경기 남동부)</h3>' + ''.join(
+            f'<div style="margin:0 0 14px;text-align:center"><img src="{_img[:-4]}_r{i}.png" alt="{esc(_gn.get(i, ""))} 아파트 실거래 {esc(LB)}" loading="lazy" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>'
+            for i in _rg))
     if os.path.exists(f'cards/rt/{_key}_hero.png'):            # 오늘의 신고가 1위 카드 (2026-11-12)
         parts.insert((1 if news else 0) + 1, f'<div style="margin:0 0 18px;text-align:center"><img src="{_img[:-4]}_hero.png" alt="오늘의 신고가 1위" style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
 # 오늘의 부동산 타로 (대표 이미지 바로 아래 – 대표 이미지가 블로그 썸네일이 되도록 타로는 그 뒤에 둠)

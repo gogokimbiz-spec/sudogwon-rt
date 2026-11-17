@@ -210,6 +210,21 @@ else:
     wcodes = list(dict.fromkeys(wcodes))
 watch = [{'region': names[c], 'pp_man': round(elig[c][0]), 'n': elig[c][1], 'chg': round(elig[c][2], 1)} for c in wcodes]
 period_start = datetime.date.fromordinal(period * watch_days)
+# 4개 권역 (2026-11-18 사용자 확정): 서울 · 경기 북부 · 인천·경기 남서부 · 경기 남동부 – 권역 카드(make_cards.py region_*.png)용
+G_NORTH = {'고양', '파주', '김포', '의정부', '양주', '동두천', '남양주', '구리', '포천', '연천', '가평'}
+G_SW = {'부천', '광명', '시흥', '안산', '안양', '군포', '의왕', '과천', '수원'}
+G_SE = {'성남', '하남', '광주', '용인', '이천', '안성', '여주', '양평', '화성', '오산', '평택'}   # 11-18 사용자: 화성·오산·평택은 남동부
+def group_of(region):           # 11-18 사용자 확정: 4개 권역, 인천은 경기 남서부와 묶음
+    p = region.split(' ')
+    if p[0] == '서울': return '서울'
+    if p[0] == '인천': return '인천·경기 남서부'
+    c = p[0] if len(p) > 1 else p[0][:-1]          # '수원 영통구' → 수원, '의정부시' → 의정부, '광주시' → 광주
+    return '경기 북부' if c in G_NORTH else '인천·경기 남서부' if c in G_SW else '경기 남동부' if c in G_SE else None
+groups = []
+for gname in ('서울', '경기 북부', '인천·경기 남서부', '경기 남동부'):
+    gt = [t for t in day_list if group_of(t['region']) == gname]
+    gn = [t for t in gt if t.get('new_high')]
+    groups.append({'name': gname, 'trade_count': len(gt), 'nh_count': len(gn), 'trades': gt[:60], 'new_highs': gn[:60]})
 summary = {'asof': asof, 'basis': basis, 'high_text': high_text, 'day': day, 'day_from': dfrom.isoformat(), 'label': label, 'label_full': f'{dfrom.year}년 {label}', 'trade_count': len(dayT), 'jeonse_count': len(dayJ), 'by_sido': by_sido,
            'top_trades': [{'region': names[codes[x[0]]], 'apt': list(apts)[x[6]], 'area': round(x[2] / 10), 'price_man': x[3]} for x in top],
            'up3': [{'region': n, 'chg': round(v, 1)} for n, v in ch[:3]],
@@ -219,6 +234,8 @@ summary = {'asof': asof, 'basis': basis, 'high_text': high_text, 'day': day, 'da
            'new_highs': [d for d in day_list if d.get('new_high')],
            'watch': watch, 'watch_period': [period_start.isoformat(), (period_start + datetime.timedelta(watch_days - 1)).isoformat()],
            'day_trades': day_list[:20],
+           'day_trades_60': day_list[:60],   # 한 장 카드 '5위마다 1건'용 (블로그 표는 day_trades 20건 그대로)
+           'groups': groups,                 # 5개 권역 카드용
            'major_tops': major_tops, 'major_regions': MAJOR,
            'trade_median_man': statistics.median([x[3] for x in dayT]) if dayT else None,
            'jeonse_median_man': statistics.median([x[3] for x in dayJ]) if dayJ else None}

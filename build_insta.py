@@ -54,6 +54,25 @@ if S:
                              images=imgs('cards', car), alt=imgs('cards', ['single.png']),
                              caption=trim_tags(cap, 7, '아파트')))
 
+# ── 1-1. 권역별 실거래 카드 4장 (서울·경기 북부·인천·경기 남서부·경기 남동부, 실거래 캐러셀과 별도 게시물 – 2026-11-18)
+if S:
+    rg = imgs('cards', [f'region_{i}.png' for i in range(1, 5)])
+    if rg:
+        def _m(v):
+            v = int(round(v)); e, m = divmod(v, 10000)
+            return (f'{e}억 {m:,}만' if m else f'{e}억') if e else f'{m:,}만'
+        LBg = S.get('label') or S['day']
+        rcap = [f"🗺 {LBg} 권역별 아파트 실거래 | 서울·경기 북부·인천·경기 남서부·경기 남동부", '']
+        for g in S.get('groups') or []:
+            if not g.get('trades'): continue
+            t0 = g['trades'][0]
+            rcap.append(f"· {g['name']} {g['trade_count']:,}건 · 신고가 {g['nh_count']:,}건 · 최고 {t0['apt']} {_m(t0['price_man'])}")
+        rcap += ['', '※ 권역마다 가격순 5위마다 1건씩, 같은 구는 1건만 골랐어요', '자료: 국토교통부 실거래가 공개시스템',
+                 '', '우리 동네 전체 거래는 프로필 링크에서 👆', '',
+                 '#아파트실거래가 #신고가 #수도권아파트 #서울아파트 #인천아파트 #경기아파트 #부동산']
+        sections.append(dict(key='rt_region', title='권역별 실거래', when='매일', today=True,
+                             guide=f'사진 {len(rg)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기', images=rg, alt=[], caption='\n'.join(rcap)))
+
 # ── 1-2. 오늘의 신고가 1위 (실거래 캐러셀과 별도 게시물, 있는 날만 – 2026-11-12)
 HJ = load('cards/hero.json'); hero_img = imgs('cards', ['hero.png'])
 if HJ and hero_img:

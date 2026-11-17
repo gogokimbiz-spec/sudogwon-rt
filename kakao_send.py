@@ -93,6 +93,26 @@ if ok_img:
 else:
     print('오늘의 카드 이미지가 없어 이미지 메시지는 건너뜁니다.')
 
+# 권역별 카드 4장 (서울 · 경기 북부 · 인천·경기 남서부 · 경기 남동부 – 2026-11-18 사용자 요청)
+for gi, g in enumerate(S.get('groups') or [], 1):
+    rc = f"{SITE.rstrip('/')}/cards/region_{gi}.png"
+    try: ok_r = urllib.request.urlopen(urllib.request.Request(rc, method='HEAD'), timeout=20).status == 200
+    except Exception: ok_r = False
+    if not ok_r: continue
+    feed = {'object_type': 'feed',
+            'content': {'title': f"{LB} {g['name']} 아파트 실거래 · 신고가 {g.get('nh_count', 0)}건",
+                        'description': f"거래 {g.get('trade_count', 0):,}건 · 이미지를 눌러 크게 보기",
+                        'image_url': f"{rc}?v={VER}", 'image_width': 1080, 'image_height': 1350,
+                        'link': {'web_url': link, 'mobile_web_url': link}},
+            'buttons': [{'title': '자세히 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+    req = urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+                                 data=urllib.parse.urlencode({'template_object': json.dumps(feed, ensure_ascii=False)}).encode(),
+                                 headers={'Authorization': 'Bearer ' + tok['access_token']})
+    try:
+        print(f"권역 카드 카톡 ({g['name']}):", json.load(urllib.request.urlopen(req)))
+    except urllib.error.HTTPError as e:
+        print(f"::warning::권역 카드 카톡 실패 ({g['name']}):", e.read().decode('utf-8', 'replace')[:200])
+
 # (타로 카톡은 2026-11-10 사용자 요청으로 뺌 – 블로그 글의 타로 칸은 그대로)
 # 주요 지역 신고가 1위 카드는 hero_kakao.py 가 따로 보냄 (PC 가 단지 사진 카드를 만든 뒤, 2026-11-11)
 new_rt = tok.get('refresh_token')
