@@ -83,6 +83,7 @@ def hist_rows(code):
         _hist_cache[code] = rows
     return _hist_cache[code]
 DAY = datetime.date.fromisoformat(S['day'])
+_dd = lambda t: datetime.date.fromisoformat(t['date']) if t.get('date') else DAY   # 거래마다 실제 계약일
 def series(t):
     code = CODE_OF.get(t['region'])
     if not code: return []
@@ -129,7 +130,7 @@ for i, t in enumerate(items, start=2):
     y = 138
     for ln in wrap(d, t['apt'], F(64, 'Black'), W - 128)[:2]:
         d.text((62, y), ln, font=F(64, 'Black'), fill=C.INK); y += 80
-    d.text((64, y + 4), f"{t.get('umd', '')} · 전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년 · {DAY.month}.{DAY.day} 계약", font=F(30, 'Medium'), fill=C.INK2)
+    d.text((64, y + 4), f"{t.get('umd', '')} · 전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년 · {_dd(t).month}.{_dd(t).day} 계약", font=F(30, 'Medium'), fill=C.INK2)
     y += 70
     d.text((64, y), '거래가', font=F(32, 'Medium'), fill=C.INK2)
     d.text((62, y + 36), man_unit(t['price_man']) + '원', font=F(104, 'Black'), fill=C.ORANGE if t.get('new_high') else C.INK)
@@ -139,13 +140,13 @@ for i, t in enumerate(items, start=2):
         bt = f"▲ {man_unit(diff)} · +{pct:.1f}%"; bf = F(34); bw = d.textlength(bt, font=bf)
         by_ = y + 172                                       # 가격 아래 한 줄: 왼쪽 상승 배지, 오른쪽 이전 최고가
         rr(d, (64, by_, 64 + bw + 44, by_ + 60), 30, fill=(255, 255, 255)); d.text((86, by_ + 6), bt, font=bf, fill=C.T['bg'])
-        v = f"이전 최고 {man_unit(prev)} ({pd.month}.{pd.day})"; d.text((W - 64 - d.textlength(v, font=F(28, 'Medium')), by_ + 14), v, font=F(28, 'Medium'), fill=C.INK2)
+        v = f"이전 최고 {man_unit(prev)} ({pd.month}.{pd.day})" if pd.year == _dd(t).year else f"이전 최고 {man_unit(prev)} ({pd.year}.{pd.month})"; d.text((W - 64 - d.textlength(v, font=F(28, 'Medium')), by_ + 14), v, font=F(28, 'Medium'), fill=C.INK2)
         y += 94
     y += 170
     pts = series(t)
     if len(pts) >= 3:
-        hl = (DAY, t['price_man'])
-        if all(not (p == t['price_man'] and dt == DAY) for dt, p in pts): pts = sorted(pts + [hl])
+        hl = (_dd(t), t['price_man'])
+        if all(not (p == t['price_man'] and dt == _dd(t)) for dt, p in pts): pts = sorted(pts + [hl])
         cy0 = y + 70; cy1 = C.SH - 270
         chg, nmon = chart(d, (92, cy0 + 40, W - 92, cy1), pts, hl)
         d.text((64, y), '같은 면적 거래 흐름', font=F(34, 'Black'), fill=C.INK)
@@ -159,7 +160,7 @@ for i, t in enumerate(items, start=2):
         v = f"{man_unit(t['pp_man'])}원"; d.text((W - 64 - d.textlength(v, font=F(40)), y - 2), v, font=F(40), fill=C.INK)
         y += 70
         d.text((64, y), '최근 3년 같은 면적 거래가 적어 그래프는 생략했어요', font=F(28, 'Medium'), fill=C.INK2)
-        foot = '자료 국토교통부 실거래가 공개시스템 · 계약일 기준'
+        foot = '자료 국토교통부 실거래가 공개시스템'
     C.cta(d, F, '우리 동네 실거래가 → 프로필 링크')
     C.footer(d, F, foot)
     im.save(os.path.join(OUT, f'{i:02d}.png'))
@@ -182,58 +183,97 @@ cap += [f"· {t['region']} {t['apt']} {t['area']}㎡ {man_unit(t['price_man'])}�
 _mt = sorted(S.get('day_trades') or [], key=lambda t: -t['price_man'])[:3]
 if _mt:
     cap += ['', '💰 오늘의 실거래가격'] + [f"· {t['region']} {t['apt']} {t['area']}㎡ {man_unit(t['price_man'])}원" for t in _mt]
-cap += ['', '※ 신고가: 같은 단지·같은 면적의 최근 6개월 거래 중 최고가 경신', '※ 계약 후 30일 안에 신고되므로 건수는 늘어날 수 있어요',
+cap += ['', f"※ 신고가: 같은 단지·같은 면적의 {S.get('high_text') or '최근 6개월 최고가'} 경신", ('※ 어제 새로 신고된 거래 기준 (계약일은 며칠 전일 수 있어요)' if S.get('basis') == 'reported' else '※ 계약 후 30일 안에 신고되므로 건수는 늘어날 수 있어요'),
         '자료: 국토교통부 실거래가 공개시스템', '', '지역별 지도·전체 거래는 프로필 링크에서 👆', '', tags]
 open(os.path.join(OUT, 'caption.txt'), 'w', encoding='utf-8').write('\n'.join(cap))
 
-# ── 한 장 요약 이미지 (1080×1350) – 오늘의 실거래가격 3(지역 무관 비싼 순) + 신고가 3, 한쪽이 모자라면 다른 쪽으로 채워 6줄
+# ── 한 장 요약 이미지 (1080×1350) – 오늘의 실거래가격 5 + 신고가 5 (가격순 5위마다 1건, 같은 구는 1건만), 한쪽이 모자라면 다른 쪽으로 채워 10줄
 #    (2026-11-12 변경: 고정 11개 '주요 지역' 대신 수도권 전체. 블로그 '오늘의 주요 거래 6건'과 같은 규칙)
 _key = lambda t: (t['region'], t['apt'], t['area'], t.get('floor'), t['price_man'])
-top_all = sorted(S.get('day_trades') or [], key=lambda t: -t['price_man'])
-mt = top_all[:3]
-nhx = [t for t in nh if _key(t) not in {_key(x) for x in mt}]
-n_nh = min(3, len(nhx))
-if len(mt) + n_nh < 6:                                # 신고가가 모자라면 실거래가격을 더
-    _nk = {_key(x) for x in nhx[:n_nh]}
-    mt += [t for t in top_all[3:] if _key(t) not in _nk][:6 - len(mt) - n_nh]
-n_nh = min(len(nhx), 6 - len(mt)); n_top = len(mt)   # 실거래가격이 모자라면 신고가를 더
-secs = [('오늘의 실거래가격', f"{S.get('trade_count', 0)}건 중 비싼 순", mt),
-        ('신고가', f'{len(nh)}건 중', nhx[:n_nh])]
+# 2026-11-18: 같은 구(시군구)는 카드 전체에서 1건만 → 여러 지역이 보이게. 줄 수는 실거래가격 4 + 신고가 4 = 8줄 (CARD_EACH 로 조정)
+EACH = int(os.environ.get('CARD_EACH', '5') or 5); TOTAL = EACH * 2
+top_all = sorted(S.get('day_trades_60') or S.get('day_trades') or [], key=lambda t: -t['price_man'])
+used = set()                                           # 이미 카드에 나온 구
+STEP = int(os.environ.get('CARD_STEP', '5') or 5)      # 2026-11-18: 가격 순위를 5위씩 끊어 구간마다 1건 (1~5위 중 1, 6~10위 중 1, …) → 여러 가격대·지역이 보이게
+RANK = {}                                              # 카드에 'n위'로 표시할 순위
+def pick(pool, n, skip=(), start=0):
+    out, b = [], start
+    while len(out) < n and b * STEP < len(pool):
+        for i in range(b * STEP, min((b + 1) * STEP, len(pool))):
+            t = pool[i]
+            if t['region'] in used or _key(t) in skip: continue
+            out.append(t); used.add(t['region']); RANK[id(t)] = i + 1; break
+        b += 1
+    return out
+mt = pick(top_all, EACH)
+nh_sorted = sorted(nh, key=lambda t: -t['price_man'])
+nhx = pick(nh_sorted, EACH, {_key(x) for x in mt})
+if len(mt) + len(nhx) < TOTAL:                         # 한쪽이 모자라면 다른 쪽으로 채움 (구 중복 없이, 이어지는 구간에서)
+    _last = lambda xs, pool: (max(RANK.get(id(x), 0) for x in xs) - 1) // STEP + 1 if xs else 0
+    if len(nhx) < EACH: mt += pick(top_all, TOTAL - len(mt) - len(nhx), {_key(x) for x in mt + nhx}, _last(mt, top_all))
+    else: nhx += pick(nh_sorted, TOTAL - len(mt) - len(nhx), {_key(x) for x in mt + nhx}, _last(nhx, nh_sorted))
+    mt.sort(key=lambda t: RANK.get(id(t), 0)); nhx.sort(key=lambda t: RANK.get(id(t), 0))
+n_nh, n_top = len(nhx), len(mt)
+_nh_left = [t for t in nh if _key(t) not in {_key(x) for x in mt + nhx}]
+secs = [('오늘의 실거래가격', f"{S.get('trade_count', 0)}건 · 가격순 {STEP}위마다 1건", mt),
+        ('신고가', f'{len(nh)}건 · 가격순 {STEP}위마다 1건', nhx)]
 secs = [x for x in secs if x[2]]
 if not secs:                                          # 둘 다 없으면 그날 거래가 높은 순
-    secs = [('거래가 높은 순', f"{S.get('trade_count', 0)}건 중", (S.get('day_trades') or [])[:6])]
+    secs = [('거래가 높은 순', f"{S.get('trade_count', 0)}건 중", (S.get('day_trades') or [])[:TOTAL])]
+GAP = 36                                               # 날짜칩과 제목 사이를 좁힘 (2026-11-18)
 im, d = C.canvas(); SH = C.SH
-C.header(d, F, f'{LBS} 계약', '수도권 아파트 실거래', '', '오늘의 실거래가격 · 신고가 (같은 단지·면적 최근 6개월 최고가 경신)')
+C.header(d, F, f"{LBS} {'신고' if S.get('basis') == 'reported' else '계약'}", '수도권 아파트 실거래', '', f"오늘의 실거래가격 · 신고가 (같은 단지·면적 {(S.get('high_text') or '최근 6개월 최고가').replace(' 역대', '')} 경신)", gap=GAP)
 nrows = sum(len(x[2]) for x in secs)
-more = len(nhx) - (len(secs[-1][2]) if secs[-1][0] == '신고가' else 0)
-bottom = SH - 170 - (40 if more > 0 else 0)
-rh = min(118, (bottom - 330 - 62 * len(secs) - 18 * (len(secs) - 1)) // max(1, nrows))
-y = 330
+more = len(_nh_left)
+more_tr = max(0, (S.get('trade_count') or 0) - len(mt) - len(nhx))
+CTA_TOP = SH - 132                                     # 노란 버튼을 낮게(64px) → 그만큼 위 10줄을 크게 (2026-11-18)
+bottom = CTA_TOP - 14 - (76 if (more > 0 or more_tr > 0) else 0)
+Y0 = 330 - GAP - 8; SECH = 54
+rh = min(118, (bottom - Y0 - SECH * len(secs) - 14 * (len(secs) - 1)) // max(1, nrows))
+k = min(1.0, rh / 118)                                 # 줄이 낮아지면 글씨도 같이 줄임
+Z = lambda v: max(18, int(round(v * (0.55 + 0.45 * k))))
+y = Y0
 for si, (title, sub, rows) in enumerate(secs):
-    if si: y += 18
-    d.text((64, y + 6), title, font=F(34, 'Black'), fill=C.INK)
-    d.text((64 + d.textlength(title, font=F(34, 'Black')) + 16, y + 18), sub, font=F(24, 'Medium'), fill=C.INK2)
-    y += 62
+    if si: y += 14
+    d.text((64, y + 2), title, font=F(32, 'Black'), fill=C.INK)
+    d.text((64 + d.textlength(title, font=F(32, 'Black')) + 16, y + 12), sub, font=F(23, 'Medium'), fill=C.INK2)
+    y += SECH
+    h = rh - 10                                        # 줄 안쪽 높이 – 글씨 크기를 여기에 맞춤 (10줄이면 약 58px)
+    fn, fs, fp = min(38, int(h * 0.52)), min(26, int(h * 0.36)), min(46, int(h * 0.66))
     for t in rows:
-        C.row_box(d, y, rh - 12); cy = y + (rh - 12) // 2
+        C.row_box(d, y, h)
         p_ = t['region'].split(' ')
         chip = p_[1] if p_[0] in ('서울', '인천') else (p_[0] + ' ' + p_[1][:-1]) if len(p_) > 1 else p_[0][:-1]
-        cw = C.chip(d, F, 64, cy - 48, chip)
-        nmf = F(36, 'Black'); nx = 64 + cw + 14; maxw = W - 64 - nx - 290
+        cw = C.chip(d, F, 64, y + 1, chip, size=fs)
+        nmf = F(fn, 'Black'); nx = 64 + cw + 12; maxw = W - 64 - nx - 270
         nm = t['apt']
         while d.textlength(nm, font=nmf) > maxw and len(nm) > 4: nm = nm.rstrip('…')[:-1] + '…'
-        d.text((nx, cy - 52), nm, font=nmf, fill=C.INK)
-        d.text((64, cy + 2), (f"{t.get('umd', '')} · " if title == '오늘의 실거래가격' else '') + f"전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년",
-               font=F(25, 'Medium'), fill=C.INK2)
-        pr = man(t['price_man']); pf = F(44, 'Black')
-        d.text((W - 64 - d.textlength(pr, font=pf), cy - 54), pr, font=pf, fill=C.INK)
+        d.text((nx, y - fn * 0.12), nm, font=nmf, fill=C.INK)
+        d.text((64, y + fn * 1.08), (f"{RANK[id(t)]}위 · " if id(t) in RANK else '') + (f"{t.get('umd', '')} · " if title == '오늘의 실거래가격' else '') + f"전용 {t['area']}㎡ · {t['floor']}층 · {t['built']}년",
+               font=F(fs, 'Medium'), fill=C.INK2)
+        pr = man(t['price_man']); pf = F(fp, 'Black')
+        d.text((W - 64 - d.textlength(pr, font=pf), y - fp * 0.18), pr, font=pf, fill=C.INK)
         if t.get('new_high'):
             diff = t['price_man'] - t['prev_high_man']; pct = diff / t['prev_high_man'] * 100
-            s2 = (f"신고가 ▲{man_unit(diff)}" if title == '오늘의 실거래가격' else f"▲{man_unit(diff)} (+{pct:.1f}%)"); sf = F(25)
-            d.text((W - 64 - d.textlength(s2, font=sf), cy + 6), s2, font=sf, fill=C.UP)
+            s2 = (f"신고가 ▲{man_unit(diff)}" if title == '오늘의 실거래가격' else f"▲{man_unit(diff)} (+{pct:.1f}%)"); sf = F(fs)
+            d.text((W - 64 - d.textlength(s2, font=sf), y + fn * 1.08), s2, font=sf, fill=C.UP)
         y += rh
-if more > 0: d.text((64, y + 2), f'신고가 외 {more}건은 프로필 링크에서', font=F(26, 'Medium'), fill=C.INK2)
-C.cta(d, F, '우리 동네 실거래가 → 프로필 링크')
+if more > 0 or more_tr > 0:                             # 2026-11-18: '더 많다'가 한눈에 보이게 큰 안내 상자
+    by0 = CTA_TOP - 14 - 66
+    d.rounded_rectangle((40, by0, W - 40, by0 + 62), 12, outline=C.ORANGE, width=3)
+    segs = [('이 밖에도 ', C.INK, 'Bold')]
+    if more > 0: segs += [(f'신고가 {more:,}건', C.ORANGE, 'Black')]
+    if more > 0 and more_tr > 0: segs += [(' · ', C.INK2, 'Bold')]
+    if more_tr > 0: segs += [(f'실거래 {more_tr:,}건', C.ORANGE, 'Black')]
+    segs += [(' 더 있어요', C.INK, 'Bold')]
+    fs = 34
+    while fs > 24 and sum(d.textlength(t_, font=F(fs, w_)) for t_, _, w_ in segs) > W - 120: fs -= 2
+    x_ = (W - sum(d.textlength(t_, font=F(fs, w_)) for t_, _, w_ in segs)) / 2
+    for t_, c_, w_ in segs:
+        d.text((x_, by0 + 31 - fs * 0.62), t_, font=F(fs, w_), fill=c_); x_ += d.textlength(t_, font=F(fs, w_))
+_cm = '전체 거래·신고가 보기 → 프로필 링크'
+d.rounded_rectangle((40, CTA_TOP, W - 40, CTA_TOP + 64), 10, fill=C.ORANGE)
+d.text(((W - d.textlength(_cm, font=F(32))) / 2, CTA_TOP + 9), _cm, font=F(32), fill=C.T.get('cta_t', C.T.get('pill_t', C.WHITE) if C.T['accent'] == C.T['pill'] else C.WHITE))
 C.footer(d, F, '자료 국토교통부 실거래가 공개시스템 · 가격 단위 만원')
 im.save(os.path.join(OUT, 'single.png'))
 im.save(os.path.join(OUT, '01.png'))   # 캐러셀 표지 = 한 장 요약
