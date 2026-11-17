@@ -66,12 +66,13 @@ except Exception:
 def reg(name):  # 지역명에 시군구 페이지 링크
     c = CODE.get(name)
     return f'<a href="{SITE}r/{c}.html">{esc(name)}</a>' if c else esc(name)
-def trade_rows(rows, with_prev=False):
+def trade_rows(rows, with_prev=False, rank=None):
     out = []
     for t in rows:
+        rk = f'<b>{rank[id(t)]}위</b> ' if rank and id(t) in rank else ''
         badge = f' <span {RED}>[신고가]</span>' if t.get('new_high') else ''
         prev = f"<br><small>이전 최고 {man(t['prev_high_man'])} ({t['prev_high_date'][5:].replace('-', '.') if t['prev_high_date'][:4] == (t.get('date') or S['day'])[:4] else t['prev_high_date'][:7].replace('-', '.')})</small>" if with_prev and t.get('new_high') else ''
-        out.append(f"<tr><td {TD}>{reg(t['region'])}</td><td {TD}>{esc(t['apt'])}{badge}<br><small>{esc(t['umd'])} · {t['built']}년</small></td>"
+        out.append(f"<tr><td {TD}>{rk}{reg(t['region'])}</td><td {TD}>{esc(t['apt'])}{badge}<br><small>{esc(t['umd'])} · {t['built']}년</small></td>"
                    f"<td {TDR}>{t['area']}㎡ · {t['floor']}층</td><td {TDR}><b>{man(t['price_man'])}</b><br><small>3.3㎡당 {man(t['pp_man'])}</small>{prev}</td></tr>")
     return ''.join(out)
 
@@ -115,32 +116,44 @@ def cta(href, icon, title, sub, primary):
 parts.append('<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 24px">'
              + cta(SITE, '🗺️', '지역별 지도로 보기', '76개 시군구 가격·변동을 한눈에', True)
              + cta(f'{SITE}r/', '📍', '우리 동네 실거래가', '시군구별 신고가·최근 거래', False) + '</div>')
-# 3-0. 오늘의 주요 거래 6건 (2026-11-12 변경): 최고가 3 + 신고가 3.
-#      한쪽이 모자라면(신고가가 없는 날 등) 다른 쪽으로 채워 늘 6건. 최고가이면서 신고가인 거래는 최고가 쪽에 한 번만.
+# 3-0. 오늘의 주요 거래 (2026-11-18 변경 – 한 장 카드와 같은 규칙): 실거래가격 5 + 신고가 5.
+#      가격순 5위마다 1건(1~5위 중 1, 6~10위 중 1 …), 같은 구는 1건만. 건수가 적으면 구간을 좁히고, 한쪽이 모자라면 다른 쪽으로 채워 10건.
 _key6 = lambda t: (t['region'], t['apt'], t['area'], t.get('floor'), t['price_man'])
-_top_all = sorted(S.get('day_trades') or [], key=lambda t: -t['price_man'])
+_top_all = sorted(S.get('day_trades_60') or S.get('day_trades') or [], key=lambda t: -t['price_man'])
 _nh_all = sorted(nh, key=lambda t: -t['price_man'])
-_tp = _top_all[:3]
-_seen = {_key6(t) for t in _tp}
-_nh6 = [t for t in _nh_all if _key6(t) not in _seen][:3]
-_need = 6 - len(_tp) - len(_nh6)
-if _need > 0:                                      # 신고가가 모자라면 최고가를 더
-    _more = [t for t in _top_all[3:] if _key6(t) not in {_key6(x) for x in _nh6}][:_need]
-    _tp += _more; _need -= len(_more)
-if _need > 0:                                      # 최고가가 모자라면 신고가를 더
-    _seen = {_key6(t) for t in _tp + _nh6}
-    _nh6 += [t for t in _nh_all if _key6(t) not in _seen][:_need]
+_EACH, _STEP, _used, _RANK = 5, 5, set(), {}
+def _stp(pool): return max(1, min(_STEP, len(pool) // _EACH))
+def _pick(pool, n, skip=(), start=0):
+    out, b, st = [], start, _stp(pool)
+    while len(out) < n and b * st < len(pool):
+        for i in range(b * st, min((b + 1) * st, len(pool))):
+            t = pool[i]
+            if t['region'] in _used or _key6(t) in skip: continue
+            out.append(t); _used.add(t['region']); _RANK[id(t)] = i + 1; break
+        b += 1
+    return out
+_tp = _pick(_top_all, _EACH)
+_nh6 = _pick(_nh_all, _EACH, {_key6(x) for x in _tp})
+if len(_tp) + len(_nh6) < _EACH * 2:
+    _last = lambda xs, pool: (max(_RANK.get(id(x), 0) for x in xs) - 1) // _stp(pool) + 1 if xs else 0
+    if len(_nh6) < _EACH: _tp += _pick(_top_all, _EACH * 2 - len(_tp) - len(_nh6), {_key6(x) for x in _tp + _nh6}, _last(_tp, _top_all))
+    else: _nh6 += _pick(_nh_all, _EACH * 2 - len(_tp) - len(_nh6), {_key6(x) for x in _tp + _nh6}, _last(_nh6, _nh_all))
+    _tp.sort(key=lambda t: _RANK.get(id(t), 0)); _nh6.sort(key=lambda t: _RANK.get(id(t), 0))
 if _tp or _nh6:
     _GH = lambda txt: f'<tr><td colspan="4" style="padding:10px 4px 4px;font-weight:bold;border-bottom:2px solid #ccc">{txt}</td></tr>'
-    _rows = (_GH(f'💰 오늘의 실거래가격 {len(_tp)}건') + trade_rows(_tp, True) if _tp else '') + \
-            (_GH(f'🔺 오늘 신고가 {len(_nh6)}건') + trade_rows(_nh6, True) if _nh6 else '')
-    parts.append(f"<h3>오늘의 주요 거래 {len(_tp) + len(_nh6)}건</h3><p><small>{LB} {VB} 거래 중 가장 비싸게 거래된 아파트와 신고가 거래입니다. "
+    _rows = (_GH(f'💰 오늘의 실거래가격 {len(_tp)}건') + trade_rows(_tp, True, _RANK) if _tp else '') + \
+            (_GH(f'🔺 오늘 신고가 {len(_nh6)}건') + trade_rows(_nh6, True, _RANK) if _nh6 else '')
+    parts.append(f"<h3>오늘의 주요 거래 {len(_tp) + len(_nh6)}건</h3><p><small>{LB} {VB} 거래와 신고가를 가격순으로 줄 세워 5위마다 1건씩, 같은 구는 1건만 골랐습니다(앞의 숫자가 순위). "
                  f"신고가는 같은 단지·같은 전용면적의 {HT}보다 비싸게 팔린 거래입니다.</small></p>")
     parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{_rows}</table>")
 # 3. 신고가 표
 if nh:
-    parts.append(f"<h3>신고가 {len(nh)}건</h3><p><small>같은 단지·같은 전용면적의 {HT}보다 비싸게 팔린 거래입니다.</small></p>")
-    parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(nh, True)}</table>")
+    _nh50 = _nh_all[:50]                           # 2026-11-18: 신고가가 하루 100~200건이라 표는 가격 상위 50건만
+    parts.append(f"<h3>신고가 {len(nh)}건" + (f" (가격 상위 {len(_nh50)}건)" if len(nh) > len(_nh50) else '') +
+                 f"</h3><p><small>같은 단지·같은 전용면적의 {HT}보다 비싸게 팔린 거래입니다.</small></p>")
+    parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{trade_rows(_nh50, True)}</table>")
+    if len(nh) > len(_nh50):
+        parts.append(f'<p><small>나머지 신고가 {len(nh) - len(_nh50)}건은 <a href="{SITE}r/">시군구별 실거래가 페이지</a>에서 지역별로 볼 수 있습니다.</small></p>')
 else:
     parts.append('<h3>신고가</h3><p>이 날 신고된 거래 중 신고가는 아직 없습니다.</p>')
 # 4. 광고 (애드센스 승인 후 ADSENSE_CLIENT, ADSENSE_SLOT 값을 넣으면 이 자리에 광고가 들어갑니다)
