@@ -204,6 +204,7 @@ jobs:
           fi
           [ -f site/cards/single.png ] && cp site/cards/single.png "cards/rt/$D.png"
           [ -f site/cards/hero.png ] && cp site/cards/hero.png "cards/rt/${D}_hero.png"
+          for i in 1 2 3 4 5; do [ -f "site/cards/region_$i.png" ] && cp "site/cards/region_$i.png" "cards/rt/${D}_r$i.png"; done   # 권역 카드 (블로그용)
           DOW=$(TZ=Asia/Seoul date +%u); CYP="${{ inputs.cy_post }}"
           if [ "$DOW" = "1" ] || [ "$CYP" = "mon" ]; then
             W=$(python -c "import json;print(json.load(open('site/cheongyak/summary.json'))['week'][0])" 2>/dev/null) || W=''
