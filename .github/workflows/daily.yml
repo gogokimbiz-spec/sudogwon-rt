@@ -21,6 +21,11 @@ on:
         type: choice
         options: ['none', 'next', 'gangnam', 'seocho', 'songpa', 'yongsan', 'seongdong', 'mapo', 'bundang', 'gwacheon', 'yeongtong', 'suji', 'dongtan', 'yeonsu']
         default: 'none'
+      top_post:
+        description: '국평·소형 최고 실거래가 TOP 16 지금 만들기 (지난달 계약분 – 평소엔 매월 3일 자동, 카드·블로그·카톡·인스타·스레드)'
+        type: choice
+        options: ['none', 'run']
+        default: 'none'
       trend_post:
         description: '구별 상승률 블로그 글 지금 올리기 (week=최근 4주 TOP 10, month=지난달 순위) – 평소엔 매주 월요일 주간·매월 첫째 월요일 월간 자동'
         type: choice
@@ -118,6 +123,13 @@ jobs:
             fi
           fi
           TREND_MODES="$TM" python build_trend.py rt_data.json site
+      - name: 국평·소형 최고 실거래가 TOP 16 카드 (매월 3일 · 지난달 계약분)
+        continue-on-error: true
+        run: |
+          if [ "$(TZ=Asia/Seoul date +%-d)" != "3" ] && [ "${{ inputs.top_post }}" != "run" ]; then echo '오늘은 TOP 16 카드가 없는 날입니다'; exit 0; fi
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          CARD_THEME=slate python make_cards_top84.py rt_data.json site/top84
       - name: 청약홈 분양정보 수집
         id: cy
         continue-on-error: true
@@ -241,6 +253,12 @@ jobs:
             K=$(python -c "import json;print(json.load(open('site/trend/summary.json'))['$m']['key'])" 2>/dev/null) || K=''
             [ -n "$K" ] && [ -f "site/trend/$m.png" ] && cp "site/trend/$m.png" "cards/trend/$K.png"
           done
+          # 국평·소형 TOP 16 카드 (매월 3일 – 블로그 이미지용)
+          if [ -f site/top84/summary.json ]; then
+            YM=$(python -c "import json;print(json.load(open('site/top84/summary.json'))['month'])")
+            mkdir -p cards/top
+            for k in seoul_84 gg_84 seoul_59 gg_59; do [ -f "site/top84/$k.png" ] && cp "site/top84/$k.png" "cards/top/${YM}_$k.png"; done
+          fi
           git add cards hist
           if ! git diff --cached --quiet; then
             git commit -q -m "카드 이미지 $D"
@@ -295,6 +313,18 @@ jobs:
           fi
           if [ -z "$TM" ]; then echo '오늘은 구별 상승률 글이 없는 날입니다'; exit 0; fi
           for m in $TM; do python post_blogger_trend.py site/trend/summary.json --mode=$m; done
+      - name: 국평·소형 TOP 16 블로그 글 (매월 3일)
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: |
+          if [ ! -f site/top84/summary.json ]; then echo '오늘은 TOP 16 글이 없는 날입니다'; exit 0; fi
+          python post_blogger_top.py site/top84/summary.json
       - name: 오늘의 부동산 뉴스 고르기
         run: python fetch_news.py site/summary.json || echo '뉴스 단계 실패 - 뉴스 없이 계속'
       - name: 블로거에 오늘 글 올리기
@@ -381,6 +411,17 @@ jobs:
         run: |
           curl -sf "${{ needs.deploy.outputs.page_url }}trend/summary.json?t=$(date +%s)" -o trend_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/trend/summary.json?t=$(date +%s)" -o trend_summary.json
           python3 kakao_send_trend.py trend_summary.json
+      - name: 국평·소형 TOP 16 카톡 (매월 3일)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "${{ needs.deploy.outputs.page_url }}top84/summary.json?t=$(date +%s)" -o top_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/top84/summary.json?t=$(date +%s)" -o top_summary.json || true
+          python3 kakao_send_top.py top_summary.json
       - name: 기업재무 카톡 (토)
         if: ${{ !cancelled() }}
         continue-on-error: true
