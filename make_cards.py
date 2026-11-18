@@ -193,7 +193,7 @@ def summary_card(TRADES, NHS, TCNT, NHCNT, TITLE, outs):
     """한 장 요약 카드. 수도권 전체(single.png)와 5개 권역 카드(region_*.png)가 같이 씀 (2026-11-18)"""
     _key = lambda t: (t['region'], t['apt'], t['area'], t.get('floor'), t['price_man'])
     # 2026-11-18: 같은 구(시군구)는 카드 전체에서 1건만 → 여러 지역이 보이게. 줄 수는 실거래가격 4 + 신고가 4 = 8줄 (CARD_EACH 로 조정)
-    EACH = int(os.environ.get('CARD_EACH', '5') or 5); TOTAL = EACH * 2
+    EACH = int(os.environ.get('CARD_EACH', '4') or 4); TOTAL = EACH * 2   # 11-18: 10줄 → 8줄 (폰에서 글씨가 작아서)
     top_all = sorted(TRADES, key=lambda t: -t['price_man'])
     used = set()                                           # 이미 카드에 나온 구
     STEP = int(os.environ.get('CARD_STEP', '5') or 5)      # 2026-11-18: 가격 순위를 5위씩 끊어 구간마다 1건 (1~5위 중 1, 6~10위 중 1, …) → 여러 가격대·지역이 보이게
@@ -244,7 +244,7 @@ def summary_card(TRADES, NHS, TCNT, NHCNT, TITLE, outs):
         d.text((64 + d.textlength(title, font=F(32, 'Black')) + 16, y + 12), sub, font=F(23, 'Medium'), fill=C.INK2)
         y += SECH
         h = rh - 10                                        # 줄 안쪽 높이 – 글씨 크기를 여기에 맞춤 (10줄이면 약 58px)
-        fn, fs, fp = min(38, int(h * 0.52)), min(26, int(h * 0.36)), min(46, int(h * 0.66))
+        fn, fs, fp = min(40, int(h * 0.52)), min(27, int(h * 0.36)), min(48, int(h * 0.66))
         for t in rows:
             C.row_box(d, y, h)
             p_ = t['region'].split(' ')
