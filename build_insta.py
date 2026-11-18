@@ -73,6 +73,22 @@ if S:
         sections.append(dict(key='rt_region', title='권역별 실거래', when='매일', today=True,
                              guide=f'사진 {len(rg)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기', images=rg, alt=[], caption='\n'.join(rcap)))
 
+# ── 1-3. 국평·소형 최고 실거래가 TOP 16 (매월 3일, 4장 – 2026-11-18)
+TP = load('top84/summary.json')
+if TP and TP.get('made') == TODAY.isoformat():
+    tim = imgs('top84', [f'{k}.png' for k in TP.get('cards') or []])
+    if tim:
+        import re as _re
+        _c = lambda a: _re.sub(r'\([^()]*\d+동\)', '', a).strip() or a
+        tcap = [f"🏆 {TP['short']} 서울·경기 국평·소형 최고 실거래가 TOP 16", '']
+        for k, nm in (('seoul_84', '서울 국평 84㎡'), ('gg_84', '경기 국평 84㎡'), ('seoul_59', '서울 소형 59㎡'), ('gg_59', '경기 소형 59㎡')):
+            rs = TP.get(k) or []
+            if rs: tcap.append(f"· {nm} 1위 {_c(rs[0]['apt'])} {rs[0]['price_man'] / 10000:.2f}억" + (f" · 2위 {_c(rs[1]['apt'])} {rs[1]['price_man'] / 10000:.2f}억" if len(rs) > 1 else ''))
+        tcap += ['', f"※ {TP['label']} 계약분 · 국평 전용 83.5~86㎡ / 소형 57~61㎡ · 같은 단지는 1건 · 인천 제외", '자료: 국토교통부 실거래가 공개시스템',
+                 '', '전체 순위는 프로필 링크에서 👆', '', '#국평 #소형아파트 #아파트실거래가 #서울아파트 #경기아파트 #최고가 #부동산']
+        sections.append(dict(key='top', title='국평·소형 TOP 16', when='매월 3일', today=True,
+                             guide=f'사진 {len(tim)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기', images=tim, alt=[], caption='\n'.join(tcap)))
+
 # ── 1-2. 오늘의 신고가 1위 (실거래 캐러셀과 별도 게시물, 있는 날만 – 2026-11-12)
 HJ = load('cards/hero.json'); hero_img = imgs('cards', ['hero.png'])
 if HJ and hero_img:
