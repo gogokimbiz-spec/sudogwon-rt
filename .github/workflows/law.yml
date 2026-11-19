@@ -1,0 +1,75 @@
+name: 주간 부동산 판례 카드 만들기
+
+# 매주 수요일 저녁 Claude(사장님 Claude 앱 예약 작업)가 대법원 판례속보에서 부동산 판례 1건을 골라 기승전결로 요약하고,
+# Chrome 으로 이 저장소 law_inbox/<목요일 날짜>.json 에 올립니다 (API 키·추가 요금 없음).
+# 파일이 올라오면 이 작업이 자동으로: 카드 이미지 → cards/law/<날짜>.json·png 저장 → 카톡 미리보기
+# 목요일 05:11 '매일 실거래 갱신'이 블로그·카톡에, 08시 인스타·스레드에 올립니다.
+# 이번 주를 건너뛰려면: 이 화면 'Run workflow' → skip
+
+on:
+  push:
+    paths: ['law_inbox/*.json']
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'remake=이번 주 law_inbox 파일로 카드 다시 만들기 / skip=이번 주 건너뛰기'
+        type: choice
+        options: ['remake', 'skip']
+        default: 'remake'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: law-card
+  cancel-in-progress: false
+
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: d
+        name: 게시일(이번 목요일)·파일 찾기
+        run: |
+          DAY=$(python3 -c "import datetime as t;n=(t.datetime.utcnow()+t.timedelta(hours=9)).date();print(n+t.timedelta(days=(3-n.weekday())%7))")
+          F=""
+          if [ "${{ github.event_name }}" = "push" ]; then
+            F=$(git diff --name-only HEAD~1 HEAD -- 'law_inbox/*.json' | tail -1)
+            [ -n "$F" ] && DAY=$(basename "$F" .json | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || echo "$DAY")
+          else
+            [ -f "law_inbox/$DAY.json" ] && F="law_inbox/$DAY.json"
+          fi
+          echo "day=$DAY" >> "$GITHUB_OUTPUT"; echo "file=$F" >> "$GITHUB_OUTPUT"; echo "게시일 $DAY / 파일 $F"
+      - name: 이번 주 건너뛰기 (skip)
+        if: inputs.action == 'skip'
+        run: |
+          DAY=${{ steps.d.outputs.day }}; mkdir -p cards/law
+          echo '사장님이 건너뛰기를 선택함' > "cards/law/$DAY.skip"; rm -f "cards/law/$DAY.json" "cards/law/$DAY.png"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/law && git commit -q -m "판례 카드 건너뛰기 $DAY" && git pull -q --rebase --autostash && git push -q || true
+      - name: 카드 만들기
+        if: inputs.action != 'skip' && steps.d.outputs.file != ''
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          python law_make.py "${{ steps.d.outputs.file }}"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/law
+          if ! git diff --cached --quiet; then git commit -q -m "판례 카드 ${{ steps.d.outputs.day }}"; git pull -q --rebase --autostash && git push -q; fi
+      - name: 카톡 미리보기
+        if: inputs.action != 'skip' && steps.d.outputs.file != ''
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          sleep 20; python3 kakao_send_law.py --preview "cards/law/${{ steps.d.outputs.day }}.json"
