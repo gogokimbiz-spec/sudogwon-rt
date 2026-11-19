@@ -182,6 +182,19 @@ if DG and DG.get('post') and dong_img:
     sections.append(dict(key='dong', title='동네 대표기업', when='목', today=True,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=dong_img, alt=[], caption='\n'.join(L)))
 
+# ── 5. 이번 주 부동산 판례 (목, law.yml 이 만든 기승전결 카드 1장 – 2026-11-19)
+LW = load('law/summary.json')
+law_img = imgs('law', ['card.png'])
+if LW and LW.get('made') == TODAY.isoformat() and law_img:
+    L = [f"⚖️ 이번 주 부동산 판례 | {LW['title'].replace(chr(10), ' ')}", '']
+    for k, v in LW['story']:
+        L.append(f'· {k} – {v}')
+    L += ['', f"💡 {LW['tip']}", '', f"· {LW['case']}", '※ 판결 요지를 쉽게 풀어 쓴 것으로 법률 자문이 아닙니다', '자료: 대법원 판례속보', '',
+          '판결 자세한 내용은 프로필 링크(블로그)에서 👆', '',
+          ' '.join(dict.fromkeys([BRAND_TAG, '#부동산판례'] + [t if t.startswith('#') else '#' + t for t in (LW.get('hashtags') or [])][:3]))]
+    sections.append(dict(key='law', title='이번 주 부동산 판례', when='목', today=True,
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=law_img, alt=[], caption='\n'.join(L)))
+
 # ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)
 try:
     from PIL import Image

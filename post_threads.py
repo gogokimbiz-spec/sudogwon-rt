@@ -87,7 +87,7 @@ def blog_link(key):
             return json.load(urllib.request.urlopen(f'{SITE}trend/summary.json?t={VER}', timeout=30))[key[6:]].get('blog_url') or BLOG
         except Exception:
             return BLOG
-    path, field = {'rt': ('summary.json', 'blog_url'), 'rt_region': ('summary.json', 'blog_url'), 'hero': ('summary.json', 'blog_url'), 'fin': ('fin/summary.json', 'blog_url'),
+    path, field = {'rt': ('summary.json', 'blog_url'), 'rt_region': ('summary.json', 'blog_url'), 'top': ('top84/summary.json', 'blog_url'), 'hero': ('summary.json', 'blog_url'), 'law': ('law/summary.json', 'blog_url'), 'fin': ('fin/summary.json', 'blog_url'),
                    'cy': ('cheongyak/summary.json', {0: 'blog_url', 1: 'blog_url_tue', 2: 'blog_url_wed', 3: 'blog_url_thu', 4: 'blog_url_fri'}.get(WD, 'blog_url'))}.get(key, (None, None))
     try:
         return json.load(urllib.request.urlopen(f'{SITE}{path}?t={VER}', timeout=30)).get(field) or BLOG
@@ -95,7 +95,7 @@ def blog_link(key):
         return BLOG
 
 
-TAG = {'rt': '#아파트실거래가', 'rt_region': '#아파트실거래가', 'hero': '#신고가', 'cy': '#청약', 'fin': '#기업분석', 'dong': '#동네대표기업', 'trend_week': '#아파트값', 'trend_month': '#아파트값'}
+TAG = {'rt': '#아파트실거래가', 'rt_region': '#아파트실거래가', 'top': '#국평', 'hero': '#신고가', 'cy': '#청약', 'fin': '#기업분석', 'dong': '#동네대표기업', 'trend_week': '#아파트값', 'trend_month': '#아파트값', 'law': '#부동산판례'}
 
 
 def compose(p, link):
