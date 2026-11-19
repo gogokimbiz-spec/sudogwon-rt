@@ -21,7 +21,7 @@ if os.path.exists('.kakao_rt'):
 if not all(K.values()):
     print('카카오 설정값이 없어 전송을 건너뜁니다.'); sys.exit(0)
 
-SITE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/'
+SITE = (os.environ.get('SITE_URL', '').strip() or 'https://gogokimbiz-spec.github.io/sudogwon-rt/').rstrip('/') + '/'
 REPO = os.environ.get('GITHUB_REPOSITORY', 'gogokimbiz-spec/sudogwon-rt')
 VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT', '')}" or str(int(__import__('time').time()))
 title1 = S['title'].replace('\n', ' ')
