@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'remake=이번 주 law_inbox 파일로 카드 다시 만들기 / skip=이번 주 건너뛰기'
+        description: 'remake=이번 주 law_inbox 파일로 카드 다시 만들기 / skip=이번 주 건너뛰기 / post_now=오늘 날짜 카드를 지금 바로 블로그·카톡·인스타·스레드에 게시'
         type: choice
-        options: ['remake', 'skip']
+        options: ['remake', 'skip', 'post_now']
         default: 'remake'
 
 permissions:
@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   make:
+    if: inputs.action != 'post_now'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -73,3 +74,64 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           sleep 20; python3 kakao_send_law.py --preview "cards/law/${{ steps.d.outputs.day }}.json"
+
+  post_now:   # 수동 'post_now': 오늘 날짜(cards/law/<오늘>.json·png) 카드를 지금 바로 게시 (목요일 아침 자동 게시를 기다리지 않을 때)
+    if: inputs.action == 'post_now'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 오늘 카드 준비
+        id: p
+        run: |
+          D=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          [ -f "cards/law/$D.json" ] || { echo "::error::cards/law/$D.json 이 없습니다 (오늘 날짜 판례 카드가 없음)"; exit 1; }
+          rm -rf law_now && mkdir -p law_now/law && cp "cards/law/$D.png" law_now/law/card.png
+          python -c "import json;d=json.load(open('cards/law/$D.json',encoding='utf-8'));d['made']='$D';json.dump(d,open('law_now/law/summary.json','w',encoding='utf-8'),ensure_ascii=False,indent=1)"
+      - name: 블로그 글
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger_law.py law_now/law/summary.json
+      - name: 인스타·스레드 게시물 만들고 저장소에 올리기 (공개 주소용)
+        id: up
+        run: |
+          pip install -q pillow
+          python build_insta.py law_now
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A law_now && git commit -q -m "판례 카드 바로 게시 $(TZ=Asia/Seoul date +%F)" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/law_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 kakao_send_law.py law_now/law/summary.json
+      - name: 인스타그램
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
