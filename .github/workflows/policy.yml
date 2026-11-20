@@ -1,0 +1,140 @@
+name: 이번 주 부동산 정책 카드 (금)
+
+# 매주 금요일 오후, 국토교통부 보도자료(주택토지 분야 + 부동산 관련 제목)를 사장님 PC(한국 IP)에서 모아
+# 이번 주(월~오늘) 꼭 알아둘 정책 2건을 카드 1장으로 만들고 → 블로그·카톡·인스타·스레드에 올립니다. (API 키 필요 없음)
+# 모은 목록은 policy/ 폴더(policy.json·모아보기 페이지)에 쌓이고, daily.yml 이 사이트 /policy/ 로 배포합니다.
+# PC 가 꺼져 있으면 켜질 때까지 기다리다가, 금요일이 지나면 게시하지 않습니다.
+# 수동 실행: Actions → 이 작업 → Run workflow (post=no 는 카드만 만들기)
+
+on:
+  schedule:
+    - cron: '37 8 * * 5'    # 매주 금요일 17:37 KST
+  workflow_dispatch:
+    inputs:
+      post:
+        description: 'yes=블로그·카톡·인스타·스레드에 게시 / no=카드·목록만 만들기'
+        type: choice
+        options: ['yes', 'no']
+        default: 'yes'
+      week:
+        description: 'this=이번 주(월~오늘) / last=지난주'
+        type: choice
+        options: ['this', 'last']
+        default: 'this'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: policy-card
+  cancel-in-progress: false
+
+jobs:
+  make:   # 국토부 사이트는 사장님 PC(한국 IP)에서 읽음
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+      POLICY_DIR: policy
+    steps:
+      - uses: actions/checkout@v4
+      - name: 국토부 보도자료 모으기 · 카드 만들기
+        shell: cmd
+        run: |
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          echo python: %PY%
+          "%PY%" -m pip install --quiet --disable-pip-version-check pillow
+          "%PY%" fetch_policy.py || exit /b 1
+          "%PY%" make_cards_policy.py --week ${{ inputs.week || 'this' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: policy-out
+          path: policy/
+          retention-days: 7
+
+  post:
+    needs: make
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: policy-out
+          path: policy/
+      - name: 목록·카드 저장소에 올리기 + 게시 준비
+        id: p
+        run: |
+          D=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          GO=no
+          if [ -f policy/card.json ] && [ "$(python -c "import json;print(json.load(open('policy/card.json',encoding='utf-8'))['day'])")" = "$D" ]; then
+            mkdir -p cards/policy && cp policy/week.png "cards/policy/$D.png" && cp policy/card.json "cards/policy/$D.json"
+            rm -rf policy_now && mkdir -p policy_now/policy
+            cp policy/week.png policy_now/policy/card.png
+            cp policy/card.json policy_now/policy/summary.json
+            cp policy/caption_week.txt policy_now/policy/caption.txt
+            GO=yes
+          else
+            echo '이번 주 정책 카드가 없거나(발표 0건) 오늘 만든 카드가 아니라 게시하지 않습니다'
+          fi
+          git add -A policy cards/policy 2>/dev/null || git add -A policy
+          if ! git diff --cached --quiet; then git commit -q -m "부동산 정책 $D"; git pull -q --rebase --autostash && git push -q; fi
+          [ "${{ inputs.post || 'yes' }}" = "no" ] && { echo '카드만 만들기 (게시 안 함)'; GO=no; }
+          echo "go=$GO" >> "$GITHUB_OUTPUT"
+      - name: 블로그 글
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger_policy.py policy_now/policy/summary.json
+      - name: 인스타·스레드 게시물 만들고 저장소에 올리기 (공개 주소용)
+        id: up
+        if: steps.p.outputs.go == 'yes'
+        run: |
+          pip install -q pillow
+          python build_insta.py policy_now
+          git add -A policy_now && git commit -q -m "부동산 정책 게시 $(TZ=Asia/Seoul date +%F)" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/policy_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 kakao_send_policy.py policy_now/policy/summary.json
+      - name: 인스타그램
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
