@@ -52,12 +52,20 @@ TAGS = [
 TAG_ORDER = [t for t, _ in TAGS] + ["기타"]
 
 
+# 국토부 사이트는 첫 접속에 쿠키를 주고 같은 주소로 다시 보냄(307) → 쿠키를 기억해야 무한 반복이 안 됨 (2026-11-20)
+import http.cookiejar
+_JAR = http.cookiejar.CookieJar()
+_OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_JAR))
+
+
 def get(url, tries=3):
     last = None
     for i in range(tries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "ko-KR,ko;q=0.9"})
-            with urllib.request.urlopen(req, timeout=30) as r:
+            req = urllib.request.Request(url, headers={
+                "User-Agent": UA, "Accept-Language": "ko-KR,ko;q=0.9",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"})
+            with _OPENER.open(req, timeout=30) as r:
                 return r.read().decode("utf-8", "replace")
         except Exception as e:  # noqa
             last = e
@@ -212,7 +220,7 @@ def main():
         print("목록 읽기 실패:", e)
         listed = []
         if not prev:
-            sys.exit(0)  # 아무것도 없으면 조용히 끝(다른 단계에 영향 X)
+            sys.exit(1)  # 처음인데 못 읽으면 실패로 끝냄
 
     new = 0
     for it in listed:
