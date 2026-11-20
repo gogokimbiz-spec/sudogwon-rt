@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 청약: 월~금 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목
+- 실거래: 매일 / 청약: 월~금 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml)
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -194,6 +194,13 @@ if LW and LW.get('made') == TODAY.isoformat() and law_img:
           ' '.join(dict.fromkeys([BRAND_TAG, '#부동산판례'] + [t if t.startswith('#') else '#' + t for t in (LW.get('hashtags') or [])][:3]))]
     sections.append(dict(key='law', title='이번 주 부동산 판례', when='목', today=True,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=law_img, alt=[], caption='\n'.join(L)))
+
+# ── 6. 이번 주 부동산 정책 (금, policy.yml 이 만든 카드 1장 – 2026-11-20)
+PL = load('policy/summary.json')
+pol_img = imgs('policy', ['card.png'])
+if PL and PL.get('day') == TODAY.isoformat() and pol_img and read('policy/caption.txt'):
+    sections.append(dict(key='policy', title='이번 주 부동산 정책', when='금', today=True,
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=pol_img, alt=[], caption=read('policy/caption.txt')))
 
 # ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)
 try:
