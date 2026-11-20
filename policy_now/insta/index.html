@@ -1,0 +1,60 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>인스타 게시용 | 데이터로 보는 재테크</title>
+<style>
+:root{--navy:#13233F;--red:#FF4D4F;--bg:#F4F6FA;--ink:#18202C;--ink2:#6B7685}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+header{background:var(--navy);color:#fff;padding:20px 16px}header small{opacity:.7}header h1{margin:4px 0 0;font-size:22px}
+main{max-width:640px;margin:0 auto;padding:12px 16px 40px}
+.todo{background:#fff;border-radius:14px;padding:12px 16px;margin:4px 0 12px;font-size:15px}
+.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.06)}.dim{opacity:.75}
+.hd{display:flex;justify-content:space-between;align-items:center}.hd b{font-size:19px}
+.hd em{font-style:normal;font-size:13px;background:var(--navy);color:#fff;border-radius:20px;padding:3px 10px}
+.guide{margin:6px 0 10px;color:var(--ink2);font-size:14px}.tip{margin:6px 0;color:var(--ink2);font-size:12px}
+.ims{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.im{position:relative;flex:0 0 46%;display:block}.im img{width:100%;border-radius:10px;display:block;border:1px solid #e3e7ee}
+.im span{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;border-radius:10px;padding:1px 7px}
+.im.one{width:60%;margin-top:8px}details{margin:6px 0;font-size:14px;color:var(--ink2)}
+textarea{width:100%;height:180px;margin-top:8px;border:1px solid #dfe3ea;border-radius:10px;padding:10px;font-size:14px;line-height:1.5;font-family:inherit;resize:vertical}
+button{width:100%;margin-top:8px;padding:14px;border:0;border-radius:12px;background:var(--red);color:#fff;font-size:16px;font-weight:700}
+h2{font-size:15px;color:var(--ink2);margin:28px 0 4px}.none{text-align:center;color:var(--ink2);padding:40px 0}
+footer{text-align:center;color:var(--ink2);font-size:12px;padding:16px}footer a{color:inherit}
+</style></head><body>
+<header><small>데이터로 보는 재테크 · 인스타 게시용</small><h1>11월 20일(금) 올릴 게시물</h1></header>
+<main>
+<div class="todo">오늘 할 일: 이번 주 부동산 정책<br>
+<span style="color:var(--ink2);font-size:13px">① 이미지 저장 → ② 캡션 복사 → ③ 인스타에서 새 게시물</span></div>
+
+<section class="card">
+  <div class="hd"><b>이번 주 부동산 정책</b><em>금</em></div>
+  <p class="guide">사진 1장 선택 → 캡션 붙여넣기</p>
+  <div class="ims"><a class="im" href="../policy/card.png?v=44653872223" download="policy_1120_01.png"><img src="../policy/card.png?v=44653872223" loading="lazy" alt=""><span>1</span></a></div>
+  <p class="tip">이미지를 길게 눌러 '사진에 저장' (PC는 클릭하면 저장)</p>
+  
+  <textarea id="c0" readonly>📢 이번 주 꼭 알아둘 부동산 정책 | 11월 3주차 (11.16~11.20)
+
+1. [전월세] 더 나은 주거환경, 더 든든한 주거안정 최저주거기준 높이고 공공임대 선택 넓힌다
+   · 20일 전문가·청년·시민단체가 모여 다양한 의견 듣고 제도개선 방안 논의
+   · 15년 만에 최저주거기준 개정 추진
+
+2. [법령·제도] 주택법 시행령 개정안, 국무회의 의결
+   · 리모델링 동의율을 75%에서 70%로 완화, 안전성 검토 전문기관 추가 지정
+   · 장기복무군인 실거주 의무 예외 인정 확대, 주택조합 조합원간 혼인 시 자격특례
+
+이 밖에도 이번 주 정책 1건 더 발표됐어요
+자료: 국토교통부 보도자료
+
+원문·전체 정책은 프로필 링크(블로그)에서 👆
+
+#데이터로보는재테크 #부동산정책 #주택공급 #부동산 #내집마련</textarea>
+  <button onclick="cp('c0', this)">캡션 복사</button>
+</section>
+</main>
+<footer>데이터로 보는 재테크 · <a href="https://sudogwon-rt.blogspot.com">블로그</a> · 이 페이지는 검색에 노출되지 않습니다</footer>
+<script>
+function cp(id,b){var t=document.getElementById(id);
+ function ok(){b.textContent='복사됐어요 ✓';setTimeout(function(){b.textContent='캡션 복사'},1500)}
+ if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t.value).then(ok,function(){t.select();document.execCommand('copy');ok()})}
+ else{t.select();document.execCommand('copy');ok()}}
+</script></body></html>
