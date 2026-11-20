@@ -349,7 +349,11 @@ def main():
     ap.add_argument("--n", type=int, default=N_ROWS, choices=[1, 2], help="카드에 올릴 정책 수")
     a = ap.parse_args()
 
-    with open(os.path.join(OUT_DIR, "policy.json"), encoding="utf-8") as f:
+    pj = os.path.join(OUT_DIR, "policy.json")
+    if not os.path.exists(pj):
+        print("정책 카드: policy.json 이 없어 건너뜀 (수집 실패)")
+        return
+    with open(pj, encoding="utf-8") as f:
         data = json.load(f)
     today = dt.date.fromisoformat(a.today) if a.today else dt.datetime.now(KST).date()
     mon = today - dt.timedelta(days=today.weekday())
