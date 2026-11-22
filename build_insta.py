@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 청약: 월~금 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml)
+- 실거래: 매일 / 청약: 월~금 / 매매·전세 갭: 화 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml)
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -88,6 +88,14 @@ if TP and TP.get('made') == TODAY.isoformat():
                  '', '전체 순위는 프로필 링크에서 👆', '', '#국평 #소형아파트 #아파트실거래가 #서울아파트 #경기아파트 #최고가 #부동산']
         sections.append(dict(key='top', title='국평·소형 TOP 16', when='매월 3일', today=True,
                              guide=f'사진 {len(tim)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기', images=tim, alt=[], caption='\n'.join(tcap)))
+
+# ── 1-4. 매매·전세 갭 (매주 화요일, 1장 – 2026-11-23)
+GP = load('gap/summary.json')
+if GP and GP.get('made') == TODAY.isoformat():
+    gim = imgs('gap', ['card.png']); gcap = read('gap/caption.txt')
+    if gim and gcap:
+        sections.append(dict(key='gap', title='매매·전세 갭', when='매주 화요일', today=True,
+                             guide='사진 1장 선택 → 캡션 붙여넣기', images=gim, alt=[], caption=gcap))
 
 # ── 1-2. 오늘의 신고가 1위 (실거래 캐러셀과 별도 게시물, 있는 날만 – 2026-11-12)
 HJ = load('cards/hero.json'); hero_img = imgs('cards', ['hero.png'])

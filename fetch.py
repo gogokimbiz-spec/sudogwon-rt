@@ -74,5 +74,7 @@ for k, c, m in jobs:
     if (k, c, m) not in failed: ok[k].append(f'{c}|{m[:4]}-{m[4:]}')
 out = {'asof': today.isoformat(), 'ok': ok, 'trade': raw['trade'],
        'jeonse': [[r[0], r[1], r[3], r[4], r[5]] for r in raw['rent'] if r[6] == 0],
+       # 2026-11-23: 전세 단지명 – jeonse 와 같은 순서·같은 길이 (매매·전세 갭 카드 build_gap.py 용. 다른 스크립트는 jeonse 5칸을 그대로 씀)
+       'jeonse_apt': [r[2] for r in raw['rent'] if r[6] == 0],
        'wolse': sum(1 for r in raw['rent'] if r[6] > 0)}
 json.dump(out, open('rt_data.json', 'w', encoding='utf-8'), ensure_ascii=False)
