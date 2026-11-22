@@ -26,6 +26,15 @@ on:
         type: choice
         options: ['none', 'run']
         default: 'none'
+      gap_post:
+        description: '매매·전세 갭 카드 지금 만들기 (평소엔 매주 화요일 자동 – 카드·블로그·카톡·인스타·스레드)'
+        type: choice
+        options: ['none', 'run']
+        default: 'none'
+      gap_region:
+        description: '(선택) 갭 카드 지역을 직접 지정 – 시군구 코드 5자리 (예: 41135 분당구). 비우면 자동 선택'
+        type: string
+        default: ''
       trend_post:
         description: '구별 상승률 블로그 글 지금 올리기 (week=최근 4주 TOP 10, month=지난달 순위) – 평소엔 매주 월요일 주간·매월 첫째 월요일 월간 자동'
         type: choice
@@ -131,6 +140,16 @@ jobs:
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
           CARD_THEME=slate python make_cards_top84.py rt_data.json site/top84
+      - name: 매매·전세 갭 카드 (매주 화요일 · 지역 자동 선택)
+        continue-on-error: true
+        env:
+          GAP_REGION: ${{ inputs.gap_region }}
+        run: |
+          if [ "$(TZ=Asia/Seoul date +%u)" != "2" ] && [ "${{ inputs.gap_post }}" != "run" ]; then echo '오늘은 갭 카드가 없는 날입니다'; exit 0; fi
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          # 최근 30일 거래 많은 구 중 최근 12주 안에 안 한 곳 (기록: state/gap_used.json, 아래 '카드 이미지 보관'에서 커밋)
+          CARD_THEME=slate python make_cards_gap.py rt_data.json site/gap
       - name: 청약홈 분양정보 수집
         id: cy
         continue-on-error: true
@@ -268,7 +287,13 @@ jobs:
             mkdir -p cards/top
             for k in seoul_84 gg_84 seoul_59 gg_59; do [ -f "site/top84/$k.png" ] && cp "site/top84/$k.png" "cards/top/${YM}_$k.png"; done
           fi
+          # 매매·전세 갭 카드 (매주 화요일 – 블로그 이미지용) + 지역 기록
+          if [ -f site/gap/summary.json ]; then
+            GK=$(python -c "import json;print(json.load(open('site/gap/summary.json'))['key'])")
+            mkdir -p cards/gap && cp site/gap/card.png "cards/gap/$GK.png"
+          fi
           git add cards hist
+          [ -f state/gap_used.json ] && git add state/gap_used.json
           if ! git diff --cached --quiet; then
             git commit -q -m "카드 이미지 $D"
             git pull -q --rebase --autostash && git push -q
@@ -334,6 +359,18 @@ jobs:
         run: |
           if [ ! -f site/top84/summary.json ]; then echo '오늘은 TOP 16 글이 없는 날입니다'; exit 0; fi
           python post_blogger_top.py site/top84/summary.json
+      - name: 매매·전세 갭 블로그 글 (매주 화요일)
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: |
+          if [ ! -f site/gap/summary.json ]; then echo '오늘은 갭 글이 없는 날입니다'; exit 0; fi
+          python post_blogger_gap.py site/gap/summary.json
       - name: 주간 부동산 판례 블로그 글 (목)
         continue-on-error: true
         env:
@@ -443,6 +480,17 @@ jobs:
         run: |
           curl -sf "${{ needs.deploy.outputs.page_url }}top84/summary.json?t=$(date +%s)" -o top_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/top84/summary.json?t=$(date +%s)" -o top_summary.json || true
           python3 kakao_send_top.py top_summary.json
+      - name: 매매·전세 갭 카톡 (매주 화요일)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "${{ needs.deploy.outputs.page_url }}gap/summary.json?t=$(date +%s)" -o gap_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/gap/summary.json?t=$(date +%s)" -o gap_summary.json || true
+          python3 kakao_send_gap.py gap_summary.json
       - name: 주간 부동산 판례 카톡 (목)
         if: ${{ !cancelled() }}
         continue-on-error: true
