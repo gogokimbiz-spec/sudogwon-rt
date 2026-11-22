@@ -208,6 +208,13 @@ def summary_card(TRADES, NHS, TCNT, NHCNT, TITLE, outs):
                 if t['region'] in used or _key(t) in skip: continue
                 out.append(t); used.add(t['region']); RANK[id(t)] = i + 1; break
             b += 1
+        # 2026-11-23: 거래가 적고 같은 구에 몰린 날(주말·권역 카드)은 구가 겹쳐도 비싼 순으로 채움 → 빈 줄이 안 생기게
+        if len(out) < n:
+            for i, t in enumerate(pool):
+                if len(out) >= n: break
+                if id(t) in RANK or _key(t) in skip or t in out: continue
+                out.append(t); RANK[id(t)] = i + 1
+            out.sort(key=lambda t: RANK[id(t)])
         return out
     mt = pick(top_all, EACH)
     nh_sorted = sorted(NHS, key=lambda t: -t['price_man'])
