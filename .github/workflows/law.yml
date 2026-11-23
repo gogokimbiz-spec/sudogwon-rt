@@ -1,9 +1,9 @@
 name: 주간 부동산 판례 카드 만들기
 
-# 매주 수요일 저녁 Claude(사장님 Claude 앱 예약 작업)가 대법원 판례속보에서 부동산 판례 1건을 골라 기승전결로 요약하고,
-# Chrome 으로 이 저장소 law_inbox/<목요일 날짜>.json 에 올립니다 (API 키·추가 요금 없음).
+# 매주 수·금 저녁 Claude(사장님 Claude 앱 예약 작업)가 대법원 판례속보에서 부동산 판례 1건을 골라 기승전결로 요약하고,
+# Chrome 으로 이 저장소 law_inbox/<게시일(다음 월·목) 날짜>.json 에 올립니다 (API 키·추가 요금 없음).
 # 파일이 올라오면 이 작업이 자동으로: 카드 이미지 → cards/law/<날짜>.json·png 저장 → 카톡 미리보기
-# 목요일 05:11 '매일 실거래 갱신'이 블로그·카톡에, 08시 인스타·스레드에 올립니다.
+# 게시일(월·목) 05:11 '매일 실거래 갱신'이 블로그·카톡에, 08시 인스타·스레드에 올립니다.
 # 이번 주를 건너뛰려면: 이 화면 'Run workflow' → skip
 
 on:
@@ -37,9 +37,9 @@ jobs:
         with:
           python-version: '3.12'
       - id: d
-        name: 게시일(이번 목요일)·파일 찾기
+        name: 게시일(다음 월·목)·파일 찾기
         run: |
-          DAY=$(python3 -c "import datetime as t;n=(t.datetime.utcnow()+t.timedelta(hours=9)).date();print(n+t.timedelta(days=(3-n.weekday())%7))")
+          DAY=$(python3 -c "import datetime as t;n=(t.datetime.utcnow()+t.timedelta(hours=9)).date();print(n+t.timedelta(days=min((0-n.weekday())%7,(3-n.weekday())%7)))")
           F=""
           if [ "${{ github.event_name }}" = "push" ]; then
             F=$(git diff --name-only HEAD~1 HEAD -- 'law_inbox/*.json' | tail -1)
