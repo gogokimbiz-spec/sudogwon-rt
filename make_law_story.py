@@ -1,4 +1,4 @@
-"""부동산 판례 카드 1장 (워터마크 @data_jaetech 3개 – 11-23) (기승전결, 1080×1350, 실거래 카드와 같은 slate 테마) – 2026-11-19
+"""부동산 판례 카드 1장 (상자마다 오른쪽 아래 @data_jaetech – 11-23) (기승전결, 1080×1350, 실거래 카드와 같은 slate 테마) – 2026-11-19
 사용법: python make_law_story.py case.json out.png
 case.json: date('2026. 9. 10.'), title('…\n…' 2줄), story([['기','…'],['승','…'],['전','…'],['결','…']]), tip, case(사건번호 줄)
 글이 길면 글씨를 조금씩 줄여서 넣습니다.
@@ -62,6 +62,15 @@ def watermark(im, d, text='@data_jaetech', alpha=40, size=66):
         im.paste(tile, (int(cx - tile.width / 2), int(cy - tile.height / 2)), tile)
 
 
+def corner_id(im, d, lines, fb, y, bh, last, text='@data_jaetech'):
+    """기·승·전·결 상자 안 오른쪽 아래에 반투명 아이디 (11-23 사용자 선택 B). 마지막 줄이 오른쪽까지 차서 겹치면 그 칸은 건너뜀"""
+    f = F(24, 'Black'); x = 996 - tw(d, text, f)
+    if 148 + tw(d, lines[-1], fb) + 24 > x: return
+    ov = Image.new('RGBA', im.size, (0, 0, 0, 0))
+    ImageDraw.Draw(ov).text((x, y + bh - 22), text, font=f, fill=((150, 36, 36) if last else WHITE) + (70,), anchor='ls')
+    im.paste(ov, (0, 0), ov)
+
+
 def draw(c, out, ts=56, bs=30):
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
     pill(d, 60, 56, c.get('badge') or '이번 주 부동산 판례', F(26), YEL, DARK)
@@ -84,6 +93,7 @@ def draw(c, out, ts=56, bs=30):
         yy = y + (bh - lh * len(lines)) / 2 + 2
         for ln in lines:
             d.text((148, yy), ln, font=fb, fill=(150, 36, 36) if last else WHITE); yy += lh
+        corner_id(im, d, lines, fb, y, bh, last)
         y += bh + 22
     ty = 1088
     d.rounded_rectangle([60, ty, 1020, ty + 92], radius=18, fill=(255, 244, 244), outline=(232, 226, 226), width=2)
@@ -95,7 +105,6 @@ def draw(c, out, ts=56, bs=30):
     while tw(d, c['case'], fc) > 960 and fc.size > 18: fc = F(fc.size - 1)
     d.text((60, 1200), c['case'], font=fc, fill=GRAY)
     d.text((60, 1232), '※ 판결 요지를 쉽게 풀어 쓴 것으로 법률 자문이 아닙니다', font=F(21, 'Regular'), fill=DIM)
-    watermark(im, d)
     d.line([(60, 1268), (1020, 1268)], fill=(232, 226, 226), width=2)
     d.text((60, 1285), '데이터로 보는 재테크 · 자료 대법원 판례속보·판결문', font=F(24, 'Medium'), fill=GRAY)
     d.text((1020 - tw(d, '@data_jaetech', F(26)), 1283), '@data_jaetech', font=F(26), fill=YEL)
