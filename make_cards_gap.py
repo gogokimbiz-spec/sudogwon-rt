@@ -144,33 +144,22 @@ def choose(raw, names, d0, d1, force=None):
 def draw(S, out_png):
     os.environ.setdefault('CARD_THEME', 'slate')
     sys.path.insert(0, HERE); import card_style as C
-    W, SH, INK, INK2, LINE, WHITE, T = C.W, C.SH, C.INK, C.INK2, C.LINE, C.WHITE, C.T
-    JEON, TRACK = (120, 180, 255), (104, 114, 126)      # 전세 파랑 · 매매 막대 회색
+    # 갭 카드만 색 바꿈 (2026-11-23 사용자 확정 '그린'): 짙은 녹회색 바탕 + 에메랄드 강조(칩·버튼·아이디 배지), 전세 막대도 진한 초록
+    BG, GREEN = (50, 64, 60), (16, 185, 129)
+    C.T = dict(C.T, bg=BG, head=BG, accent=GREEN, pill=GREEN, pill_t=(255, 255, 255), big=GREEN, line=(84, 100, 95), chip_t=BG)
+    W, SH, INK, INK2, WHITE, T = C.W, C.SH, C.INK, C.INK2, C.WHITE, C.T
+    LINE = T['line']
+    JEON, TRACK = (5, 150, 105), (30, 34, 40)           # 전세 진한 초록 · 매매 막대 (배경보다 어두운 회색, 2026-11-23)
     UPC = T.get('up', (255, 120, 110))
     im, d = C.canvas(); d._image = im
     made = datetime.date.fromisoformat(S['made']); p0, p1 = (datetime.date.fromisoformat(x) for x in S['period'])
     GAP = 34
     C.header(d, F, f"{made.month}월 {made.day}일 ({'월화수목금토일'[made.weekday()]}) 매매·전세", f"{S['name']} 아파트 갭", '',
              '같은 단지·같은 전용면적의 매매가 − 전세가 (최근 3개월 중앙값)', gap=GAP)
-    # 요약 띠 (전용 84㎡대)
-    y0 = 312 - GAP + 22
-    d.rounded_rectangle((40, y0, W - 40, y0 + 118), 12, fill=T.get('card', T['bg']))
-    a = S.get('all84')
-    if a:
-        d.text((64, y0 + 10), f"{S['name']} 전체 · 전용 84㎡대", font=F(22, 'Bold'), fill=INK2)
-        cols = [('매매', won_s(a['t']), INK), ('전세', won_s(a['j']), JEON), ('갭', won_s(a['t'] - a['j']), WHITE), ('전세가율', f"{round(a['j'] / a['t'] * 100)}%", INK)]
-    else:
-        allr = S['rows']; mt = statistics.median([r[6] for r in allr]); mj = statistics.median([r[7] for r in allr])
-        d.text((64, y0 + 10), f"{S['name']} 갭 계산 단지 {len(allr)}곳 · 중앙값", font=F(22, 'Bold'), fill=INK2)
-        cols = [('매매', won_s(mt), INK), ('전세', won_s(mj), JEON), ('갭', won_s(mt - mj), WHITE), ('전세가율', f'{round(mj / mt * 100)}%', INK)]
-    cw = (W - 128) / 4
-    for i, (lab, val, col) in enumerate(cols):
-        x = 64 + i * cw
-        d.text((x, y0 + 42), lab, font=F(22, 'Medium'), fill=INK2)
-        d.text((x, y0 + 60), val, font=F(40, 'Black'), fill=col)
-        if i: d.line((x - 18, y0 + 46, x - 18, y0 + 100), fill=LINE, width=2)
+    # (2026-11-23 사용자: 위쪽 '구 전체 84㎡대' 요약 칸은 뺌 – 블로그 글에만 넣음)
+    y0 = 312 - GAP + 30
 
-    RH = 108; BX0, BX1 = 64, W - 64
+    RH = 122; BX0, BX1 = 64, W - 64
     def row(y, n, r):
         apt, umd, area, by, nt, nj, mt, mj = r
         g = mt - mj; rt = round(mj / mt * 100)
@@ -185,14 +174,14 @@ def draw(S, out_png):
         lf2 = F(26, 'Bold'); d.text((gx - 12 - d.textlength('갭', font=lf2), y + 6), '갭', font=lf2, fill=INK2)
         ls = f'전세가율 {rt}%'; lf = F(21, 'Medium')
         d.text((W - 64 - d.textlength(ls, font=lf), y + 42), ls, font=lf, fill=INK2)
-        by0 = y + 76; bh = 24; xj = BX0 + (BX1 - BX0) * mj / mt
+        by0 = y + 80; bh = 28; xj = BX0 + (BX1 - BX0) * mj / mt
         d.rounded_rectangle((BX0, by0, BX1, by0 + bh), 6, fill=TRACK)
         d.rounded_rectangle((BX0, by0, xj, by0 + bh), 6, fill=JEON)
         d.rectangle((xj - 6, by0, xj, by0 + bh), fill=JEON)
-        sf = F(18, 'Bold'); jt = f'전세 {won_s(mj)}'; tt = f'매매 {won_s(mt)}'
-        if d.textlength(jt, font=sf) + 16 < xj - BX0: d.text((BX0 + 10, by0 - 1), jt, font=sf, fill=(22, 40, 66))
-        d.text((BX1 - 10 - d.textlength(tt, font=sf), by0 - 1), tt, font=sf, fill=WHITE)
-        d.line((40, y + RH - 4, W - 40, y + RH - 4), fill=LINE, width=2)
+        sf = F(20, 'Bold'); jt = f'전세 {won_s(mj)}'; tt = f'매매 {won_s(mt)}'
+        if d.textlength(jt, font=sf) + 16 < xj - BX0: d.text((BX0 + 10, by0 - 0), jt, font=sf, fill=WHITE)
+        d.text((BX1 - 10 - d.textlength(tt, font=sf), by0 - 0), tt, font=sf, fill=WHITE)
+        d.line((40, y + RH - 6, W - 40, y + RH - 6), fill=LINE, width=2)
 
     def section(y, title, col, note, rs):
         tf = F(34, 'Black')
@@ -205,7 +194,7 @@ def draw(S, out_png):
         return y
 
     big, small = pick6(S['rows'])
-    ys = section(y0 + 132, f'갭 큰 단지 TOP {len(big)}', UPC, '전세 끼고 사도 돈이 많이 드는 곳', big)
+    ys = section(y0, f'갭 큰 단지 TOP {len(big)}', UPC, '전세 끼고 사도 돈이 많이 드는 곳', big) + 24
     section(ys, f'갭 작은 단지 TOP {len(small)}', JEON, '적은 돈으로 살 수 있는 곳', small)
     C.cta(d, F, f"{S['name']} 단지별 갭 전체 → 프로필 링크")
     C.footer(d, F, '자료 국토교통부 아파트 매매·전월세 실거래가 (전세는 월세 0원 계약만)')
