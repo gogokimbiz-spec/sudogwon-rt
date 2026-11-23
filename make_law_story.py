@@ -7,9 +7,9 @@ import json, os, sys
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1350
-BG, ROW = (52, 58, 66), (63, 70, 80)
-WHITE, GRAY, DIM = (255, 255, 255), (176, 184, 194), (130, 138, 148)
-YEL, DARK = (255, 196, 0), (34, 38, 44)
+BG, ROW = (255, 255, 255), (246, 246, 247)
+WHITE, GRAY, DIM = (30, 32, 38), (124, 128, 136), (150, 154, 162)
+YEL, DARK = (224, 88, 88), (255, 255, 255)
 HERE = os.path.dirname(os.path.abspath(__file__))
 _cache = {}
 
@@ -67,16 +67,16 @@ def draw(c, out, ts=56, bs=30):
         fb = F(bs, 'Bold' if last else 'Medium')
         lines = wrap(d, text, fb, 790)
         bh = max(140, 60 + lh * len(lines))
-        d.rounded_rectangle([60, y, 1020, y + bh], radius=20, fill=YEL if last else ROW)
+        d.rounded_rectangle([60, y, 1020, y + bh], radius=20, fill=(253, 230, 230) if last else ROW)
         cx, cy = 118, y + bh / 2
-        d.ellipse([cx - 36, cy - 36, cx + 36, cy + 36], fill=DARK if last else YEL)
-        d.text((cx, cy), ch, font=F(38, 'Black'), fill=YEL if last else DARK, anchor='mm')
+        d.ellipse([cx - 36, cy - 36, cx + 36, cy + 36], fill=YEL)
+        d.text((cx, cy), ch, font=F(38, 'Black'), fill=DARK, anchor='mm')
         yy = y + (bh - lh * len(lines)) / 2 + 2
         for ln in lines:
-            d.text((184, yy), ln, font=fb, fill=DARK if last else WHITE); yy += lh
+            d.text((184, yy), ln, font=fb, fill=(150, 36, 36) if last else WHITE); yy += lh
         y += bh + 22
     ty = 1088
-    d.rounded_rectangle([60, ty, 1020, ty + 92], radius=18, outline=YEL, width=3)
+    d.rounded_rectangle([60, ty, 1020, ty + 92], radius=18, fill=(255, 244, 244), outline=(232, 226, 226), width=2)
     pill(d, 84, ty + 22, 'TIP', F(24), YEL, DARK, padx=14, h=46)
     ftip = F(29)
     while tw(d, c['tip'], ftip) > 820 and ftip.size > 20: ftip = F(ftip.size - 1)
@@ -85,7 +85,7 @@ def draw(c, out, ts=56, bs=30):
     while tw(d, c['case'], fc) > 960 and fc.size > 18: fc = F(fc.size - 1)
     d.text((60, 1200), c['case'], font=fc, fill=GRAY)
     d.text((60, 1232), '※ 판결 요지를 쉽게 풀어 쓴 것으로 법률 자문이 아닙니다', font=F(21, 'Regular'), fill=DIM)
-    d.line([(60, 1268), (1020, 1268)], fill=(80, 88, 98), width=2)
+    d.line([(60, 1268), (1020, 1268)], fill=(232, 226, 226), width=2)
     d.text((60, 1285), '데이터로 보는 재테크 · 자료 대법원 판례속보·판결문', font=F(24, 'Medium'), fill=GRAY)
     d.text((1020 - tw(d, '@data_jaetech', F(26)), 1283), '@data_jaetech', font=F(26), fill=YEL)
     return im, y
