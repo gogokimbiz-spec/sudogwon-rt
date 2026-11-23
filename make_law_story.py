@@ -58,7 +58,7 @@ def watermark(im, d, text='@data_jaetech', alpha=40, size=66):
     tile = Image.new('RGBA', (w, size + 36), (0, 0, 0, 0))
     ImageDraw.Draw(tile).text((15, 6), text, font=f, fill=WHITE + (alpha,))
     tile = tile.rotate(24, expand=True, resample=Image.BICUBIC)
-    for cx, cy in ((290, 560), (790, 820), (290, 1080)):
+    for cx, cy in ((790, 330), (790, 820), (290, 1080)):
         im.paste(tile, (int(cx - tile.width / 2), int(cy - tile.height / 2)), tile)
 
 
