@@ -220,10 +220,10 @@ jobs:
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_wed --mode=wed || echo '수요일 청약 카드 실패'
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_thu --mode=thu || echo '목요일 청약 카드 실패'
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_sat --mode=sat || echo '토요일 청약 카드 실패'
-      - name: 주간 부동산 판례 카드 (목 – law.yml 이 수요일 저녁에 만든 것)
+      - name: 부동산 판례 카드 (월·목 – 금·수 저녁에 law.yml 이 만든 것)
         continue-on-error: true
         run: |
-          [ "$(TZ=Asia/Seoul date +%u)" = "4" ] || { echo '오늘은 판례 카드가 없는 요일입니다'; exit 0; }
+          case "$(TZ=Asia/Seoul date +%u)" in 1|4) ;; *) false;; esac || { echo '오늘은 판례 카드가 없는 요일입니다'; exit 0; }
           D=$(TZ=Asia/Seoul date +%Y-%m-%d)
           if [ -f "cards/law/$D.skip" ] || [ ! -f "cards/law/$D.json" ]; then echo "이번 주 판례 카드 없음 ($D)"; exit 0; fi
           mkdir -p site/law && cp "cards/law/$D.png" site/law/card.png
@@ -371,7 +371,7 @@ jobs:
         run: |
           if [ ! -f site/gap/summary.json ]; then echo '오늘은 갭 글이 없는 날입니다'; exit 0; fi
           python post_blogger_gap.py site/gap/summary.json
-      - name: 주간 부동산 판례 블로그 글 (목)
+      - name: 부동산 판례 블로그 글 (월·목)
         continue-on-error: true
         env:
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
@@ -491,7 +491,7 @@ jobs:
         run: |
           curl -sf "${{ needs.deploy.outputs.page_url }}gap/summary.json?t=$(date +%s)" -o gap_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/gap/summary.json?t=$(date +%s)" -o gap_summary.json || true
           python3 kakao_send_gap.py gap_summary.json
-      - name: 주간 부동산 판례 카톡 (목)
+      - name: 부동산 판례 카톡 (월·목)
         if: ${{ !cancelled() }}
         continue-on-error: true
         env:
@@ -500,7 +500,7 @@ jobs:
           KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          [ "$(TZ=Asia/Seoul date +%u)" = "4" ] || { echo '오늘은 판례 카톡이 없는 요일입니다'; exit 0; }
+          case "$(TZ=Asia/Seoul date +%u)" in 1|4) ;; *) false;; esac || { echo '오늘은 판례 카톡이 없는 요일입니다'; exit 0; }
           curl -sf "${{ needs.deploy.outputs.page_url }}law/summary.json?t=$(date +%s)" -o law_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/law/summary.json?t=$(date +%s)" -o law_summary.json || true
           python3 kakao_send_law.py law_summary.json
       - name: 기업재무 카톡 (토)
