@@ -29,8 +29,8 @@ if PREVIEW:
     img = f"https://raw.githubusercontent.com/{REPO}/main/cards/law/{S['day']}.png"
     link = f'https://github.com/{REPO}/actions/workflows/law.yml'
     tpl = {'object_type': 'feed',
-           'content': {'title': f"👀 [미리보기] {S['day'][5:].replace('-', '/')}(목) 아침 올라갈 판례",
-                       'description': f"{title1}\n{S['case_no']} · 그대로 두면 목요일 아침 자동 게시 · 바꾸려면 Claude 에게 말씀",
+           'content': {'title': f"👀 [미리보기] {S['day'][5:].replace('-', '/')}({'월화수목금토일'[datetime.date.fromisoformat(S['day']).weekday()]}) 아침 올라갈 판례",
+                       'description': f"{title1}\n{S['case_no']} · 그대로 두면 그날 아침 자동 게시 · 바꾸려면 Claude 에게 말씀",
                        'image_url': f'{img}?v={VER}', 'image_width': 1080, 'image_height': 1350,
                        'link': {'web_url': link, 'mobile_web_url': link}},
            'buttons': [{'title': '이번 주 건너뛰기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
