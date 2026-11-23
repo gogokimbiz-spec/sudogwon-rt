@@ -1,4 +1,4 @@
-"""주간 부동산 판례 카드 1장 (기승전결, 1080×1350, 실거래 카드와 같은 slate 테마) – 2026-11-19
+"""부동산 판례 카드 1장 (워터마크 @data_jaetech 3개 – 11-23) (기승전결, 1080×1350, 실거래 카드와 같은 slate 테마) – 2026-11-19
 사용법: python make_law_story.py case.json out.png
 case.json: date('2026. 9. 10.'), title('…\n…' 2줄), story([['기','…'],['승','…'],['전','…'],['결','…']]), tip, case(사건번호 줄)
 글이 길면 글씨를 조금씩 줄여서 넣습니다.
@@ -52,6 +52,16 @@ def pill(d, x, y, text, f, bg, fg, padx=18, h=48):
     d.text((x + padx, y + h / 2), text, font=f, fill=fg, anchor='lm')
 
 
+def watermark(im, d, text='@data_jaetech', alpha=40, size=66):
+    """다른 카드(card_style.watermark)와 같은 워터마크: 내용 위에 반투명 아이디 3개를 비스듬히 – 캡처·퍼가기에도 아이디가 남게"""
+    f = F(size, 'Black'); w = int(tw(d, text, f)) + 30
+    tile = Image.new('RGBA', (w, size + 36), (0, 0, 0, 0))
+    ImageDraw.Draw(tile).text((15, 6), text, font=f, fill=WHITE + (alpha,))
+    tile = tile.rotate(24, expand=True, resample=Image.BICUBIC)
+    for cx, cy in ((290, 560), (790, 820), (290, 1080)):
+        im.paste(tile, (int(cx - tile.width / 2), int(cy - tile.height / 2)), tile)
+
+
 def draw(c, out, ts=56, bs=30):
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
     pill(d, 60, 56, c.get('badge') or '이번 주 부동산 판례', F(26), YEL, DARK)
@@ -85,6 +95,7 @@ def draw(c, out, ts=56, bs=30):
     while tw(d, c['case'], fc) > 960 and fc.size > 18: fc = F(fc.size - 1)
     d.text((60, 1200), c['case'], font=fc, fill=GRAY)
     d.text((60, 1232), '※ 판결 요지를 쉽게 풀어 쓴 것으로 법률 자문이 아닙니다', font=F(21, 'Regular'), fill=DIM)
+    watermark(im, d)
     d.line([(60, 1268), (1020, 1268)], fill=(232, 226, 226), width=2)
     d.text((60, 1285), '데이터로 보는 재테크 · 자료 대법원 판례속보·판결문', font=F(24, 'Medium'), fill=GRAY)
     d.text((1020 - tw(d, '@data_jaetech', F(26)), 1283), '@data_jaetech', font=F(26), fill=YEL)
