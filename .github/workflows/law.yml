@@ -88,6 +88,10 @@ jobs:
         id: p
         run: |
           D=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          if [ -f "law_inbox/$D.json" ]; then   # 지금 디자인으로 카드를 다시 그림 (워터마크·디자인 바꾼 뒤 다시 게시할 때)
+            sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+            pip install -q pillow && python law_make.py "law_inbox/$D.json"
+          fi
           [ -f "cards/law/$D.json" ] || { echo "::error::cards/law/$D.json 이 없습니다 (오늘 날짜 판례 카드가 없음)"; exit 1; }
           rm -rf law_now && mkdir -p law_now/law && cp "cards/law/$D.png" law_now/law/card.png
           python -c "import json;d=json.load(open('cards/law/$D.json',encoding='utf-8'));d['made']='$D';json.dump(d,open('law_now/law/summary.json','w',encoding='utf-8'),ensure_ascii=False,indent=1)"
@@ -107,7 +111,7 @@ jobs:
           pip install -q pillow
           python build_insta.py law_now
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A law_now && git commit -q -m "판례 카드 바로 게시 $(TZ=Asia/Seoul date +%F)" || true
+          git add -A law_now cards/law && git commit -q -m "판례 카드 바로 게시 $(TZ=Asia/Seoul date +%F)" || true
           git pull -q --rebase --autostash && git push -q
           echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/law_now/" >> "$GITHUB_OUTPUT"
       - name: 카톡
