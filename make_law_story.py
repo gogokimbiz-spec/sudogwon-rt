@@ -65,15 +65,15 @@ def draw(c, out, ts=56, bs=30):
     for i, (ch, text) in enumerate(c['story']):
         last = i == len(c['story']) - 1
         fb = F(bs, 'Bold' if last else 'Medium')
-        lines = wrap(d, text, fb, 790)
-        bh = max(140, 60 + lh * len(lines))
+        lines = wrap(d, text, fb, 850)
+        bh = max(124, 44 + lh * len(lines))
         d.rounded_rectangle([60, y, 1020, y + bh], radius=20, fill=(253, 230, 230) if last else ROW)
-        cx, cy = 118, y + bh / 2
-        d.ellipse([cx - 36, cy - 36, cx + 36, cy + 36], fill=YEL)
+        cx, cy = 100, y + bh / 2
+        d.ellipse([cx - 32, cy - 32, cx + 32, cy + 32], fill=YEL)
         d.text((cx, cy), ch, font=F(38, 'Black'), fill=DARK, anchor='mm')
         yy = y + (bh - lh * len(lines)) / 2 + 2
         for ln in lines:
-            d.text((184, yy), ln, font=fb, fill=(150, 36, 36) if last else WHITE); yy += lh
+            d.text((148, yy), ln, font=fb, fill=(150, 36, 36) if last else WHITE); yy += lh
         y += bh + 22
     ty = 1088
     d.rounded_rectangle([60, ty, 1020, ty + 92], radius=18, fill=(255, 244, 244), outline=(232, 226, 226), width=2)
@@ -92,7 +92,7 @@ def draw(c, out, ts=56, bs=30):
 
 
 def make(c, out):
-    for ts, bs in ((56, 30), (52, 29), (50, 28), (48, 27), (46, 26), (44, 25), (42, 24)):
+    for ts, bs in ((56, 40), (54, 38), (52, 36), (50, 34), (48, 32), (46, 30), (44, 28), (42, 26), (40, 25)):
         im, y = draw(c, out, ts, bs)
         if y <= 1080: break
     else:
