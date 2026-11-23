@@ -144,9 +144,9 @@ def choose(raw, names, d0, d1, force=None):
 def draw(S, out_png):
     os.environ.setdefault('CARD_THEME', 'slate')
     sys.path.insert(0, HERE); import card_style as C
-    # 갭 카드만 색 바꿈 (2026-11-23 사용자 확정 '그린'): 짙은 녹회색 바탕 + 에메랄드 강조(칩·버튼·아이디 배지), 전세 막대도 진한 초록
-    BG, GREEN = (50, 64, 60), (16, 185, 129)
-    C.T = dict(C.T, bg=BG, head=BG, accent=GREEN, pill=GREEN, pill_t=(255, 255, 255), big=GREEN, line=(84, 100, 95), chip_t=BG)
+    # 갭 카드만 색 바꿈 (2026-11-23 사용자 확정): 짙은 녹회색 바탕 + 강조(칩·버튼·아이디 배지)는 실거래 카드와 같은 노랑, 전세 막대는 진한 초록
+    BG, YEL = (50, 64, 60), (255, 196, 0)
+    C.T = dict(C.T, bg=BG, head=BG, accent=YEL, pill=YEL, pill_t=(40, 48, 46), big=YEL, line=(84, 100, 95), chip_t=BG)
     W, SH, INK, INK2, WHITE, T = C.W, C.SH, C.INK, C.INK2, C.WHITE, C.T
     LINE = T['line']
     JEON, TRACK = (5, 150, 105), (30, 34, 40)           # 전세 진한 초록 · 매매 막대 (배경보다 어두운 회색, 2026-11-23)
