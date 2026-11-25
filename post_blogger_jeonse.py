@@ -19,6 +19,7 @@ if S.get('made') != TODAY and not DRY:
     print('오늘 만든 전세 카드가 없습니다'); sys.exit(0)
 REPO = os.environ.get('GITHUB_REPOSITORY', 'gogokimbiz-spec/sudogwon-rt'); BR = os.environ.get('GITHUB_REF_NAME') or 'main'
 IMG = os.environ.get('JEONSE_IMG') or f"https://raw.githubusercontent.com/{REPO}/{BR}/cards/jeonse/{S['key']}.png"
+IMGV = (f"?v={os.environ['JEONSE_IMG_V']}" if os.environ.get('JEONSE_IMG_V') else '')   # 같은 날 카드를 다시 만들 때 이미지 캐시 피하기 (jeonse_redo.yml)
 esc = html.escape
 T = 'style="border-collapse:collapse;width:100%;font-size:14px"'
 TH = 'style="text-align:left;border-bottom:2px solid #ccc;padding:6px 4px"'
@@ -52,7 +53,7 @@ intro = (f"{esc(L)} {word}된 수도권 아파트 전세(월세 0원) 실거래�
          f"가장 비싼 전세는 {esc(t1['region'])} {esc(t1.get('apt') or t1['umd'])} 전용 {t1['area']:g}㎡ {man(t1['dep'])}입니다. ")
 if st['n_high']: intro += f"같은 단지·같은 면적의 최근 6개월 최고 전세가를 넘어선 거래는 {st['n_high']:,}건입니다."
 parts.append(f'<p style="font-size:16px;line-height:1.7">{intro}</p>')
-parts.append(f'<div style="margin:0 0 14px;text-align:center"><img src="{IMG}" alt="오늘의 전세 실거래 {esc(L)}" '
+parts.append(f'<div style="margin:0 0 14px;text-align:center"><img src="{IMG}{IMGV}" alt="오늘의 전세 실거래 {esc(L)}" '
              'style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
 # 1. 전세 실거래가격 TOP 20
 parts.append(f"<h3>💰 전세 실거래가격 TOP {len(tops)}</h3><p><small>보증금 높은 순, 같은 단지는 1건만.</small></p>")
@@ -81,7 +82,7 @@ if S.get('groups'):
         t = (g['cards']['tops'] or [None])[0]
         parts.append(f"<h4>{esc(g['name'])} – {g['n']:,}건 (최고가 경신 {g.get('n_high', 0):,}건)</h4>")
         if t:
-            parts.append(f'<div style="margin:0 0 10px;text-align:center"><img src="{IMG[:-4]}_r{gi}.png" alt="{esc(g["name"])} 전세 실거래 {esc(L)}" '
+            parts.append(f'<div style="margin:0 0 10px;text-align:center"><img src="{IMG[:-4]}_r{gi}.png{IMGV}" alt="{esc(g["name"])} 전세 실거래 {esc(L)}" '
                          'style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
             parts.append(f"<p>가장 비싼 전세: {esc(t['region'])} {esc(t.get('apt') or t['umd'])} 전용 {t['area']:g}㎡({int(round(t['area'] * 1.33 / 3.3058))}평) <b>{man(t['dep'])}</b></p>")
 parts.append(f'<p style="margin:20px 0"><a href="{SITE}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#1f5fbf;color:#fff;font-weight:bold;text-decoration:none">'

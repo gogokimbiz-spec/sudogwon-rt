@@ -18,6 +18,7 @@ if not all(K.values()):
     print('카카오 설정값이 없어 전송을 건너뜁니다.'); sys.exit(0)
 SITE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/'
 link = S.get('blog_url') or SITE
+IMG_BASE = os.environ.get('JEONSE_IMG_BASE', '').strip()   # 같은 날 다시 만들 때(jeonse_redo.yml): 저장소 cards/jeonse/ 이미지를 씀 (사이트는 다음 배포 때 바뀜)
 
 
 def man(v):
@@ -39,7 +40,7 @@ for gi, g in enumerate(S.get('groups') or [], 1):
     tpl = {'object_type': 'feed',
            'content': {'title': f"🔑 {g['name']} 전세 실거래",
                        'description': desc,
-                       'image_url': f'{SITE}jeonse/region_{gi}.png?v={VER}', 'image_width': 1080, 'image_height': 1350,
+                       'image_url': (f"{IMG_BASE}{S['key']}_r{gi}.png?v={VER}" if IMG_BASE else f'{SITE}jeonse/region_{gi}.png?v={VER}'), 'image_width': 1080, 'image_height': 1350,
                        'link': {'web_url': link, 'mobile_web_url': link}},
            'buttons': [{'title': '전세 실거래 전체 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
     try:
