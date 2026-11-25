@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 청약: 월~금 / 매매·전세 갭: 화 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml)
+- 실거래: 매일 / 전세 실거래: 매일 / 청약: 월~금 / 매매·전세 갭: 화 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml)
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -96,6 +96,15 @@ if GP and GP.get('made') == TODAY.isoformat():
     if gim and gcap:
         sections.append(dict(key='gap', title='매매·전세 갭', when='매주 화요일', today=True,
                              guide='사진 1장 선택 → 캡션 붙여넣기', images=gim, alt=[], caption=gcap))
+
+# ── 1-5. 오늘의 전세 실거래 (매일, 1장 – 매매 캐러셀과 별도 게시물, 2026-11-25)
+JS = load('jeonse/summary.json')
+if JS and JS.get('made') == TODAY.isoformat():
+    # 1장 = 수도권 전체, 2~5장 = 수도권 서부·북부·남부·동부 (11-25 사용자: 실거래 카드처럼 권역별로)
+    jim = imgs('jeonse', ['card.png'] + [f'region_{i}.png' for i in range(1, 5)]); jcap = read('jeonse/caption.txt')
+    if jim and jcap:
+        sections.append(dict(key='jeonse', title='오늘의 전세 실거래', when='매일', today=True,
+                             guide=f'사진 {len(jim)}장을 순서대로 선택(여러 장) → 캡션 붙여넣기', images=jim, alt=imgs('jeonse', ['card.png']), caption=trim_tags(jcap, 3)))
 
 # ── 1-2. 오늘의 신고가 1위 (실거래 캐러셀과 별도 게시물, 있는 날만 – 2026-11-12)
 HJ = load('cards/hero.json'); hero_img = imgs('cards', ['hero.png'])

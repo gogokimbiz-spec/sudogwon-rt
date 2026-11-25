@@ -49,7 +49,9 @@ def job(args):
             if kind == 'trade':
                 recs.append([code, date, t('aptNm'), t('umdNm'), num(t('excluUseAr')), int(num(t('floor'))), int(num(t('dealAmount'))), int(num(t('buildYear'))), t('cdealType')])
             else:
-                recs.append([code, date, t('aptNm'), t('umdNm'), num(t('excluUseAr')), int(num(t('deposit'))), int(num(t('monthlyRent')))])
+                # 7번째 칸 뒤: 층, 계약구분(신규/갱신), 종전 보증금, 종전 월세, 갱신요구권 사용, 준공 (2026-11-25 전세 카드용)
+                recs.append([code, date, t('aptNm'), t('umdNm'), num(t('excluUseAr')), int(num(t('deposit'))), int(num(t('monthlyRent'))),
+                             int(num(t('floor'))), t('contractType'), int(num(t('preDeposit'))), int(num(t('preMonthlyRent'))), t('useRRRight'), int(num(t('buildYear')))])
         if len(recs) >= total or not items: break
         page += 1
     return args, recs
@@ -76,5 +78,7 @@ out = {'asof': today.isoformat(), 'ok': ok, 'trade': raw['trade'],
        'jeonse': [[r[0], r[1], r[3], r[4], r[5]] for r in raw['rent'] if r[6] == 0],
        # 2026-11-23: 전세 단지명 – jeonse 와 같은 순서·같은 길이 (매매·전세 갭 카드 build_gap.py 용. 다른 스크립트는 jeonse 5칸을 그대로 씀)
        'jeonse_apt': [r[2] for r in raw['rent'] if r[6] == 0],
+       # 2026-11-25: 전세 추가 정보 – jeonse 와 같은 순서·같은 길이 [층, 계약구분, 종전보증금, 종전월세, 갱신요구권, 준공] (전세 카드 make_cards_jeonse.py 용)
+       'jeonse_x': [r[7:13] for r in raw['rent'] if r[6] == 0],
        'wolse': sum(1 for r in raw['rent'] if r[6] > 0)}
 json.dump(out, open('rt_data.json', 'w', encoding='utf-8'), ensure_ascii=False)
