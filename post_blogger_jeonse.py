@@ -72,12 +72,11 @@ if highs:
     body = ''.join(f"<tr><td {TD}><b>{i}</b></td>{apt_cell(r)}<td {TDR}><b>{man(r['dep'])}</b><br><small>이전 {man(r['prev_high'])}</small></td>"
                    f"<td {TDR}><span style=\"color:#d33\">+{man(r['dep'] - r['prev_high'])}</span></td></tr>" for i, r in enumerate(highs, 1))
     parts.append(f"<table {T}><tr><th {TH}>순위</th><th {TH}>단지</th><th {THR}>보증금</th><th {THR}>상승</th></tr>{body}</table>")
-# 4. 권역별 (수도권 서부·북부·남부·동부 – 서울도 같은 방향으로 나눠 붙임)
+# 4. 권역별 (매매 실거래 권역 카드와 같은 4개 권역)
 if S.get('groups'):
-    parts.append("<h3>🗺️ 권역별 전세 실거래</h3><p><small>서부: 서울 강서·양천·구로·금천·영등포·마포·은평·서대문 + 인천·김포·부천·광명·시흥·안산 / "
-                 "북부: 서울 종로·중구·용산·성북·강북·도봉·노원 + 고양·파주·의정부·양주·동두천·포천·연천 / "
-                 "남부: 서울 서초·강남·송파·동작·관악 + 수원·용인·화성·오산·평택·안성·안양·군포·의왕·과천 / "
-                 "동부: 서울 성동·광진·동대문·중랑·강동 + 성남·하남·광주·구리·남양주·가평·양평·이천·여주</small></p>")
+    parts.append("<h3>🗺️ 권역별 전세 실거래</h3><p><small>서울 / 경기 북부: 고양·파주·김포·의정부·양주·동두천·남양주·구리·포천·연천·가평 / "
+                 "인천·경기 남서부: 인천·부천·광명·시흥·안산·안양·군포·의왕·과천 / "
+                 "경기 남동부: 성남·하남·광주·용인·이천·안성·여주·양평·화성·오산·평택·수원</small></p>")
     for gi, g in enumerate(S['groups'], 1):
         t = (g['cards']['tops'] or [None])[0]
         parts.append(f"<h4>{esc(g['name'])} – {g['n']:,}건 (최고가 경신 {g.get('n_high', 0):,}건)</h4>")

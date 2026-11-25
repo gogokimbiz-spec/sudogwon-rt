@@ -1,4 +1,4 @@
-"""전세 실거래 카드 카톡 '나에게 보내기' (매일, 권역 카드 4통: 수도권 서부·북부·남부·동부). 입력: 배포된 jeonse/summary.json  (2026-11-25)
+"""전세 실거래 카드 카톡 '나에게 보내기' (매일, 권역 카드 4통: 서울·경기 북부·인천·경기 남서부·경기 남동부). 입력: 배포된 jeonse/summary.json  (2026-11-25)
 summary 의 made(만든 날)가 오늘일 때만 보냅니다. 같은 작업에서 앞 단계가 토큰을 바꿨다면 .kakao_rt 파일의 새 값을 씁니다.
 """
 import os, sys, json, datetime, subprocess, urllib.request, urllib.parse, urllib.error
@@ -29,7 +29,7 @@ tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', ur
     'grant_type': 'refresh_token', 'client_id': K['KAKAO_REST_KEY'], 'client_secret': K['KAKAO_CLIENT_SECRET'],
     'refresh_token': K['KAKAO_REFRESH_TOKEN']}).encode()))
 H = {'Authorization': 'Bearer ' + tok['access_token']}
-# 11-25 사용자: 카톡은 권역 카드 4장(수도권 서부·북부·남부·동부)을 각각 1통씩 보냄
+# 11-25 사용자: 카톡은 권역 카드 4장(서울·경기 북부·인천·경기 남서부·경기 남동부 – 매매 권역과 같음)을 각각 1통씩 보냄
 word = '신고' if S['basis'] == 'reported' else '계약'
 for gi, g in enumerate(S.get('groups') or [], 1):
     if not g.get('n'): print(f"{g['name']}: 전세 거래가 없어 건너뜀"); continue

@@ -100,7 +100,7 @@ if GP and GP.get('made') == TODAY.isoformat():
 # ── 1-5. 오늘의 전세 실거래 (매일, 1장 – 매매 캐러셀과 별도 게시물, 2026-11-25)
 JS = load('jeonse/summary.json')
 if JS and JS.get('made') == TODAY.isoformat():
-    # 1장 = 수도권 전체, 2~5장 = 수도권 서부·북부·남부·동부 (11-25 사용자: 실거래 카드처럼 권역별로)
+    # 1장 = 수도권 전체, 2~5장 = 서울·경기 북부·인천·경기 남서부·경기 남동부 (11-25 사용자: 실거래 카드와 같은 권역)
     jim = imgs('jeonse', ['card.png'] + [f'region_{i}.png' for i in range(1, 5)]); jcap = read('jeonse/caption.txt')
     if jim and jcap:
         sections.append(dict(key='jeonse', title='오늘의 전세 실거래', when='매일', today=True,

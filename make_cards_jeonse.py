@@ -2,7 +2,7 @@
 사용법: python make_cards_jeonse.py rt_data.json site/summary.json site/jeonse
   - 같은 폴더의 prev_keys.json.gz(어제 배포된 거래 목록, daily.yml 이 받아 둠)와 비교해 '어제 새로 신고된 전세'를 찾음 (build.py 와 같은 방식).
     어제 자료가 없거나 새 전세가 0건이면 마지막 계약일 거래로 만듦. 날짜 표시(label)는 매매 카드(site/summary.json)와 같게.
-결과: OUT/card.png(수도권 전체), OUT/region_1~4.png(수도권 서부·북부·남부·동부), OUT/caption.txt, OUT/summary.json
+결과: OUT/card.png(수도권 전체), OUT/region_1~4.png(서울·경기 북부·인천·경기 남서부·경기 남동부), OUT/caption.txt, OUT/summary.json
 카드 구성 (사용자 확정 2026-11-25):
   ① 오늘의 전세 실거래가격 TOP 3 (보증금 높은 순, 같은 단지는 1줄)
   ② 전세 최고가 경신 TOP 3 (같은 단지·같은 전용면적의 최근 6개월 전세 최고가를 넘은 거래, 이전 거래 2건 이상)
@@ -126,26 +126,19 @@ def analyze(raw, names, SM, rows):
     return basis, label, day, stats
 
 
-# ── 수도권 4개 권역 (2026-11-25 사용자: 서울도 동서남북으로 나눠 수도권 동서남북에 붙임)
-SEOUL = {'서부': {'11500', '11470', '11530', '11545', '11560', '11440', '11380', '11410'},   # 강서 양천 구로 금천 영등포 마포 은평 서대문
-         '북부': {'11110', '11140', '11170', '11290', '11305', '11320', '11350'},            # 종로 중구 용산 성북 강북 도봉 노원
-         '동부': {'11200', '11215', '11230', '11260', '11740'},                             # 성동 광진 동대문 중랑 강동
-         '남부': {'11650', '11680', '11710', '11590', '11620'}}                             # 서초 강남 송파 동작 관악
-GG = {'서부': {'김포', '부천', '광명', '시흥', '안산'},
-      '북부': {'고양', '파주', '의정부', '양주', '동두천', '포천', '연천'},
-      '동부': {'성남', '하남', '광주', '구리', '남양주', '가평', '양평', '이천', '여주'},
-      '남부': {'수원', '용인', '화성', '오산', '평택', '안성', '안양', '군포', '의왕', '과천'}}
-GROUPS = ['서부', '북부', '남부', '동부']
+# ── 4개 권역 – 매매 실거래 권역 카드(build.py group_of)와 똑같이 (2026-11-25 사용자: "지역을 실거래카드와 맞게")
+#    서울 · 경기 북부 · 인천·경기 남서부 · 경기 남동부
+G_NORTH = {'고양', '파주', '김포', '의정부', '양주', '동두천', '남양주', '구리', '포천', '연천', '가평'}
+G_SW = {'부천', '광명', '시흥', '안산', '안양', '군포', '의왕', '과천'}
+G_SE = {'성남', '하남', '광주', '용인', '이천', '안성', '여주', '양평', '화성', '오산', '평택', '수원'}
+GROUPS = ['서울', '경기 북부', '인천·경기 남서부', '경기 남동부']
 
 
 def group_of(code, names):
-    if code.startswith('28'): return '서부'                      # 인천은 서부
-    for g, cs in SEOUL.items():
-        if code in cs: return g
+    if code.startswith('11'): return '서울'
+    if code.startswith('28'): return '인천·경기 남서부'
     nm = names.get(code, ''); c = nm.split(' ')[0] if ' ' in nm else nm[:-1]   # '수원 영통구' → 수원, '광명시' → 광명
-    for g, cs in GG.items():
-        if c in cs: return g
-    return None
+    return '경기 북부' if c in G_NORTH else '인천·경기 남서부' if c in G_SW else '경기 남동부' if c in G_SE else None
 
 
 def uniq(rs, skip=()):
@@ -236,7 +229,9 @@ def draw(S, cards, title, out_png):
     pill = f"{S['label']} {'신고' if S['basis'] == 'reported' else '계약'} · 전세"
     pf = F(30); pw = d.textlength(pill, font=pf)
     d.rounded_rectangle((64, 58, 64 + pw + 44, 110), 8, fill=T['pill']); d.text((86, 63), pill, font=pf, fill=T['pill_t'])
-    d.text((64, 116), title, font=F(64, 'Black'), fill=HINK)
+    ts = 64
+    while ts > 48 and d.textlength(title, font=F(ts, 'Black')) > W - 128: ts -= 2   # '인천·경기 남서부 전세 실거래' 처럼 긴 제목은 글씨를 줄임
+    d.text((64, 116 + (64 - ts) * 0.5), title, font=F(ts, 'Black'), fill=HINK)
     tops, highs = cards['tops'], cards['highs']
     secs = [x for x in (('전세 실거래가격', '가격순 20위 안에서 지역별로 고르게 (월세 0원)', MARK, tops),
                         ('전세 최고가 경신', '같은 단지·면적 최근 6개월 최고보다 비싸게', UPC, highs)) if x[3]]
@@ -335,15 +330,15 @@ if __name__ == '__main__':
          'top20': [slim(r) for r in uniq(sorted(day, key=lambda r: -r['dep']))[:20]],
          'highs_all': [slim(r) for r in sorted([r for r in day if r.get('new_high')], key=lambda r: -r['dep'])[:40]]}
     draw(S, S['cards'], '수도권 전세 실거래', os.path.join(OUT, 'card.png'))
-    # 4개 권역 카드 region_1~4.png (서부·북부·남부·동부, 각 권역은 서울 같은 방향 + 인천·경기)
+    # 4개 권역 카드 region_1~4.png (서울·경기 북부·인천·경기 남서부·경기 남동부 – 매매 권역 카드와 같음)
     S['groups'] = []
     for gi, g in enumerate(GROUPS, 1):
         gd = [r for r in day if group_of(r['code'], names) == g]
         t_, h_ = pick(gd)
         cards = {'tops': [slim(r) for r in t_], 'highs': [slim(r) for r in h_]}
-        S['groups'].append({'name': f'수도권 {g}', 'n': len(gd), 'n_high': sum(1 for r in gd if r.get('new_high')), 'cards': cards})
-        draw(S, cards, f'수도권 {g} 전세 실거래', os.path.join(OUT, f'region_{gi}.png'))
-        print(f'권역 카드 {gi}: 수도권 {g} {len(gd)}건 → region_{gi}.png')
+        S['groups'].append({'name': g, 'n': len(gd), 'n_high': sum(1 for r in gd if r.get('new_high')), 'cards': cards})
+        draw(S, cards, f'{g} 전세 실거래', os.path.join(OUT, f'region_{gi}.png'))
+        print(f'권역 카드 {gi}: {g} {len(gd)}건 → region_{gi}.png')
     open(os.path.join(OUT, 'caption.txt'), 'w', encoding='utf-8').write(caption(S))
     json.dump(S, open(os.path.join(OUT, 'summary.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print(f"전세 카드: {label} · {'신고' if basis == 'reported' else '계약'} {stats['n']}건 · 최고가 경신 {stats['n_high']} · 카드 {len(tops)}/{len(highs)}")
