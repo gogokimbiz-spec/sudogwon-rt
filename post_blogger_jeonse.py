@@ -34,7 +34,7 @@ def man(v):
 
 def apt_cell(r):
     dd = datetime.date.fromisoformat(r['date'])
-    return (f"<td {TD}>{esc(r.get('apt') or '-')}<br><small>{esc(r['region'])} {esc(r['umd'])} · {r['area']:g}㎡ · {r.get('floor', '')}층"
+    return (f"<td {TD}>{esc(r.get('apt') or '-')}<br><small>{esc(r['region'])} {esc(r['umd'])} · {r['area']:g}㎡({int(round(r['area'] * 1.33 / 3.3058))}평) · {r.get('floor', '')}층"
             f" · {dd.month}.{dd.day} 계약</small></td>")
 
 
@@ -83,11 +83,11 @@ if S.get('groups'):
         if t:
             parts.append(f'<div style="margin:0 0 10px;text-align:center"><img src="{IMG[:-4]}_r{gi}.png" alt="{esc(g["name"])} 전세 실거래 {esc(L)}" '
                          'style="width:100%;max-width:540px;height:auto;border-radius:12px"></div>')
-            parts.append(f"<p>가장 비싼 전세: {esc(t['region'])} {esc(t.get('apt') or t['umd'])} 전용 {t['area']:g}㎡ <b>{man(t['dep'])}</b></p>")
+            parts.append(f"<p>가장 비싼 전세: {esc(t['region'])} {esc(t.get('apt') or t['umd'])} 전용 {t['area']:g}㎡({int(round(t['area'] * 1.33 / 3.3058))}평) <b>{man(t['dep'])}</b></p>")
 parts.append(f'<p style="margin:20px 0"><a href="{SITE}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#1f5fbf;color:#fff;font-weight:bold;text-decoration:none">'
              '🗺️ 수도권 실거래 지도에서 전세 보기 ›</a></p>')
 parts.append(f'<hr><p><small>기준: {"어제 새로 신고된" if S["basis"] == "reported" else "마지막 계약일의"} 아파트 전세 계약(월세 0원). 전월세는 계약 후 30일 안에 신고하므로 계약일은 며칠~한 달 전일 수 있습니다. '
-             '최고가 경신은 최근 6개월 자료만 비교한 것이라 그 이전 최고가는 반영되지 않습니다.<br>'
+             '평형은 전용면적 × 1.33 으로 추정한 값입니다. 최고가 경신은 최근 6개월 자료만 비교한 것이라 그 이전 최고가는 반영되지 않습니다.<br>'
              '자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 이 글은 참고용 정보입니다.</small></p>')
 content = ''.join(parts)
 labels = ['실거래', '전세', '전세실거래가', '전세최고가']

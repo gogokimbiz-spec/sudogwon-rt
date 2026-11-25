@@ -46,6 +46,10 @@ def won(v):        # 16억 3,000
     return (f'{e}억' + (f' {m:,}' if m else '')) if e else f'{m:,}만'
 
 
+def pyeong(area):  # 전용㎡ → 평형(공급 기준 추정, 전용 × 1.33 ÷ 3.3058): 59㎡→24평, 84㎡→34평 (11-25 사용자: 평수도 나오게)
+    return int(round(area * 1.33 / 3.3058))
+
+
 def won_s(v):      # 9.1억 / 8,500만
     return (f'{v / 10000:.2f}'.rstrip('0').rstrip('.') + '억') if v >= 10000 else f'{int(v):,}만'
 
@@ -236,7 +240,7 @@ def draw(S, cards, title, out_png):
     secs = [x for x in (('전세 실거래가격', '가격순 20위 안에서 지역별로 고르게 (월세 0원)', MARK, tops),
                         ('전세 최고가 경신', '같은 단지·면적 최근 6개월 최고보다 비싸게', UPC, highs)) if x[3]]
     # 표 칸 (왼쪽 x, 오른쪽 정렬 여부)
-    X_RG, X_APT, X_DATE_R, X_PR_R = 48, 196, 620, W - 48
+    X_RG, X_APT, X_AREA_R, X_DATE_R, X_PR_R = 48, 196, 568, 662, W - 48   # 11-25: 면적(전용·평형) 칸 추가
     y = hb + 22
     HH = 40                                                # 표 머리(지역/아파트/…) 높이
     nrows = sum(len(x[3]) for x in secs)
@@ -256,7 +260,7 @@ def draw(S, cards, title, out_png):
         y += 50
         hf = F(20, 'Medium')
         d.text((X_RG, y + 6), '지역', font=hf, fill=INK2); d.text((X_APT, y + 6), '아파트', font=hf, fill=INK2)
-        rt(X_DATE_R, y + 6, '거래일', hf, INK2); rt(X_PR_R, y + 6, '이전가격 → 실거래가격', hf, INK2)
+        rt(X_AREA_R, y + 6, '면적', hf, INK2); rt(X_DATE_R, y + 6, '거래일', hf, INK2); rt(X_PR_R, y + 6, '이전가격 → 실거래가격', hf, INK2)
         d.line((40, y + HH - 4, W - 40, y + HH - 4), fill=LINE, width=2)
         y += HH
         for r in rows:
@@ -267,11 +271,13 @@ def draw(S, cards, title, out_png):
             if d.textlength(rg, font=rf) > X_APT - X_RG - 60 and len(p_) > 1: rg = p_[1][:-1] if p_[1].endswith('구') else p_[1]   # '고양 일산동' → '일산동'
             while d.textlength(rg, font=rf) > X_APT - X_RG - 60 and len(rg) > 2: rg = rg[:-1]
             C.chip(d, F, X_RG, cy - (fr + 14) / 2, rg, fr)
-            nm = r['apt'] or r['umd']; af = F(fa, 'Black'); room = X_DATE_R - 90 - X_APT
+            nm = r['apt'] or r['umd']; af = F(fa, 'Black'); room = X_AREA_R - 78 - X_APT
             while d.textlength(nm, font=af) > room and len(nm) > 3: nm = nm.rstrip('…')[:-1] + '…'
             d.text((X_APT, cy - fa * 0.68), nm, font=af, fill=INK)
             dd = datetime.date.fromisoformat(r['date'])
             rt(X_DATE_R, cy - fd * 0.62, f'{dd.month}.{dd.day}', F(fd, 'Medium'), SUB)
+            pf2 = F(fd, 'Bold'); ps = f"{pyeong(r['area'])}평"; rt(X_AREA_R, cy - fd * 0.95, ps, pf2, INK)          # 위: 평형
+            af3 = F(max(15, int(fd * 0.7)), 'Regular'); rt(X_AREA_R, cy + fd * 0.32, f"{r['area']:.0f}㎡", af3, INK2)  # 아래: 전용㎡
             prf = F(fp, 'Black'); pr = won(r['dep']); rt(X_PR_R, cy - fp * 0.66, pr, prf, UPC if r.get('new_high') else PRICE)
             if r.get('prev_high'):                         # 이전가격 = 같은 단지·면적 최근 6개월 최고 전세
                 xa = X_PR_R - d.textlength(pr, font=prf) - 12; af2 = F(fd, 'Medium')
@@ -295,7 +301,7 @@ def draw(S, cards, title, out_png):
         for cx, cy in ((600, 520), (790, 820), (290, 1080)):
             im_.paste(tile, (int(cx - tile.width / 2), int(cy - tile.height / 2)), tile)
     C.watermark = _wm_j
-    C.footer(d, F, '자료 국토교통부 아파트 전월세 실거래가 (전세는 월세 0원 계약만)')
+    C.footer(d, F, '자료 국토교통부 전월세 실거래가 · 월세 0원만 · 평형은 추정')
     C.watermark = _wm
     im.save(out_png)
 
@@ -304,13 +310,13 @@ def caption(S):
     st = S['stats']; tops, highs = S['cards']['tops'], S['cards']['highs']
     L = [f"🔑 오늘의 전세 실거래 | {S['label']} {'신고' if S['basis'] == 'reported' else '계약'} {st['n']:,}건", '']
     # 줄마다 '· ' 로 시작해야 스레드(post_threads.py)가 목록으로 가져감
-    L += [f"· 💰 {i}위 {r['region']} {r['apt']} {r['area']:g}㎡ {won(r['dep'])}" for i, r in enumerate(tops[:3], 1)]
-    L += [f"· 🔺 최고가 경신 {r['region']} {r['apt']} {r['area']:g}㎡ {won(r['dep'])} (이전 {won_s(r["prev_high"])})" for r in highs[:3]]
+    L += [f"· 💰 {i}위 {r['region']} {r['apt']} {r['area']:g}㎡({pyeong(r['area'])}평) {won(r['dep'])}" for i, r in enumerate(tops[:3], 1)]
+    L += [f"· 🔺 최고가 경신 {r['region']} {r['apt']} {r['area']:g}㎡({pyeong(r['area'])}평) {won(r['dep'])} (이전 {won_s(r["prev_high"])})" for r in highs[:3]]
     for g in S.get('groups') or []:
         t = (g['cards']['tops'] or [None])[0]
-        if t: L.append(f"· 🗺️ {g['name']} 최고 {t['apt']} {t['area']:g}㎡ {won(t['dep'])} ({g['n']:,}건)")
+        if t: L.append(f"· 🗺️ {g['name']} 최고 {t['apt']} {t['area']:g}㎡({pyeong(t['area'])}평) {won(t['dep'])} ({g['n']:,}건)")
     city = [n for n, k in (('서울', '11'), ('경기', '41'), ('인천', '28')) if st['by_sido'].get(k)][:2]
-    L += ['', '※ 전세 = 월세 0원 계약 · 최고가 경신은 같은 단지·같은 전용면적 최근 6개월 기준',
+    L += ['', '※ 전세 = 월세 0원 계약 · 평형은 전용면적으로 추정 · 최고가 경신은 같은 단지·같은 전용면적 최근 6개월 기준',
           '자료: 국토교통부 실거래가 공개시스템', '', '전세 실거래 전체는 프로필 링크에서 👆', '',
           ' '.join(dict.fromkeys(['#전세', '#전세실거래가', '#아파트전세'] + [f'#{c}전세' for c in city]))]
     return '\n'.join(L)
