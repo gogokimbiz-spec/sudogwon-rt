@@ -1,0 +1,62 @@
+name: 전세 카드 다시 만들기 (수동 · 카톡/블로그)
+
+# 오늘 전세 카드를 지금 코드로 다시 만들어 블로그 글을 고치고 카톡 권역 4통을 다시 보냄 (2026-11-26)
+# 매일 실행(daily.yml) 전체를 다시 돌리지 않으므로 매매·청약 카톡은 다시 안 감. 인스타·스레드·사이트 이미지는 그대로(다음 날 자동 실행 때 바뀜)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  redo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 국토부 실거래 수집
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: python fetch.py
+      - name: 전세 카드 다시 만들기
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          # 오늘 배포된 거래 목록(그 안의 어제 자료와 비교)과 오늘 요약(날짜 표시)을 받아 같은 기준으로 만듦
+          curl -sf https://gogokimbiz-spec.github.io/sudogwon-rt/state/rt_keys.json.gz -o prev_keys.json.gz
+          curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/summary.json?t=$(date +%s)" -o summary.json
+          CARD_THEME=slate python make_cards_jeonse.py rt_data.json summary.json site/jeonse
+      - name: 카드 이미지 저장소에 보관 (블로그·카톡 이미지)
+        run: |
+          JK=$(python -c "import json;print(json.load(open('site/jeonse/summary.json'))['key'])")
+          mkdir -p cards/jeonse && cp site/jeonse/card.png "cards/jeonse/$JK.png"
+          for i in 1 2 3 4; do [ -f "site/jeonse/region_$i.png" ] && cp "site/jeonse/region_$i.png" "cards/jeonse/${JK}_r$i.png"; done
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cards/jeonse
+          if ! git diff --cached --quiet; then
+            git commit -q -m "전세 카드 다시 만들기 $JK"
+            git pull -q --rebase --autostash && git push -q
+          fi
+          sleep 20
+      - name: 블로그 글 고치기
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+          JEONSE_IMG_V: ${{ github.run_id }}
+        run: python post_blogger_jeonse.py site/jeonse/summary.json
+      - name: 카톡 권역 4통 다시 보내기
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          JEONSE_IMG_BASE: https://raw.githubusercontent.com/${{ github.repository }}/main/cards/jeonse/
+        run: python kakao_send_jeonse.py site/jeonse/summary.json
