@@ -150,6 +150,13 @@ jobs:
           pip install -q pillow
           # 최근 30일 거래 많은 구 중 최근 12주 안에 안 한 곳 (기록: state/gap_used.json, 아래 '카드 이미지 보관'에서 커밋)
           CARD_THEME=slate python make_cards_gap.py rt_data.json site/gap
+      - name: 전세 실거래 카드 (매일 · 매매 카드와 별도)
+        continue-on-error: true
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          # prev_keys.json.gz(위 '지도 페이지 만들기'에서 받은 어제 자료)와 비교해 어제 새로 신고된 전세 · 실거래가격/최고가 경신/갱신 인상폭
+          CARD_THEME=slate python make_cards_jeonse.py rt_data.json site/summary.json site/jeonse
       - name: 청약홈 분양정보 수집
         id: cy
         continue-on-error: true
@@ -292,6 +299,12 @@ jobs:
             GK=$(python -c "import json;print(json.load(open('site/gap/summary.json'))['key'])")
             mkdir -p cards/gap && cp site/gap/card.png "cards/gap/$GK.png"
           fi
+          # 전세 실거래 카드 (매일 – 블로그 이미지용)
+          if [ -f site/jeonse/summary.json ]; then
+            JK=$(python -c "import json;print(json.load(open('site/jeonse/summary.json'))['key'])")
+            mkdir -p cards/jeonse && cp site/jeonse/card.png "cards/jeonse/$JK.png"
+            for i in 1 2 3 4; do [ -f "site/jeonse/region_$i.png" ] && cp "site/jeonse/region_$i.png" "cards/jeonse/${JK}_r$i.png"; done   # 수도권 서부·북부·남부·동부
+          fi
           git add cards hist
           [ -f state/gap_used.json ] && git add state/gap_used.json
           if ! git diff --cached --quiet; then
@@ -371,6 +384,18 @@ jobs:
         run: |
           if [ ! -f site/gap/summary.json ]; then echo '오늘은 갭 글이 없는 날입니다'; exit 0; fi
           python post_blogger_gap.py site/gap/summary.json
+      - name: 전세 실거래 블로그 글 (매일)
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: |
+          if [ ! -f site/jeonse/summary.json ]; then echo '오늘 전세 카드가 없어 글을 건너뜁니다'; exit 0; fi
+          python post_blogger_jeonse.py site/jeonse/summary.json
       - name: 부동산 판례 블로그 글 (월·목)
         continue-on-error: true
         env:
@@ -491,6 +516,17 @@ jobs:
         run: |
           curl -sf "${{ needs.deploy.outputs.page_url }}gap/summary.json?t=$(date +%s)" -o gap_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/gap/summary.json?t=$(date +%s)" -o gap_summary.json || true
           python3 kakao_send_gap.py gap_summary.json
+      - name: 전세 실거래 카톡 (매일)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "${{ needs.deploy.outputs.page_url }}jeonse/summary.json?t=$(date +%s)" -o jeonse_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/jeonse/summary.json?t=$(date +%s)" -o jeonse_summary.json || true
+          python3 kakao_send_jeonse.py jeonse_summary.json
       - name: 부동산 판례 카톡 (월·목)
         if: ${{ !cancelled() }}
         continue-on-error: true
