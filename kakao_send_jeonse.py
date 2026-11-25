@@ -1,4 +1,4 @@
-"""전세 실거래 카드 카톡 '나에게 보내기' (매일). 입력: 배포된 jeonse/summary.json  (2026-11-25)
+"""전세 실거래 카드 카톡 '나에게 보내기' (매일, 권역 카드 4통: 수도권 서부·북부·남부·동부). 입력: 배포된 jeonse/summary.json  (2026-11-25)
 summary 의 made(만든 날)가 오늘일 때만 보냅니다. 같은 작업에서 앞 단계가 토큰을 바꿨다면 .kakao_rt 파일의 새 값을 씁니다.
 """
 import os, sys, json, datetime, subprocess, urllib.request, urllib.parse, urllib.error
@@ -18,7 +18,6 @@ if not all(K.values()):
     print('카카오 설정값이 없어 전송을 건너뜁니다.'); sys.exit(0)
 SITE = 'https://gogokimbiz-spec.github.io/sudogwon-rt/'
 link = S.get('blog_url') or SITE
-card = f'{SITE}jeonse/card.png'
 
 
 def man(v):
@@ -26,25 +25,29 @@ def man(v):
     return (f'{e}억' + (f' {m:,}' if m else '')) if e else f'{m:,}만'
 
 
-st = S['stats']; t = (S.get('top20') or [{}])[0]
-desc = f"{S['label']} {'신고' if S['basis'] == 'reported' else '계약'} {st['n']:,}건 · 최고 {t.get('apt') or t.get('umd', '')} {man(t.get('dep', 0))}"
-if st.get('n_high'): desc += f" · 최고가 경신 {st['n_high']:,}건"
 tok = json.load(urllib.request.urlopen('https://kauth.kakao.com/oauth/token', urllib.parse.urlencode({
     'grant_type': 'refresh_token', 'client_id': K['KAKAO_REST_KEY'], 'client_secret': K['KAKAO_CLIENT_SECRET'],
     'refresh_token': K['KAKAO_REFRESH_TOKEN']}).encode()))
 H = {'Authorization': 'Bearer ' + tok['access_token']}
-tpl = {'object_type': 'feed',
-       'content': {'title': '🔑 오늘의 전세 실거래',
-                   'description': desc,
-                   'image_url': f'{card}?v={VER}', 'image_width': 1080, 'image_height': 1350,
-                   'link': {'web_url': link, 'mobile_web_url': link}},
-       'buttons': [{'title': '전세 실거래 전체 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
-try:
-    res = json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
-          data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(), headers=H)))
-    print('전세 카톡:', res)
-except urllib.error.HTTPError as err:
-    print('::warning::전세 카톡 실패:', err.read().decode('utf-8', 'replace')[:300])
+# 11-25 사용자: 카톡은 권역 카드 4장(수도권 서부·북부·남부·동부)을 각각 1통씩 보냄
+word = '신고' if S['basis'] == 'reported' else '계약'
+for gi, g in enumerate(S.get('groups') or [], 1):
+    if not g.get('n'): print(f"{g['name']}: 전세 거래가 없어 건너뜀"); continue
+    t = (g['cards'].get('tops') or [{}])[0]
+    desc = f"{S['label']} {word} {g['n']:,}건 · 최고 {t.get('apt') or t.get('umd', '')} {man(t.get('dep', 0))}"
+    if g.get('n_high'): desc += f" · 최고가 경신 {g['n_high']:,}건"
+    tpl = {'object_type': 'feed',
+           'content': {'title': f"🔑 {g['name']} 전세 실거래",
+                       'description': desc,
+                       'image_url': f'{SITE}jeonse/region_{gi}.png?v={VER}', 'image_width': 1080, 'image_height': 1350,
+                       'link': {'web_url': link, 'mobile_web_url': link}},
+           'buttons': [{'title': '전세 실거래 전체 보기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+    try:
+        res = json.load(urllib.request.urlopen(urllib.request.Request('https://kapi.kakao.com/v2/api/talk/memo/default/send',
+              data=urllib.parse.urlencode({'template_object': json.dumps(tpl, ensure_ascii=False)}).encode(), headers=H)))
+        print(f"전세 카톡 {g['name']}:", res)
+    except urllib.error.HTTPError as err:
+        print(f"::warning::전세 카톡 실패 ({g['name']}):", err.read().decode('utf-8', 'replace')[:300])
 new_rt = tok.get('refresh_token')
 if new_rt:
     open('.kakao_rt', 'w').write(new_rt)
