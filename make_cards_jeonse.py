@@ -240,13 +240,13 @@ def draw(S, cards, title, out_png):
     tops, highs = cards['tops'], cards['highs']
     secs = [x for x in (('전세 실거래가격', '가격순 20위 안에서 지역별로 고르게', MARK, tops),
                         ('전세 최고가 경신', '최근 6개월 최고보다 비싸게', UPC, highs)) if x[3]]
-    X_RG, X_APT, X_AREA_R, X_DATE_R, X_PR_R = 44, 176, 556, 648, W - 44   # 면적(평형·전용) 칸 포함
+    X_RG, X_APT, X_AREA_R, X_DATE_R, X_PR_R = 40, 172, 548, 636, W - 40   # 면적(평형·전용) 칸 포함
     y = hb + 16
-    SECH, HH, GAPS = 48, 34, 12                            # 섹션 제목 · 표 머리(첫 섹션만) · 섹션 사이
+    SECH, HH, GAPS = 52, 34, 10                            # 섹션 제목 · 표 머리(첫 섹션만) · 섹션 사이
     nrows = sum(len(x[3]) for x in secs)
     RH = max(64, min(96, int((1180 - y - len(secs) * SECH - HH - GAPS * (len(secs) - 1)) / max(nrows, 1))))
     k = min(1.0, RH / 82)
-    fa, fr, fp, fd = int(38 * (0.75 + 0.25 * k)), int(25 * (0.8 + 0.2 * k)), int(46 * (0.75 + 0.25 * k)), int(28 * (0.8 + 0.2 * k))
+    fa, fr, fp, fd = int(42 * (0.75 + 0.25 * k)), int(27 * (0.8 + 0.2 * k)), int(52 * (0.75 + 0.25 * k)), int(31 * (0.8 + 0.2 * k))   # 11-26: 한 번 더 키움
 
     def rt(x, yy, txt, f, col):                            # 오른쪽 정렬
         d.text((x - d.textlength(txt, font=f), yy), txt, font=f, fill=col)
@@ -256,13 +256,13 @@ def draw(S, cards, title, out_png):
 
     for si, (ttl, note, col, rows) in enumerate(secs):
         if si: y += GAPS
-        tf = F(34, 'Black')
-        d.rectangle((40, y + 6, 50, y + 42), fill=col)
+        tf = F(38, 'Black')
+        d.rectangle((40, y + 6, 50, y + 46), fill=col)
         d.text((62, y), ttl, font=tf, fill=INK)
-        d.text((62 + d.textlength(ttl, font=tf) + 14, y + 12), note, font=F(22, 'Medium'), fill=INK2)
+        d.text((62 + d.textlength(ttl, font=tf) + 14, y + 12), note, font=F(24, 'Medium'), fill=INK2)
         y += SECH
         if si == 0:                                        # 표 머리는 첫 섹션에만
-            hf = F(21, 'Medium')
+            hf = F(23, 'Medium')
             d.text((X_RG, y + 2), '지역', font=hf, fill=INK2); d.text((X_APT, y + 2), '아파트', font=hf, fill=INK2)
             rt(X_AREA_R, y + 2, '면적', hf, INK2); rt(X_DATE_R, y + 2, '거래일', hf, INK2); rt(X_PR_R, y + 2, '이전가격 → 실거래가격', hf, INK2)
             y += HH
@@ -275,21 +275,24 @@ def draw(S, cards, title, out_png):
             if d.textlength(rg, font=rf) > lim and len(p_) > 1: rg = p_[1][:-1] if p_[1].endswith('구') else p_[1]   # '성남 분당' → '분당'
             while d.textlength(rg, font=rf) > lim and len(rg) > 2: rg = rg[:-1]
             C.chip(d, F, X_RG, cy - (fr + 14) / 2, rg, fr)
-            nm = r['apt'] or r['umd']; room = X_AREA_R - 80 - X_APT; fs = fa
+            nm = r['apt'] or r['umd']; room = X_AREA_R - 96 - X_APT; fs = fa
             if d.textlength(nm, font=F(fs, 'Black')) > room and '(' in nm: nm = nm.split('(')[0]   # '봇들마을8단지(주공)' → 괄호 빼기
-            while fs > fa - 6 and d.textlength(nm, font=F(fs, 'Black')) > room: fs -= 1                # 조금 줄여 보고
+            while fs > fa - 9 and d.textlength(nm, font=F(fs, 'Black')) > room: fs -= 1                # 조금 줄여 보고
             af = F(fs, 'Black')
             while d.textlength(nm, font=af) > room and len(nm) > 3: nm = nm.rstrip('…')[:-1] + '…'   # 그래도 길면 자름
             d.text((X_APT, cy - fs * 0.66), nm, font=af, fill=INK)
             dd = datetime.date.fromisoformat(r['date'])
             rt(X_DATE_R, cy - fd * 0.64, f'{dd.month}.{dd.day}', F(fd, 'Medium'), SUB)
             pf2 = F(int(fd * 1.08), 'Black'); ps = f"{pyeong(r['area'])}평"; rt(X_AREA_R, cy - fd * 1.02, ps, pf2, INK)       # 위: 평형
-            af3 = F(max(16, int(fd * 0.72)), 'Medium'); rt(X_AREA_R, cy + fd * 0.36, f"{r['area']:.0f}㎡", af3, INK2)        # 아래: 전용㎡
+            af3 = F(max(18, int(fd * 0.72)), 'Medium'); rt(X_AREA_R, cy + fd * 0.36, f"{r['area']:.0f}㎡", af3, INK2)        # 아래: 전용㎡
             prf = F(fp, 'Black'); pr = won(r['dep']); rt(X_PR_R, cy - fp * 0.66, pr, prf, UPC if r.get('new_high') else PRICE)
             if r.get('prev_high'):                         # 이전가격 = 같은 단지·면적 최근 6개월 최고 전세
-                xa = X_PR_R - d.textlength(pr, font=prf) - 10; af2 = F(int(fd * 0.92), 'Medium')
-                rt(xa, cy - fd * 0.56, '→', af2, INK2); xa -= d.textlength('→', font=af2) + 8
-                rt(xa, cy - fd * 0.56, won_p(r['prev_high']), af2, SUB)
+                x0 = X_PR_R - d.textlength(pr, font=prf) - 14; pv = won_p(r['prev_high']); s2 = int(fd * 0.92)
+                while s2 > 18 and x0 - d.textlength('→', font=F(s2, 'Medium')) - 8 - d.textlength(pv, font=F(s2, 'Medium')) < X_DATE_R + 14: s2 -= 1   # 거래일과 겹치면 줄임
+                af2 = F(s2, 'Medium')
+                if x0 - d.textlength('→', font=af2) - 8 - d.textlength(pv, font=af2) >= X_DATE_R + 10:   # 그래도 겹치면 이전가격은 생략
+                    rt(x0, cy - s2 * 0.6, '→', af2, INK2); xa = x0 - d.textlength('→', font=af2) - 8
+                    rt(xa, cy - s2 * 0.6, pv, af2, SUB)
             d.line((40, y + RH - 2, W - 40, y + RH - 2), fill=LINE, width=1)
             y += RH
     if not nrows:
