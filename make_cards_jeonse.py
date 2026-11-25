@@ -165,18 +165,22 @@ SPREAD = 20                                                # 11-25 사용자: �
 
 def spread(pool, n, used, skip=()):
     """가격순 상위 SPREAD 개를 n 구간으로 나눠 구간마다 1건 – 이미 나온 구(시군구)·단지는 피함. 모자라면 남은 것 중 비싼 순"""
-    pool = [r for r in pool if (r['code'], r['apt'] or r['umd']) not in skip][:SPREAD]
+    full = [r for r in pool if (r['code'], r['apt'] or r['umd']) not in skip]
+    pool = full[:SPREAD]
     if not pool: return []
     st = max(1, len(pool) // n); out = []
     for b in range(n):
         for r in pool[b * st:(b + 1) * st] if b < n - 1 else pool[b * st:]:
             if r['code'] in used or r in out: continue
             out.append(r); used.add(r['code']); break
-    for r in pool:                                         # 같은 구에 몰린 날: 구가 겹쳐도 채움
+    for r in full[:SPREAD * 2]:                            # 빈 구간: 40위 안에서 아직 안 나온 구부터 (11-25 첫 실행 때 강남구 2줄 → 수정)
+        if len(out) >= n: break
+        if r not in out and r['code'] not in used: out.append(r); used.add(r['code'])
+    for r in pool:                                         # 그래도 모자라면(같은 구에 몰린 날) 구가 겹쳐도 채움
         if len(out) >= n: break
         if r not in out: out.append(r)
     out.sort(key=lambda r: -r['dep'])
-    for r in out: r['rank'] = pool.index(r) + 1
+    for r in out: r['rank'] = full.index(r) + 1
     return out
 
 
