@@ -1,0 +1,22 @@
+name: 전세 카톡 다시 보내기 (수동)
+
+# 오늘 만든 전세 권역 카드 4장(수도권 서부·북부·남부·동부)을 카톡 '나에게 보내기'로 다시 보냄 (2026-11-25)
+# 평소에는 daily.yml notify 잡이 매일 보내고, 이 워크플로는 놓쳤을 때 수동으로만 씀
+on:
+  workflow_dispatch:
+
+jobs:
+  kakao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: 전세 카톡 보내기
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/jeonse/summary.json?t=$(date +%s)" -o jeonse_summary.json
+          python3 kakao_send_jeonse.py jeonse_summary.json
