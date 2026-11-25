@@ -52,6 +52,7 @@ done = [x for x in (S.get('last_week') or []) if 'rate' in x]
 done.sort(key=lambda x: -x['rate'])
 
 import card_style as C                                 # 공통 디자인 (밝은 화이트·오렌지형)
+C.WM_POS = C.WM_RIGHT                                  # 반투명 아이디: 왼쪽 위 것을 오른쪽으로 (전세 카드와 같게, 11-25)
 im, d = C.canvas()
 INK, INK2, RED, BLUE = C.INK, C.INK2, C.UP, C.DOWN
 C.header(d, F, f'{w0.month}.{w0.day} ~ {w1.month}.{w1.day} 1순위 접수', '이번 주 수도권 청약', f'{len(r1)}곳',

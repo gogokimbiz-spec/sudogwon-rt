@@ -55,6 +55,7 @@ BRAND = '데이터로 보는 재테크'
 total = len(items) + 2
 
 import card_style as C                                 # 공통 디자인 (재무·청약 카드와 같은 크림색 테마)
+C.WM_POS = C.WM_RIGHT                                  # 반투명 아이디: 왼쪽 위 것을 오른쪽으로 (전세 카드와 같게, 11-25)
 W, H = C.W, C.SH                                     # 캐러셀도 1080×1350 (인스타 세로 4:5)
 T = C.T
 

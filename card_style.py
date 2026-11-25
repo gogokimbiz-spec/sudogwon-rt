@@ -93,6 +93,12 @@ def cta(d, F, msg):
     d.text(((W - d.textlength(msg, font=F(38))) / 2, SH - 142), msg, font=F(38), fill=T.get('cta_t', T.get('pill_t', WHITE) if T['accent'] == T['pill'] else WHITE))
 
 
+# 반투명 아이디 위치 (가운데 좌표 3곳). 왼쪽 위 것을 오른쪽으로 옮긴 배치(WM_RIGHT)는 전세 카드와 같음.
+WM_LEFT = ((290, 560), (790, 820), (290, 1080))
+WM_RIGHT = ((600, 520), (790, 820), (290, 1080))
+WM_POS = WM_LEFT          # 카드 스크립트에서 C.WM_POS = C.WM_RIGHT 로 바꿔 씀
+
+
 def watermark(d, F, text=None, alpha=40, size=66):
     """내용 중간에 반투명 아이디 3개(비스듬히) – 캡처·퍼가기에도 아이디가 남게. 글씨 읽기를 방해하지 않을 만큼만 옅게"""
     im = getattr(d, '_image', None)
@@ -101,7 +107,7 @@ def watermark(d, F, text=None, alpha=40, size=66):
     tile = Image.new('RGBA', (tw, size + 36), (0, 0, 0, 0)); col = tuple(T['ink'][:3]) + (alpha,)
     ImageDraw.Draw(tile).text((15, 6), text, font=f, fill=col)
     tile = tile.rotate(24, expand=True, resample=Image.BICUBIC)
-    for cx, cy in ((290, 560), (790, 820), (290, 1080)):
+    for cx, cy in WM_POS:
         im.paste(tile, (int(cx - tile.width / 2), int(cy - tile.height / 2)), tile)
 
 

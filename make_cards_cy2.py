@@ -7,6 +7,7 @@
 import sys, os, glob, json, datetime, shutil, statistics, re
 from PIL import ImageFont
 import card_style as C
+C.WM_POS = C.WM_RIGHT                                  # 반투명 아이디: 왼쪽 위 것을 오른쪽으로 (전세 카드와 같게, 11-25)
 
 S = json.load(open(sys.argv[1], encoding='utf-8'))
 OUT = sys.argv[2]; os.makedirs(OUT, exist_ok=True)
