@@ -63,6 +63,9 @@ parts.append(f'<p style="margin:20px 0"><a href="{SITE}r/" style="display:inline
 parts.append('<hr><p><small>기준: 해당 달 계약된 아파트 매매 실거래 중 국평은 전용 83.5~86㎡ 미만, 소형은 57~61㎡ 미만. 같은 단지(시군구·단지명)는 그달 가장 비싼 1건만 넣고 가격순으로 16곳을 골랐습니다. '
              '해제 신고된 거래는 뺐습니다. 실거래는 계약 후 30일 안에 신고하므로, 늦게 신고된 거래는 반영되지 않았을 수 있습니다.<br>'
              '자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+# 해설 문단·알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 대응, blog_extra.py)
+import sys as _sx, os as _ox; _sx.path.insert(0, _ox.path.dirname(_ox.path.abspath(__file__))); import blog_extra
+parts = blog_extra.add(parts, 'top')
 content = ''.join(parts)
 labels = ['실거래', '국평', '소형 아파트', '최고 실거래가', '수도권 실거래가', '서울 아파트', '경기 아파트']
 
