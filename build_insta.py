@@ -137,7 +137,7 @@ CY = load('cheongyak/summary.json')
 CYV = {0: ('이번 주 청약', 'cheongyak/cards', ['single.png']),
        1: ('청약 결과', 'cheongyak/cards_tue', None),
        2: ('줍줍·로또 청약', 'cheongyak/cards_wed', None),
-       3: ('당첨 가점 커트라인', 'cheongyak/cards_thu', None),
+       # 3: 목요일 당첨 가점 커트라인 – 2026-11-26 사용자 요청으로 중단
        4: ('청약 단지분석', 'cheongyak/cards_sat', None)}
 if CY:
     order = ([WD] if WD in CYV else []) + ([0] if WD != 0 else [])   # 오늘 것, 없으면 월요일 것을 미리보기로
