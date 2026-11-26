@@ -1,7 +1,7 @@
 """인스타그램 게시용 페이지(site/insta/index.html)를 만듭니다 (GitHub Actions 용, 매일).
 사용법: python build_insta.py site
 - 이미 만들어진 카드 이미지와 게시 문구(caption.txt)를 한 페이지에 모읍니다. 카톡·텔레그램으로는 보내지 않습니다.
-- 실거래: 매일 / 전세 실거래: 매일 / 청약: 월~금 / 매매·전세 갭: 화 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml)
+- 실거래: 매일 / 전세 실거래: 매일 / 청약: 월~금 / 매매·전세 갭: 화 / 기업재무: 토(오늘 재무 글이 있는 날) / 동네 대표기업: 목 / 부동산 정책: 금(policy.yml) / 토허제 주간: 금(toheo.yml)
 - 검색엔진에 노출되지 않게 noindex. 사이트맵에도 넣지 않습니다.
 - 오늘 게시물은 insta/img/*.jpg 와 insta/posts.json 으로도 저장 (post_instagram.py 자동 게시용)
 - 해시태그는 5개로 줄입니다: #데이터로보는재테크 + 주제 태그 2개 + 그날 데이터(지역 등) 태그 2개
@@ -218,6 +218,13 @@ pol_img = imgs('policy', ['card.png'])
 if PL and PL.get('day') == TODAY.isoformat() and pol_img and read('policy/caption.txt'):
     sections.append(dict(key='policy', title='이번 주 부동산 정책', when='금', today=True,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=pol_img, alt=[], caption=read('policy/caption.txt')))
+
+# ── 7. 토허제 40곳 주간 아파트값 (금, toheo.yml 이 만든 카드 1장 – 2026-11-26)
+TH = load('toheo/summary.json')
+th_img = imgs('toheo', ['card.png'])
+if TH and TH.get('made') == TODAY.isoformat() and th_img and read('toheo/caption.txt'):
+    sections.append(dict(key='toheo', title='토허제 40곳 주간 아파트값', when='금', today=True,
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=th_img, alt=[], caption=trim_tags(read('toheo/caption.txt'), 6)))
 
 # ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)
 try:
