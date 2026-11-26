@@ -1,0 +1,163 @@
+name: 토허제 40곳 주간 아파트값
+
+# 매주 금요일 오전 11시쯤 (2026-11-26 사용자 확정 – 부동산원 주간 통계는 목요일 오후 공개라 다음 날 오전에 게시)
+# 한국부동산원 R-ONE 에서 토허제 40곳 주간 매매가격지수를 받아 신문 느낌 카드 1장을 만들고
+# 블로그 → 카톡(나에게) → 인스타그램 → 스레드 순서로 올립니다.
+# - 부동산원 접속이 GitHub 서버(해외)에서 막히면 사장님 PC(self-hosted)에서 자료만 받아 이어서 진행
+# - 이번 주 발표가 없으면(명절 등, 최신 조사일이 6일보다 오래됨) 게시하지 않음
+# - 수동 실행: Actions → 이 작업 → Run workflow (force=yes 면 오래된 자료라도 게시 + 카톡 다시 보냄)
+# - Secret REB_KEY(R-ONE 인증키)가 있으면 빠르게 받음 (없어도 sample 모드로 동작)
+
+on:
+  schedule:
+    - cron: '47 1 * * 5'      # 금 10:47 KST (GitHub 예약은 보통 10~20분 늦게 시작 → 11시 전후 게시)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'yes = 최신 자료가 오래돼도 게시하고, 이미 보낸 카톡도 다시 보냄'
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: toheo
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      ok: ${{ steps.f.outcome == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: f
+        name: 부동산원 자료 받기 (GitHub 서버)
+        continue-on-error: true
+        env:
+          REB_KEY: ${{ secrets.REB_KEY }}
+        run: python make_cards_toheo.py --fetch-only toheo_raw.json
+      - if: steps.f.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: toheo-raw
+          path: toheo_raw.json
+          retention-days: 3
+
+  fetch_pc:     # GitHub 서버에서 부동산원 접속이 안 될 때만 – 사장님 PC(한국 IP)에서 자료만 받음
+    needs: fetch
+    if: needs.fetch.outputs.ok != 'true'
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 25
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+    steps:
+      - uses: actions/checkout@v4
+      - name: 부동산원 자료 받기 (내 PC)
+        shell: cmd
+        env:
+          REB_KEY: ${{ secrets.REB_KEY }}
+        run: |
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          "%PY%" make_cards_toheo.py --fetch-only toheo_raw.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toheo-raw
+          path: toheo_raw.json
+          retention-days: 3
+
+  post:
+    needs: [fetch, fetch_pc]
+    if: always() && (needs.fetch.outputs.ok == 'true' || needs.fetch_pc.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: toheo-raw
+      - name: 카드 만들기
+        id: c
+        env:
+          TOHEO_MAX_AGE: ${{ inputs.force == 'yes' && '99' || '6' }}
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/Noto*CJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          rm -rf toheo_now && mkdir -p toheo_now
+          set +e; python make_cards_toheo.py toheo_now/toheo toheo_raw.json; RC=$?; set -e
+          if [ $RC = 2 ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ $RC = 0 ] || exit $RC
+          B=$(python -c "import json;print(json.load(open('toheo_now/toheo/summary.json',encoding='utf-8'))['base_day'])")
+          mkdir -p cards/toheo && cp toheo_now/toheo/card.png "cards/toheo/$B.png"
+          echo "base=$B" >> "$GITHUB_OUTPUT"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/toheo && git commit -q -m "토허제 카드 $B" || true
+          git pull -q --rebase --autostash && git push -q
+      - name: 블로그 글
+        if: steps.c.outputs.skip != '1'
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger_toheo.py toheo_now/toheo/summary.json
+      - name: 인스타·스레드 게시물 만들고 저장소에 올리기 (공개 주소용)
+        if: steps.c.outputs.skip != '1'
+        id: up
+        run: |
+          python build_insta.py toheo_now
+          cp toheo_now/toheo/summary.json "cards/toheo/${{ steps.c.outputs.base }}.json"
+          git add -A toheo_now cards/toheo && git commit -q -m "토허제 게시물 ${{ steps.c.outputs.base }}" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/toheo_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        if: steps.c.outputs.skip != '1'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          TOHEO_FORCE: ${{ inputs.force == 'yes' && '1' || '0' }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 kakao_send_toheo.py toheo_now/toheo/summary.json
+      - name: 인스타그램
+        if: steps.c.outputs.skip != '1'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        if: steps.c.outputs.skip != '1'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
+      - name: 보낸 기록 저장
+        if: always() && steps.c.outputs.skip != '1'
+        run: |
+          git add -A cards/toheo && git commit -q -m "토허제 카톡 기록 ${{ steps.c.outputs.base }}" || exit 0
+          git pull -q --rebase --autostash && git push -q
