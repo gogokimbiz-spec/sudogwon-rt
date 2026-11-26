@@ -3,7 +3,7 @@
         python make_cards_toheo.py --fetch-only raw.json      (자료만 받기 – PC 실행기 대비용, 표준 라이브러리만 사용)
   - 바탕: 환경변수 TOHEO_BG (news=신문 느낌 기본 / slate / white / cream)
   - raw.json 을 안 주면 한국부동산원 R-ONE Open API 에서 받음 (환경변수 REB_KEY = R-ONE 인증키).
-    인증키가 없으면 sample 모드(한 번에 5건)로도 지역 하나씩 받아 동작은 하지만, 키를 넣어 쓰는 것을 권장.
+    인증키가 없으면 sample 모드(한 번에 5건) – 지난 자료는 state/toheo_hist.json 에 보관하고 매주 지역마다 최근 3주만 받음.
 결과: OUT/card.png, OUT/caption.txt, OUT/summary.json, OUT/raw.json
 값: R-ONE '(주) 매매가격지수'(아파트, STATBL_ID T244183132827305) 의 최신 주 지수 / 전주 지수 − 1 (%, 소수 둘째 자리).
     부동산원 보도자료의 '주간 변동률'과 같은 값 (2026-11-23 기준 송파 -0.50, 기흥 +0.52 확인).
@@ -49,12 +49,16 @@ def wk_id(d):
     y, w, _ = d.isocalendar(); return f'{y}{w:02d}'
 
 
+HIST = os.path.join(HERE, 'state', 'toheo_hist.json')   # 지난 자료 보관 {CLS_ID: {주: [조사일, 지수]}} – 매주 최근 몇 주만 새로 받음 (toheo.yml 이 커밋)
+
+
 def get(cls_id, start, end=None):
+    """한 지역 자료. 실패하면 3번까지 다시 시도 후 SystemExit (GitHub 서버가 막히면 바로 PC 로 넘어가게)"""
     q = {'Type': 'json', 'STATBL_ID': STATBL, 'DTACYCLE_CD': 'WK', 'CLS_ID': cls_id, 'START_WRTTIME': start}
     if end: q['END_WRTTIME'] = end
     if os.environ.get('REB_KEY'): q.update(KEY=os.environ['REB_KEY'], pIndex=1, pSize=1000)
     url = API + '?' + urllib.parse.urlencode(q)
-    for k in range(4):
+    for k in range(3):
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'}), timeout=30) as r:
                 j = json.loads(r.read().decode('utf-8'))
@@ -62,30 +66,50 @@ def get(cls_id, start, end=None):
             return [[x['CLS_ID'], x['CLS_FULLNM'], x['WRTTIME_IDTFR_ID'], x['WRTTIME_DESC'], x['DTA_VAL']]
                     for x in j['SttsApiTblData'][1].get('row', [])]
         except Exception as e:
-            print('  다시 시도', cls_id, start, e); time.sleep(3 + k * 5)
-    raise SystemExit(f'R-ONE 응답 없음 (CLS_ID {cls_id})')
+            print('  다시 시도', cls_id, start, e); time.sleep(4 + k * 6)
+    raise SystemExit(f'R-ONE 응답 없음 (CLS_ID {cls_id}) – 접속이 막힌 것 같습니다')
+
+
+def load_hist():
+    try: return {int(k): v for k, v in json.load(open(HIST, encoding='utf-8')).items()}
+    except Exception: return {}
 
 
 def fetch():
-    """키가 있으면 지역마다 한 번(최대 1000건). 키가 없으면 sample 모드(한 번에 5건)라 5주씩 나눠 받음(병렬 8개)."""
-    from concurrent.futures import ThreadPoolExecutor
+    """보관 자료(state/toheo_hist.json) + 지역마다 최근 3주만 새로 받기 (한 번에 하나씩, 천천히 – 2026-11-26 GitHub 서버에서
+    병렬로 많이 부르면 '연결 끊김'으로 막혀서 바꿈). 보관 자료가 없는 지역만 5주씩 나눠 약 4년치를 받음."""
+    H = load_hist(); rows = []
+    start = wk_id(TODAY - datetime.timedelta(days=21))
     mondays = [TODAY - datetime.timedelta(days=TODAY.weekday() + 7 * k) for k in range(HIST_WEEKS, -1, -1)]
-    if os.environ.get('REB_KEY'):
-        jobs = [(cid, wk_id(mondays[0]), None) for cid in IDS]
-    else:
-        wins = [(wk_id(mondays[i]), wk_id(mondays[min(i + 4, len(mondays) - 1)])) for i in range(0, len(mondays), 5)]
-        jobs = [(cid, a_, b_) for cid in IDS for a_, b_ in wins]
-    with ThreadPoolExecutor(8) as ex:
-        parts = list(ex.map(lambda j: get(*j), jobs))
-    return [row for p in parts for row in p]
+    for cid in IDS:
+        if len(H.get(cid, {})) >= 20:
+            got = get(cid, start)
+        else:
+            got = []
+            for i in range(0, len(mondays), 5):
+                got += get(cid, wk_id(mondays[i]), wk_id(mondays[min(i + 4, len(mondays) - 1)])); time.sleep(0.4)
+        for c, _, wk, desc, v in got: H.setdefault(int(c), {})[wk] = [desc, v]
+        time.sleep(0.5)
+    names = {cid: n for _, n, _, cid in REGIONS}; names.update({cid: n for n, cid in EXTRA})
+    for cid, wks in H.items():
+        for wk, (desc, v) in wks.items(): rows.append([cid, names.get(cid, ''), wk, desc, v])
+    return rows
+
+
+def save_hist(raw):
+    H = {}
+    for cid, _, wk, desc, v in raw: H.setdefault(str(cid), {})[wk] = [desc, v]
+    os.makedirs(os.path.dirname(HIST), exist_ok=True)
+    json.dump(H, open(HIST, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'), sort_keys=True)
 
 
 IDS = [cid for *_, cid in REGIONS] + [cid for _, cid in EXTRA]
 if FETCH_ONLY:
     raw = fetch(); json.dump(raw, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False)
-    print(f'R-ONE 자료 {len(raw)}건 → {OUT}'); sys.exit(0 if len(raw) > 1000 else 1)
+    print(f'R-ONE 자료 {len(raw)}건 → {OUT}'); sys.exit(0 if len(raw) > 2000 else 1)
 raw = json.load(open(sys.argv[2], encoding='utf-8')) if len(sys.argv) > 2 else fetch()
 json.dump(raw, open(os.path.join(OUT, 'raw.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+if os.environ.get('TOHEO_SAVE_HIST') == '1': save_hist(raw)   # toheo.yml 이 state/toheo_hist.json 을 갱신·커밋
 ser = {}
 for cid, _, wk, desc, v in raw: ser.setdefault(cid, {})[wk] = (desc, v)
 weeks = sorted({wk for s in ser.values() for wk in s})
