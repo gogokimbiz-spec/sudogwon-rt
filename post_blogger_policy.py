@@ -59,6 +59,9 @@ parts.append(f'<p style="margin:20px 0"><a href="{PAGE}" style="display:inline-b
              '🏠 수도권 아파트 실거래가 지도 ›</a></p>')
 parts.append('<hr><p><small>자료: 국토교통부 보도자료(공공누리 제1유형). 보도자료의 제목·요약을 옮긴 글로, '
              '자세한 내용과 시행 시기는 원문을 확인하세요.</small></p>')
+# 해설 문단·알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 대응, blog_extra.py)
+import sys as _sx, os as _ox; _sx.path.insert(0, _ox.path.dirname(_ox.path.abspath(__file__))); import blog_extra
+parts = blog_extra.add(parts, 'policy')
 content = ''.join(parts)
 labels = list(dict.fromkeys(['부동산 정책', '주택공급'] + [r['tag'] for r in rows]))
 
