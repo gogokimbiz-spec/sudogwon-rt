@@ -78,6 +78,9 @@ parts.append(f'<p style="margin:20px 0"><a href="{SITE}r/{S["code"]}.html" style
 parts.append('<hr><p><small>기준: 최근 3개월 계약된 아파트 매매(해제 거래 제외)와 전세(월세 0원 계약만). 같은 단지·같은 전용면적끼리 비교해 중앙값의 차이를 갭으로 계산했습니다. '
              '실거래는 계약 후 30일 안에 신고하므로 최근 거래는 앞으로 늘어날 수 있고, 실제 갭은 층·향·수리 상태에 따라 다릅니다.<br>'
              '자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+# 해설 문단·알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 대응, blog_extra.py)
+import sys as _sx, os as _ox; _sx.path.insert(0, _ox.path.dirname(_ox.path.abspath(__file__))); import blog_extra
+parts = blog_extra.add(parts, 'gap', S, d)
 content = ''.join(parts)
 labels = ['실거래', '매매전세갭', '전세가율', '갭투자', N, R.split(' ')[0] + ' 아파트']
 
