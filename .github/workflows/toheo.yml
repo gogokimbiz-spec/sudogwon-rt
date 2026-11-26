@@ -6,7 +6,8 @@ name: 토허제 40곳 주간 아파트값
 # - 부동산원 접속이 GitHub 서버(해외)에서 막히면 사장님 PC(self-hosted)에서 자료만 받아 이어서 진행
 # - 이번 주 발표가 없으면(명절 등, 최신 조사일이 6일보다 오래됨) 게시하지 않음
 # - 수동 실행: Actions → 이 작업 → Run workflow (force=yes 면 오래된 자료라도 게시 + 카톡 다시 보냄)
-# - Secret REB_KEY(R-ONE 인증키)가 있으면 빠르게 받음 (없어도 sample 모드로 동작)
+# - 지난 자료는 state/toheo_hist.json 에 보관, 매주 지역마다 최근 3주만 한 번씩 천천히 받음 (병렬로 많이 부르면 막힘 – 2026-11-26)
+# - Secret REB_KEY(R-ONE 인증키)는 있으면 사용 (없어도 sample 모드로 동작)
 
 on:
   schedule:
@@ -29,7 +30,7 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     outputs:
       ok: ${{ steps.f.outcome == 'success' }}
     steps:
@@ -94,6 +95,7 @@ jobs:
         id: c
         env:
           TOHEO_MAX_AGE: ${{ inputs.force == 'yes' && '99' || '6' }}
+          TOHEO_SAVE_HIST: '1'
         run: |
           sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/Noto*CJKkr-*.otf /usr/share/fonts/noto-kr/
           pip install -q pillow
@@ -105,7 +107,7 @@ jobs:
           mkdir -p cards/toheo && cp toheo_now/toheo/card.png "cards/toheo/$B.png"
           echo "base=$B" >> "$GITHUB_OUTPUT"
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A cards/toheo && git commit -q -m "토허제 카드 $B" || true
+          git add -A cards/toheo state/toheo_hist.json && git commit -q -m "토허제 카드 $B" || true
           git pull -q --rebase --autostash && git push -q
       - name: 블로그 글
         if: steps.c.outputs.skip != '1'
