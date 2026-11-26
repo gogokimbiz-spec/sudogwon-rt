@@ -39,6 +39,9 @@ parts.append(f'<p style="margin:20px 0"><a href="{SITE}" style="display:inline-b
              '🏠 수도권 아파트 실거래가 지도 보기 ›</a></p>')
 parts.append(f'<hr><p><small>사건: {esc(S["case"])}<br>자료: <a href="{esc(S.get("source_url", ""))}">대법원 판례속보 「{esc(S.get("post_title", ""))}」</a><br>'
              '판결 요지를 쉽게 풀어 쓴 글로, 법률 자문이 아닙니다. 실제 사안은 사실관계에 따라 결론이 달라질 수 있으니 전문가와 상담하세요.</small></p>')
+# 해설 문단·알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 대응, blog_extra.py)
+import sys as _sx, os as _ox; _sx.path.insert(0, _ox.path.dirname(_ox.path.abspath(__file__))); import blog_extra
+parts = blog_extra.add(parts, 'law')
 content = ''.join(parts)
 labels = list(dict.fromkeys(['부동산 판례', '대법원 판례'] + [k for k in (B.get('keywords') or []) if k][:4]))
 
