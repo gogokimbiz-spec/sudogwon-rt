@@ -7,7 +7,7 @@ on:
   workflow_dispatch:         # Actions 탭에서 수동 실행
     inputs:
       cy_post:
-        description: '청약 블로그 글·카톡 지금 보내기 (mon=이번 주 일정, tue=청약 결과, wed=줍줍·로또, thu=가점 커트라인, fri=단지분석)'
+        description: '청약 블로그 글·카톡 지금 보내기 (mon=이번 주 일정, tue=청약 결과, wed=줍줍·로또, thu=가점 커트라인(자동 중단·수동만), fri=단지분석)'
         type: choice
         options: ['none', 'mon', 'tue', 'wed', 'thu', 'fri']
         default: 'none'
@@ -225,7 +225,7 @@ jobs:
           # 화(청약 결과)·수(줍줍·로또)·목(가점 커트라인)·금(단지분석, 폴더 cards_sat) – 매일 만들어 두고 인스타·블로그·카톡 이미지에 씀
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_tue --mode=tue || echo '화요일 청약 카드 실패'
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_wed --mode=wed || echo '수요일 청약 카드 실패'
-          python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_thu --mode=thu || echo '목요일 청약 카드 실패'
+          # 목요일 가점 커트라인 카드는 2026-11-26 사용자 요청으로 중단 (블로그·카톡·인스타·스레드 모두)
           python make_cards_cy2.py site/cheongyak/summary.json site/cheongyak/cards_sat --mode=sat || echo '토요일 청약 카드 실패'
       - name: 부동산 판례 카드 (월·목 – 금·수 저녁에 law.yml 이 만든 것)
         continue-on-error: true
@@ -322,10 +322,10 @@ jobs:
           ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
           ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
         run: |
-          # 월: 이번 주 청약 일정 / 화: 청약 결과 / 수: 줍줍·로또 / 목: 당첨 가점 커트라인 / 금: 단지분석 (수동 실행 때는 cy_post 선택값)
+          # 월: 이번 주 청약 일정 / 화: 청약 결과 / 수: 줍줍·로또 / (목: 가점 커트라인 – 11-26 중단) / 금: 단지분석 (수동 실행 때는 cy_post 선택값)
           M="${{ inputs.cy_post }}"
           if [ -z "$M" ] || [ "$M" = "none" ]; then
-            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 2) M=tue;; 3) M=wed;; 4) M=thu;; 5) M=fri;; *) M=none;; esac
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 2) M=tue;; 3) M=wed;; 4) M=none;; 5) M=fri;; *) M=none;; esac
           fi
           if [ "$M" = "none" ]; then echo '오늘은 청약 글이 없는 요일입니다'; exit 0; fi
           [ "$M" = "mon" ] && { python fetch_news_cy.py site/cheongyak/summary.json || echo '청약 뉴스 단계 실패 - 뉴스 없이 계속'; }
@@ -472,7 +472,7 @@ jobs:
         run: |
           M="${{ inputs.cy_post }}"
           if [ -z "$M" ] || [ "$M" = "none" ]; then
-            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 2) M=tue;; 3) M=wed;; 4) M=thu;; 5) M=fri;; *) M=none;; esac
+            case "$(TZ=Asia/Seoul date +%u)" in 1) M=mon;; 2) M=tue;; 3) M=wed;; 4) M=none;; 5) M=fri;; *) M=none;; esac
           fi
           if [ "$M" != "none" ]; then
             curl -sf "${{ needs.deploy.outputs.page_url }}cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json || curl -sf "https://gogokimbiz-spec.github.io/sudogwon-rt/cheongyak/summary.json?t=$(date +%s)" -o cy_summary.json
