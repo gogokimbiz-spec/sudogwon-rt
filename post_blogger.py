@@ -146,6 +146,77 @@ if _tp or _nh6:
     parts.append(f"<h3>오늘의 주요 거래 {len(_tp) + len(_nh6)}건</h3><p><small>{LB} {VB} 거래와 신고가를 가격순으로 줄 세워 5위마다 1건씩, 같은 구는 1건만 골랐습니다(앞의 숫자가 순위). "
                  f"신고가는 같은 단지·같은 전용면적의 {HT}보다 비싸게 팔린 거래입니다.</small></p>")
     parts.append(f"<table {T}><tr><th {TH}>지역</th><th {TH}>단지</th><th {THR}>전용·층</th><th {THR}>거래가</th></tr>{_rows}</table>")
+
+# 3-1. 오늘 숫자 읽기 + 알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 거절 대응)
+#      표·이미지만 있던 글에 그날 숫자로 만든 해설 문단을 넣음. 날마다 숫자·지역·단지가 달라 문장도 매일 달라짐.
+def _won(v):
+    v = int(round(v)); e, m = divmod(v, 10000)
+    return (f'{e}억 {m:,}만 원' if m else f'{e}억 원') if e else f'{m:,}만 원'
+def _jo(w, a, b):  # 받침 있으면 a, 없으면 b
+    c = w[-1]
+    return w + (a if '가' <= c <= '힣' and (ord(c) - 0xAC00) % 28 else b)
+_ins = []
+_G = [g for g in (S.get('groups') or []) if g.get('trade_count')]
+if _G:
+    _r = lambda g: g['nh_count'] / g['trade_count'] * 100
+    _gl_txt = ', '.join(f"{g['name']} {g['trade_count']}건" for g in _G)
+    _t = f"권역별로 보면 {_gl_txt}이 새로 신고됐어요."
+    if nh and len(_G) > 1:
+        _gh, _gl = max(_G, key=_r), min(_G, key=_r)
+        _t += f" 거래 가운데 신고가 비율은 {_jo(_gh['name'], '이', '가')} {_r(_gh):.0f}%({_gh['nh_count']}/{_gh['trade_count']}건)로 가장 높았고, {_jo(_gl['name'], '은', '는')} {_r(_gl):.0f}%로 가장 낮았어요."
+    _ins.append(_t)
+_med, _jm = S.get('trade_median_man'), S.get('jeonse_median_man')
+if _med and _top_all:
+    _t0 = _top_all[0]
+    _t = f"이날 신고된 매매의 중간 가격(중앙값)은 {_won(_med)}이에요. 가장 비싼 거래인 {_t0['region']} {_t0['apt']} 전용 {_t0['area']}㎡({_won(_t0['price_man'])})는 중간 가격의 약 {_t0['price_man'] / _med:.0f}배였어요."
+    if _jm:
+        _t += f" 같은 날 전세의 중간 가격은 {_won(_jm)}으로, 매매 중간 가격의 {_jm / _med * 100:.0f}% 수준이에요. 단지가 서로 달라 정확한 전세가율은 아니고, 시장 분위기를 보는 참고 숫자예요."
+    _ins.append(_t)
+_nhp = [t for t in nh if t.get('prev_high_man')]
+if len(_nhp) >= 3:
+    _jump = lambda t: (t['price_man'] / t['prev_high_man'] - 1) * 100
+    _js = sorted(_jump(t) for t in _nhp)
+    _mj = _js[len(_js) // 2]
+    _small = sum(1 for v in _js if v <= 1)
+    _t = f"신고가 {len(nh)}건이 이전 최고가보다 얼마나 올랐는지 보면, 중간값은 {_mj:.1f}%예요."
+    if _small:
+        _t += f" 이전 최고가와 1% 이내 차이로 아슬아슬하게 넘긴 거래가 {_small}건이라, 신고가라도 가격이 크게 뛴 건 아닌 경우가 많아요."
+    _cut = (d - datetime.timedelta(days=365 * 3)).isoformat()
+    _recent = [t for t in _nhp if (t.get('prev_high_date') or '') >= _cut]
+    if _recent:
+        _b = max(_recent, key=_jump)
+        _t += (f" 최근 3년 안의 기록을 가장 크게 넘어선 곳은 {_b['region']} {_b['apt']} 전용 {_b['area']}㎡로, "
+               f"{_b['prev_high_date'][:4]}년 {int(_b['prev_high_date'][5:7])}월 최고가 {_won(_b['prev_high_man'])}보다 {_won(_b['price_man'] - _b['prev_high_man'])} 높은 {_won(_b['price_man'])}에 거래됐어요.")
+    _old = len(_nhp) - len(_recent)
+    if _old:
+        _t += f" 3년 넘게 깨지지 않던 기록을 넘은 거래도 {_old}건 있었어요."
+    _ins.append(_t)
+if len(nh) >= 3:
+    _sm = sum(1 for t in nh if t['area'] <= 60); _md = sum(1 for t in nh if 60 < t['area'] <= 85); _lg = len(nh) - _sm - _md
+    _new = sum(1 for t in nh if t.get('built') and t['built'] >= d.year - 10)
+    _old30 = sum(1 for t in nh if t.get('built') and t['built'] <= d.year - 30)
+    _t = f"신고가를 면적별로 나누면 전용 60㎡ 이하 {_sm}건, 60~85㎡ {_md}건, 85㎡ 초과 {_lg}건이에요. 준공 10년 이내 새 아파트는 {_new}건({_new / len(nh) * 100:.0f}%)이고"
+    _t += f", 준공 30년이 넘은 단지도 {_old30}건이에요." if _old30 else ', 준공 30년이 넘은 단지는 없었어요.'
+    if _old30:
+        _t += " 오래된 단지의 신고가는 집 자체보다 재건축 기대가 가격에 반영된 경우가 많아요."
+    _ins.append(_t)
+_u, _dn = (S.get('up5') or [None])[0], (S.get('down5') or [None])[0]
+if _u and abs(_u['chg']) >= 10:
+    _ins.append(f"맨 위 요약의 30일 변동({area_name(_u['region'])} {_u['chg']:+.1f}%)처럼 10%가 넘는 숫자는 조심해서 봐야 해요. 30일 변동은 거래가 적은 지역일수록 비싼 거래 몇 건에 크게 흔들려요. "
+                "한 번의 큰 숫자보다 다음 주에도 같은 방향이 이어지는지 함께 보는 게 좋아요.")
+_TIPS = [
+    ('실거래는 30일 안에 신고해요', '아파트를 사고팔면 계약일로부터 30일 안에 신고해요. 그래서 오늘 올라온 거래 중에는 몇 주 전에 계약한 것도 섞여 있어요. 표의 계약일을 함께 보면 언제 시장 분위기인지 알 수 있어요.'),
+    ('신고가 1건만으로 시세를 판단하지 마세요', '신고가는 같은 단지·같은 면적에서 이전보다 비싸게 팔린 한 건의 기록이에요. 층·향·리모델링 여부에 따라 한 건만 튈 수 있어요. 같은 단지에서 비슷한 가격의 거래가 이어지는지가 더 중요해요.'),
+    ('해제된 거래는 뺐어요', '실거래로 신고됐다가 나중에 계약이 취소되면 해제 신고가 올라와요. 이 블로그는 해제된 거래를 모두 뺐어요. 가격을 띄우려고 신고만 하고 취소하는 경우도 있어서, 해제 여부는 꼭 확인해야 해요.'),
+    ('전용면적과 공급면적은 달라요', '흔히 말하는 34평은 공급면적 기준이고, 실거래 자료의 84㎡는 전용면적이에요. 같은 단지라도 면적이 다르면 가격을 바로 비교할 수 없어서, 신고가도 같은 전용면적끼리만 비교했어요.'),
+    ('3.3㎡당 가격으로 비교해요', '3.3㎡당 가격은 거래가를 전용면적으로 나누고 3.3을 곱한 값으로, 흔히 말하는 평당 가격이에요. 크기가 다른 아파트나 지역끼리 비교할 때 써요. 다만 전용면적 기준이라 분양 광고의 평당 가격과는 다를 수 있어요.'),
+    ('직거래와 가족 간 거래는 가격이 다를 수 있어요', '중개사를 거치지 않은 직거래나 가족끼리의 거래는 시세보다 훨씬 싸거나 비싸게 신고되기도 해요. 주변 거래와 동떨어진 가격이 보이면 그런 거래인지 의심해 볼 만해요.'),
+    ('호가와 실거래가는 달라요', '부동산 앱의 매물 가격은 집주인이 원하는 호가예요. 실거래가는 실제로 계약된 가격이라 호가보다 낮은 경우가 많아요. 집을 알아볼 때는 같은 단지의 최근 실거래가부터 확인하세요.'),
+]
+_tip = _TIPS[d.weekday()]
+if _ins:
+    parts.append('<h3>오늘 숫자 읽기</h3>' + ''.join(f'<p style="font-size:15.5px;line-height:1.75">{esc(x)}</p>' for x in _ins))
+parts.append(f'<h3>알아두면 좋은 점: {esc(_tip[0])}</h3><p style="font-size:15.5px;line-height:1.75">{esc(_tip[1])}</p>')
 # 3. 신고가 표
 if nh:
     _nh50 = _nh_all[:50]                           # 2026-11-18: 신고가가 하루 100~200건이라 표는 가격 상위 50건만
