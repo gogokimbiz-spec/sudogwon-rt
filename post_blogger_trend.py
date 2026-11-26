@@ -106,6 +106,9 @@ if ad_client and ad_slot:
 parts.append('<hr><p><small>계산 방법: 시군구마다 기간 안 아파트 매매 실거래의 3.3㎡당 가격(거래가 ÷ 전용면적 × 3.3058) 중앙값을 구해 비교했습니다. '
              '비싼 단지가 많이 팔린 기간은 실제 시세보다 오른 것처럼 보일 수 있습니다. 실거래는 계약 후 30일 안에 신고하므로 최근 기간 숫자는 앞으로 바뀔 수 있는 잠정치입니다.<br>'
              '자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API), 해제 신고 거래 제외. 이 글은 참고용 정보이며 투자 권유가 아닙니다.</small></p>')
+# 해설 문단·알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 대응, blog_extra.py)
+import sys as _sx, os as _ox; _sx.path.insert(0, _ox.path.dirname(_ox.path.abspath(__file__))); import blog_extra
+parts = blog_extra.add(parts, 'trend', S, None, MODE)
 content = ''.join(parts)
 labels = ['실거래', '구별 상승률', '아파트값 순위', '수도권 실거래가'] + list(dict.fromkeys(area_name(r['region']) + ' 아파트' for r in up[:3] + dn[:2]))
 
