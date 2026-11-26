@@ -27,13 +27,12 @@ VER = f"{os.environ.get('GITHUB_RUN_ID', '')}{os.environ.get('GITHUB_RUN_ATTEMPT
 title1 = S['title'].replace('\n', ' ')
 if PREVIEW:
     img = f"https://raw.githubusercontent.com/{REPO}/main/cards/law/{S['day']}.png"
-    link = f'https://github.com/{REPO}/actions/workflows/law.yml'
+    link = 'https://sudogwon-rt.blogspot.com/'   # 카카오는 앱에 등록한 도메인(블로그·지도 사이트)만 열려서 github.com 링크는 '페이지 오류'가 남 (11-26)
     tpl = {'object_type': 'feed',
            'content': {'title': f"👀 [미리보기] {S['day'][5:].replace('-', '/')}({'월화수목금토일'[datetime.date.fromisoformat(S['day']).weekday()]}) 아침 올라갈 판례",
-                       'description': f"{title1}\n{S['case_no']} · 그대로 두면 그날 아침 자동 게시 · 바꾸려면 Claude 에게 말씀",
+                       'description': f"{title1}\n{S['case_no']} · 그대로 두면 그날 아침 자동 게시 · 바꾸거나 건너뛰려면 Claude 에게 말씀해 주세요",
                        'image_url': f'{img}?v={VER}', 'image_width': 1080, 'image_height': 1350,
-                       'link': {'web_url': link, 'mobile_web_url': link}},
-           'buttons': [{'title': '이번 주 건너뛰기', 'link': {'web_url': link, 'mobile_web_url': link}}]}
+                       'link': {'web_url': link, 'mobile_web_url': link}}}
 else:
     link = S.get('blog_url') or 'https://sudogwon-rt.blogspot.com/'
     tpl = {'object_type': 'feed',
