@@ -259,7 +259,7 @@ def draw_map(im, box):
         g = f['geometry']; polys[f['properties']['c']] = [g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']
     pts = [p for c in val for pl in polys.get(c, []) for p in pl[0]]          # 화면 범위 = 토허제 지역 경계 상자
     x0, x1 = min(p[0] for p in pts), max(p[0] for p in pts); y0, y1 = min(p[1] for p in pts), max(p[1] for p in pts)
-    kx = math.cos(math.radians((y0 + y1) / 2)); bw, bh = box[2] - box[0], box[3] - box[1]; pad = 14
+    kx = math.cos(math.radians((y0 + y1) / 2)); bw, bh = box[2] - box[0], box[3] - box[1]; pad = 6
     s_ = min((bw - 2 * pad) / ((x1 - x0) * kx), (bh - 2 * pad) / (y1 - y0))
     ox = (bw - (x1 - x0) * kx * s_) / 2; oy = (bh - (y1 - y0) * s_) / 2
     P = lambda p: (ox + (p[0] - x0) * kx * s_, oy + (y1 - p[1]) * s_)
@@ -278,31 +278,61 @@ def draw_map(im, box):
     for poly in polys.get(rows[0]['code'], []):       # 1위 지역 노란 테두리
         q = [P(p) for p in poly[0]]; d.line(q + [q[0]], fill=C.T['accent'], width=5)
     for (cx, cy), r in labels:
-        t = r['short']; f = F(18 if len(t) <= 2 else 15, 'Black'); col = color(r['chg'])
+        t = r['short']; f = F(22 if len(t) <= 2 else 18, 'Black'); col = color(r['chg'])   # 지도 커진 만큼 이름도 조금 크게
         dx, dy = NUDGE.get(t, (0, 0))
-        d.text((cx + dx - d.textlength(t, font=f) / 2, cy + dy - 11), t, font=f, fill=on(col))
+        d.text((cx + dx - d.textlength(t, font=f) / 2, cy + dy - 13), t, font=f, fill=on(col))
     im.paste(layer, (box[0], box[1]))
 
 
-def draw_list(d, box):
-    x0, y0, x1, y1 = box; half = (len(rows) + 1) // 2; colw = (x1 - x0 - 18) / 2; rh = (y1 - y0) / half
+# 11-26 사용자(카톡에서 잘 안 보임): 왼쪽 글씨 키우고, 지역 이름과 %를 왼쪽으로 붙여 표 폭을 줄이고, 그만큼 지도를 크게
+LF = dict(rank=22, gu=30, pct=27, pctp=18)   # 예전 순위 20 · 구 24 · % 22 → 크게 (%기호는 작게 붙여 폭 절약)     # 왼쪽 표 글씨 크기
+
+
+def pct_split(v):                                   # '+0.52%' → ('+0.52', '%')
+    t = pc(v); return t[:-1], '%'
+
+
+def pct_w(d, v):
+    a, b = pct_split(v); return d.textlength(a, font=F(LF['pct'], 'Black')) + 1 + d.textlength(b, font=F(LF['pctp'], 'Black'))
+
+
+def list_layout(d):
+    """두 열 표의 열 폭: 순위 + (도시) + 구 이름이 가장 긴 줄에 맞추고 바로 옆에 % 상자"""
+    half = (len(rows) + 1) // 2
+    def name_w(r):
+        w = 0
+        gu = r['short']                                # 표에는 짧은 이름 ('용인 기흥구' → '기흥', '서대문구' → '서대문') – 표 폭을 줄여 지도를 크게
+        return w + d.textlength(gu, font=FS(LF['gu'], 'Bold') if NEWS else F(LF['gu'], 'Bold'))
+    pw = max(pct_w(d, r['chg']) for r in rows) + 10
+    cols = []
+    for c in range(2):
+        rs = rows[c * half:(c + 1) * half]
+        nw = max(name_w(r) for r in rs) if rs else 0
+        rw = d.textlength(str(max(r['rank'] for r in rs)), font=F(LF['rank'], 'Medium')) + 8 if rs else 0
+        cols.append((rw, nw, pw))
+    return half, cols
+
+
+def draw_list(d, box, layout):
+    x0, y0, x1, y1 = box; half, cols = layout; rh = (y1 - y0) / half; GAPC = 8
+    xs = [x0, x0 + sum(cols[0]) + 8 + GAPC]
     for i, r in enumerate(rows):
-        cx = x0 + (i // half) * (colw + 18); cy = y0 + (i % half) * rh
+        c = i // half; rw, nw, pw = cols[c]; cx = xs[c]; cy = y0 + (i % half) * rh; colw = rw + nw + 8 + pw
         col = color(r['chg'])
         if NEWS and i % half: d.line((cx, cy, cx + colw, cy), fill=C.T['line'], width=1)     # 신문 표처럼 가는 줄
-        if r['rank'] == 1: d.rounded_rectangle((cx - 6, cy + 2, cx + colw + 4, cy + rh - 2), 1 if NEWS else 7, outline=C.T['accent'], width=3)
-        d.text((cx + 2, cy + (rh - 24) / 2 - 4), f"{r['rank']}", font=F(20, 'Medium'), fill=C.INK2)
-        nx = cx + 30
-        if ' ' in r['name']:                           # '용인 기흥구' → 작은 회색 '용인' + '기흥구'
-            city, gu = r['name'].split(' ', 1)
-            d.text((nx, cy + (rh - 18) / 2 - 3), city, font=F(17, 'Medium'), fill=C.INK2)
-            nx += d.textlength(city, font=F(17, 'Medium')) + 5
-        else: gu = r['name']
-        d.text((nx, cy + (rh - 26) / 2 - (7 if NEWS else 5)), gu, font=FS(24, 'Bold') if NEWS else F(24, 'Bold'), fill=C.INK)
-        v = pc(r['chg']); vf = F(22, 'Black'); vw = d.textlength(v, font=vf)
-        bx = cx + colw - vw - 14
-        d.rounded_rectangle((bx, cy + 7, cx + colw, cy + rh - 7), 1 if NEWS else 7, fill=col)
-        d.text((bx + 7, cy + (rh - 23) / 2 - 5), v, font=vf, fill=on(col))
+        if r['rank'] == 1: d.rounded_rectangle((cx - 5, cy + 2, cx + colw + 3, cy + rh - 2), 1 if NEWS else 7, outline=C.T['accent'], width=3)
+        rf = F(LF['rank'], 'Medium'); rs_ = f"{r['rank']}"
+        d.text((cx + rw - 8 - d.textlength(rs_, font=rf), cy + (rh - LF['rank']) / 2 - 5), rs_, font=rf, fill=C.INK2)   # 순위 오른쪽 맞춤
+        nx = cx + rw
+        gu = r['short']                                # 짧은 이름 (전체 이름은 블로그·캡션에)
+        d.text((nx, cy + (rh - LF['gu']) / 2 - (8 if NEWS else 6)), gu, font=FS(LF['gu'], 'Bold') if NEWS else F(LF['gu'], 'Bold'), fill=C.INK)
+        a_, b_ = pct_split(r['chg']); vf = F(LF['pct'], 'Black'); vw = pct_w(d, r['chg'])
+        bx = cx + rw + nw + 8                          # % 상자를 이름 바로 옆(열마다 같은 위치)에
+        d.rounded_rectangle((bx, cy + 6, bx + pw, cy + rh - 6), 1 if NEWS else 7, fill=col)
+        tx = bx + (pw - vw) / 2; ty = cy + (rh - LF['pct']) / 2 - 6
+        d.text((tx, ty), a_, font=vf, fill=on(col))
+        d.text((tx + d.textlength(a_, font=vf) + 1, ty + LF['pct'] - LF['pctp'] - 1), b_, font=F(LF['pctp'], 'Black'), fill=on(col))
+    return xs[1] + sum(cols[1]) + 8                   # 표 오른쪽 끝
 
 
 def short_nm(n): return n.split(' ')[-1]     # '용인 수지구' → '수지구'
@@ -379,12 +409,14 @@ def header(d):
 
 im, d = C.canvas()
 header_news(d) if NEWS else header(d)
-draw_list(d, (48, 228, 548, 1284))
-draw_map(im, (556, 222, W - 22, 980))
+LAY = list_layout(d)
+xr = draw_list(d, (34, 226, 0, 1284), LAY)           # 표 폭은 글씨에 맞춰 정해짐 → 남는 폭을 모두 지도에
+MX0 = int(xr + 8); MB = 1030                          # 지도: 표 오른쪽 ~ 카드 오른쪽, 위 222 ~ 아래 1030 (예전 980)
+draw_map(im, (MX0, 222, W - 14, MB))
 d = ImageDraw.Draw(im); d._image = im
-panel_streak(d, (564, 988, W - 36, 1218))
-if NEWS: d.rectangle((556, 222, W - 22, 980), outline=C.INK, width=1)
-legend(d, 570, 1236)
+panel_streak(d, (MX0 + 6, MB + 8, W - 30, 1226))
+if NEWS: d.rectangle((MX0, 222, W - 14, MB), outline=C.INK, width=1)
+legend(d, MX0 + 10, 1240)
 if NEWS: d.line((40, 1290, W - 40, 1290), fill=C.INK, width=2)
 C.footer(d, F, '자료 한국부동산원 주간아파트가격동향 · 연속 주수는 최근 4년 자료 기준')
 if NEWS:   # 종이 질감 (아주 옅은 잡티)
