@@ -63,9 +63,8 @@ def watermark(im, d, text='@data_jaetech', alpha=40, size=66):
 
 
 def corner_id(im, d, lines, fb, y, bh, last, text='@data_jaetech'):
-    """기·승·전·결 상자 안 오른쪽 아래에 반투명 아이디 (11-23 사용자 선택 B). 마지막 줄이 오른쪽까지 차서 겹치면 그 칸은 건너뜀"""
+    """기·승·전·결 상자 안 오른쪽 아래에 반투명 아이디 (11-23 사용자 선택 B). 마지막 줄이 오른쪽까지 차면 draw() 가 상자를 아래로 늘려 자리를 만듦(11-26)"""
     f = F(24, 'Black'); x = 996 - tw(d, text, f)
-    if 148 + tw(d, lines[-1], fb) + 24 > x: return
     ov = Image.new('RGBA', im.size, (0, 0, 0, 0))
     ImageDraw.Draw(ov).text((x, y + bh - 22), text, font=f, fill=((150, 36, 36) if last else WHITE) + (70,), anchor='ls')
     im.paste(ov, (0, 0), ov)
@@ -85,12 +84,13 @@ def draw(c, out, ts=56, bs=30):
         last = i == len(c['story']) - 1
         fb = F(bs, 'Bold' if last else 'Medium')
         lines = wrap(d, text, fb, 850)
-        bh = max(124, 44 + lh * len(lines))
+        ext = 30 if 148 + tw(d, lines[-1], fb) + 24 > 996 - tw(d, '@data_jaetech', F(24, 'Black')) else 0   # 아이디 넣을 자리
+        bh = max(124, 44 + lh * len(lines)) + ext
         d.rounded_rectangle([60, y, 1020, y + bh], radius=20, fill=(253, 230, 230) if last else ROW)
-        cx, cy = 100, y + bh / 2
+        cx, cy = 100, y + (bh - ext) / 2
         d.ellipse([cx - 32, cy - 32, cx + 32, cy + 32], fill=YEL)
         d.text((cx, cy), ch, font=F(38, 'Black'), fill=DARK, anchor='mm')
-        yy = y + (bh - lh * len(lines)) / 2 + 2
+        yy = y + (bh - ext - lh * len(lines)) / 2 + 2
         for ln in lines:
             d.text((148, yy), ln, font=fb, fill=(150, 36, 36) if last else WHITE); yy += lh
         corner_id(im, d, lines, fb, y, bh, last)
