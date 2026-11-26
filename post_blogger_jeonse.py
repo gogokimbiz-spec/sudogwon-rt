@@ -90,6 +90,9 @@ parts.append(f'<p style="margin:20px 0"><a href="{SITE}" style="display:inline-b
 parts.append(f'<hr><p><small>기준: {"어제 새로 신고된" if S["basis"] == "reported" else "마지막 계약일의"} 아파트 전세 계약(월세 0원). 전월세는 계약 후 30일 안에 신고하므로 계약일은 며칠~한 달 전일 수 있습니다. '
              '평형은 전용면적 × 1.33 으로 추정한 값입니다. 최고가 경신은 최근 6개월 자료만 비교한 것이라 그 이전 최고가는 반영되지 않습니다.<br>'
              '자료: 국토교통부 실거래가 공개시스템(공공데이터포털 API). 이 글은 참고용 정보입니다.</small></p>')
+# 해설 문단·알아두면 좋은 점 (2026-11-26 애드센스 '가치가 낮은 콘텐츠' 대응, blog_extra.py)
+import sys as _sx, os as _ox; _sx.path.insert(0, _ox.path.dirname(_ox.path.abspath(__file__))); import blog_extra
+parts = blog_extra.add(parts, 'jeonse', S, datetime.date.fromisoformat(S['made']) if S.get('made') else None)
 content = ''.join(parts)
 labels = ['실거래', '전세', '전세실거래가', '전세최고가']
 
