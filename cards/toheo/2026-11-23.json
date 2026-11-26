@@ -1,0 +1,379 @@
+{
+ "made": "2026-11-26",
+ "key": "2026-11-23_toheo",
+ "label": "11월 4주",
+ "base_day": "2026-11-23",
+ "pub_day": "2026-11-26",
+ "week": "202648",
+ "prev_week": "202647",
+ "extra": {
+  "서울": 0.01,
+  "경기": 0.17
+ },
+ "n_up": 30,
+ "n_dn": 9,
+ "n_eq": 1,
+ "rows": [
+  {
+   "code": "41463",
+   "name": "용인 기흥구",
+   "short": "기흥",
+   "chg": 0.52,
+   "streak": 63,
+   "streak_full": false,
+   "rank": 1
+  },
+  {
+   "code": "41597",
+   "name": "화성 동탄구",
+   "short": "동탄",
+   "chg": 0.5,
+   "streak": 42,
+   "streak_full": true,
+   "rank": 2
+  },
+  {
+   "code": "41117",
+   "name": "수원 영통구",
+   "short": "영통",
+   "chg": 0.42,
+   "streak": 78,
+   "streak_full": false,
+   "rank": 3
+  },
+  {
+   "code": "41210",
+   "name": "광명시",
+   "short": "광명",
+   "chg": 0.41,
+   "streak": 75,
+   "streak_full": false,
+   "rank": 4
+  },
+  {
+   "code": "41115",
+   "name": "수원 팔달구",
+   "short": "팔달",
+   "chg": 0.39,
+   "streak": 62,
+   "streak_full": false,
+   "rank": 5
+  },
+  {
+   "code": "41310",
+   "name": "구리시",
+   "short": "구리",
+   "chg": 0.38,
+   "streak": 60,
+   "streak_full": false,
+   "rank": 6
+  },
+  {
+   "code": "41173",
+   "name": "안양 동안구",
+   "short": "동안",
+   "chg": 0.35,
+   "streak": 90,
+   "streak_full": false,
+   "rank": 7
+  },
+  {
+   "code": "41465",
+   "name": "용인 수지구",
+   "short": "수지",
+   "chg": 0.35,
+   "streak": 95,
+   "streak_full": false,
+   "rank": 8
+  },
+  {
+   "code": "11290",
+   "name": "성북구",
+   "short": "성북",
+   "chg": 0.33,
+   "streak": 92,
+   "streak_full": false,
+   "rank": 9
+  },
+  {
+   "code": "41111",
+   "name": "수원 장안구",
+   "short": "장안",
+   "chg": 0.28,
+   "streak": 77,
+   "streak_full": false,
+   "rank": 10
+  },
+  {
+   "code": "11350",
+   "name": "노원구",
+   "short": "노원",
+   "chg": 0.27,
+   "streak": 78,
+   "streak_full": false,
+   "rank": 11
+  },
+  {
+   "code": "11410",
+   "name": "서대문구",
+   "short": "서대문",
+   "chg": 0.25,
+   "streak": 92,
+   "streak_full": false,
+   "rank": 12
+  },
+  {
+   "code": "11305",
+   "name": "강북구",
+   "short": "강북",
+   "chg": 0.23,
+   "streak": 77,
+   "streak_full": false,
+   "rank": 13
+  },
+  {
+   "code": "41290",
+   "name": "과천시",
+   "short": "과천",
+   "chg": 0.21,
+   "streak": 13,
+   "streak_full": false,
+   "rank": 14
+  },
+  {
+   "code": "11230",
+   "name": "동대문구",
+   "short": "동대문",
+   "chg": 0.2,
+   "streak": 86,
+   "streak_full": false,
+   "rank": 15
+  },
+  {
+   "code": "41135",
+   "name": "성남 분당구",
+   "short": "분당",
+   "chg": 0.19,
+   "streak": 89,
+   "streak_full": false,
+   "rank": 16
+  },
+  {
+   "code": "11260",
+   "name": "중랑구",
+   "short": "중랑",
+   "chg": 0.18,
+   "streak": 61,
+   "streak_full": false,
+   "rank": 17
+  },
+  {
+   "code": "41133",
+   "name": "성남 중원구",
+   "short": "중원",
+   "chg": 0.18,
+   "streak": 77,
+   "streak_full": false,
+   "rank": 18
+  },
+  {
+   "code": "41430",
+   "name": "의왕시",
+   "short": "의왕",
+   "chg": 0.17,
+   "streak": 62,
+   "streak_full": false,
+   "rank": 19
+  },
+  {
+   "code": "11545",
+   "name": "금천구",
+   "short": "금천",
+   "chg": 0.16,
+   "streak": 85,
+   "streak_full": false,
+   "rank": 20
+  },
+  {
+   "code": "11500",
+   "name": "강서구",
+   "short": "강서",
+   "chg": 0.15,
+   "streak": 137,
+   "streak_full": false,
+   "rank": 21
+  },
+  {
+   "code": "41450",
+   "name": "하남시",
+   "short": "하남",
+   "chg": 0.14,
+   "streak": 89,
+   "streak_full": false,
+   "rank": 22
+  },
+  {
+   "code": "11530",
+   "name": "구로구",
+   "short": "구로",
+   "chg": 0.13,
+   "streak": 87,
+   "streak_full": false,
+   "rank": 23
+  },
+  {
+   "code": "11620",
+   "name": "관악구",
+   "short": "관악",
+   "chg": 0.13,
+   "streak": 89,
+   "streak_full": false,
+   "rank": 24
+  },
+  {
+   "code": "11110",
+   "name": "종로구",
+   "short": "종로",
+   "chg": 0.12,
+   "streak": 92,
+   "streak_full": false,
+   "rank": 25
+  },
+  {
+   "code": "11320",
+   "name": "도봉구",
+   "short": "도봉",
+   "chg": 0.12,
+   "streak": 60,
+   "streak_full": false,
+   "rank": 26
+  },
+  {
+   "code": "11380",
+   "name": "은평구",
+   "short": "은평",
+   "chg": 0.06,
+   "streak": 61,
+   "streak_full": false,
+   "rank": 27
+  },
+  {
+   "code": "11140",
+   "name": "중구",
+   "short": "중구",
+   "chg": 0.03,
+   "streak": 92,
+   "streak_full": false,
+   "rank": 28
+  },
+  {
+   "code": "11440",
+   "name": "마포구",
+   "short": "마포",
+   "chg": 0.02,
+   "streak": 95,
+   "streak_full": false,
+   "rank": 29
+  },
+  {
+   "code": "41131",
+   "name": "성남 수정구",
+   "short": "수정",
+   "chg": 0.02,
+   "streak": 90,
+   "streak_full": false,
+   "rank": 30
+  },
+  {
+   "code": "11470",
+   "name": "양천구",
+   "short": "양천",
+   "chg": 0.0,
+   "streak": 0,
+   "streak_full": false,
+   "rank": 31
+  },
+  {
+   "code": "11200",
+   "name": "성동구",
+   "short": "성동",
+   "chg": -0.01,
+   "streak": -3,
+   "streak_full": false,
+   "rank": 32
+  },
+  {
+   "code": "11215",
+   "name": "광진구",
+   "short": "광진",
+   "chg": -0.01,
+   "streak": -1,
+   "streak_full": false,
+   "rank": 33
+  },
+  {
+   "code": "11560",
+   "name": "영등포구",
+   "short": "영등포",
+   "chg": -0.01,
+   "streak": -1,
+   "streak_full": false,
+   "rank": 34
+  },
+  {
+   "code": "11590",
+   "name": "동작구",
+   "short": "동작",
+   "chg": -0.01,
+   "streak": -2,
+   "streak_full": false,
+   "rank": 35
+  },
+  {
+   "code": "11170",
+   "name": "용산구",
+   "short": "용산",
+   "chg": -0.03,
+   "streak": -2,
+   "streak_full": false,
+   "rank": 36
+  },
+  {
+   "code": "11740",
+   "name": "강동구",
+   "short": "강동",
+   "chg": -0.03,
+   "streak": -3,
+   "streak_full": false,
+   "rank": 37
+  },
+  {
+   "code": "11650",
+   "name": "서초구",
+   "short": "서초",
+   "chg": -0.3,
+   "streak": -16,
+   "streak_full": false,
+   "rank": 38
+  },
+  {
+   "code": "11680",
+   "name": "강남구",
+   "short": "강남",
+   "chg": -0.34,
+   "streak": -16,
+   "streak_full": false,
+   "rank": 39
+  },
+  {
+   "code": "11710",
+   "name": "송파구",
+   "short": "송파",
+   "chg": -0.5,
+   "streak": -12,
+   "streak_full": false,
+   "rank": 40
+  }
+ ],
+ "blog_url": "https://sudogwon-rt.blogspot.com/2026/11/40-11-4-1-052-050.html"
+}
