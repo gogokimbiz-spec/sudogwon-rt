@@ -1,0 +1,156 @@
+name: 다음 달부터 달라지는 부동산 9가지 (말일)
+
+# 매월 25일 저녁 Claude(사장님 Claude 앱 예약 작업)가 다음 달 시행·마감·예정 부동산 제도 9가지를 조사해
+# Chrome 으로 policy_month_inbox/<다음 달 YYYY-MM>.json 에 올립니다 (API 키·추가 요금 없음).
+# 파일이 올라오면 이 작업이: 카드 이미지 → cards/policy_month/<YYYY-MM>.png·json·txt 저장 → 카톡 미리보기
+# 매월 말일 15시에 블로그·카톡·인스타·스레드에 올립니다.
+# 수동: remake=카드 다시 만들기 / skip=이번 달 건너뛰기 / post_now=다음 달 카드를 지금 바로 게시
+
+on:
+  push:
+    paths: ['policy_month_inbox/*.json']
+  schedule:
+    - cron: '57 5 28-31 * *'   # 28~31일 14:57 KST – 내일이 1일(=오늘이 말일)일 때만 게시
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'remake=카드 다시 만들기 / skip=이번 달 건너뛰기 / post_now=지금 바로 게시'
+        type: choice
+        options: ['remake', 'skip', 'post_now']
+        default: 'remake'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: policy-month
+  cancel-in-progress: false
+
+jobs:
+  make:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action != 'post_now')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: d
+        name: 대상 달(다음 달)·파일 찾기
+        run: |
+          M=$(python3 -c "import datetime as t;n=(t.datetime.utcnow()+t.timedelta(hours=9)).date();x=(n.replace(day=28)+t.timedelta(days=4)).replace(day=1);print(x.strftime('%Y-%m'))")
+          F=""
+          if [ "${{ github.event_name }}" = "push" ]; then
+            F=$(git diff --name-only HEAD~1 HEAD -- 'policy_month_inbox/*.json' | tail -1)
+            [ -n "$F" ] && M=$(basename "$F" .json)
+          else
+            [ -f "policy_month_inbox/$M.json" ] && F="policy_month_inbox/$M.json"
+          fi
+          echo "month=$M" >> "$GITHUB_OUTPUT"; echo "file=$F" >> "$GITHUB_OUTPUT"; echo "대상 달 $M / 파일 $F"
+      - name: 이번 달 건너뛰기 (skip)
+        if: inputs.action == 'skip'
+        run: |
+          M=${{ steps.d.outputs.month }}; mkdir -p cards/policy_month
+          echo '사장님이 건너뛰기를 선택함' > "cards/policy_month/$M.skip"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/policy_month && git commit -q -m "정책 9가지 건너뛰기 $M" && git pull -q --rebase --autostash && git push -q || true
+      - name: 카드 만들기
+        if: inputs.action != 'skip' && steps.d.outputs.file != ''
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/NotoSansCJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          M=${{ steps.d.outputs.month }}
+          python make_cards_policy_month.py "${{ steps.d.outputs.file }}" pm_out
+          mkdir -p cards/policy_month
+          cp pm_out/card.png "cards/policy_month/$M.png"; cp pm_out/summary.json "cards/policy_month/$M.json"; cp pm_out/caption.txt "cards/policy_month/$M.txt"
+          rm -f "cards/policy_month/$M.skip"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/policy_month
+          if ! git diff --cached --quiet; then git commit -q -m "정책 9가지 카드 $M"; git pull -q --rebase --autostash && git push -q; fi
+      - name: 카톡 미리보기
+        if: inputs.action != 'skip' && steps.d.outputs.file != ''
+        continue-on-error: true
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          sleep 20; python3 kakao_send_policy_month.py --preview "cards/policy_month/${{ steps.d.outputs.month }}.json"
+
+  post:   # 말일 15시(예약) 또는 수동 post_now
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.action == 'post_now')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 오늘이 말일인지·카드 있는지 확인
+        id: p
+        run: |
+          read T M L <<< $(python3 -c "import datetime as t;n=(t.datetime.utcnow()+t.timedelta(hours=9)).date();x=n+t.timedelta(days=1);m=(n.replace(day=28)+t.timedelta(days=4)).replace(day=1);print(n.isoformat(), m.strftime('%Y-%m'), 'yes' if x.day==1 else 'no')")
+          GO=yes
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$L" != "yes" ]; then echo "오늘($T)은 말일이 아닙니다"; GO=no; fi
+          if [ -f "cards/policy_month/$M.skip" ]; then echo "$M 은 건너뛰기"; GO=no; fi
+          if [ ! -f "cards/policy_month/$M.json" ]; then echo "::warning::cards/policy_month/$M.json 이 없습니다 (25일 예약 작업이 안 올렸음)"; GO=no; fi
+          if [ "$GO" = "yes" ]; then
+            rm -rf policy_month_now && mkdir -p policy_month_now/policy_month
+            cp "cards/policy_month/$M.png" policy_month_now/policy_month/card.png
+            cp "cards/policy_month/$M.txt" policy_month_now/policy_month/caption.txt
+            python3 -c "import json;d=json.load(open('cards/policy_month/$M.json',encoding='utf-8'));d['posted']='$T';json.dump(d,open('policy_month_now/policy_month/summary.json','w',encoding='utf-8'),ensure_ascii=False,indent=1)"
+          fi
+          echo "go=$GO" >> "$GITHUB_OUTPUT"
+      - name: 블로그 글
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_blogger_policy_month.py policy_month_now/policy_month/summary.json
+      - name: 인스타·스레드 게시물 만들고 저장소에 올리기 (공개 주소용)
+        id: up
+        if: steps.p.outputs.go == 'yes'
+        run: |
+          pip install -q pillow
+          python build_insta.py policy_month_now
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A policy_month_now && git commit -q -m "정책 9가지 게시 $(TZ=Asia/Seoul date +%F)" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/policy_month_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 kakao_send_policy_month.py policy_month_now/policy_month/summary.json
+      - name: 인스타그램
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        if: steps.p.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
