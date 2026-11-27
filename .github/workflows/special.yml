@@ -1,0 +1,96 @@
+name: 특별 카드 (한 번 게시)
+
+# special/<slug>/meta.json 의 post_at(KST)이 지난 카드를 한 장씩 블로그 → 카톡(나에게) → 인스타 → 스레드에 올립니다. (2026-11-27)
+# - 매일 10:47 KST 확인 (GitHub 예약은 10~20분 늦게 시작 → 11시 전후). 올린 카드는 special/<slug>/done.txt 로 표시.
+# - 수동 실행: Actions → 이 작업 → Run workflow (slug 를 넣으면 그 카드를 시간과 관계없이 지금 올림)
+# - 카드 이미지는 meta.json 의 make 명령으로 이 자리에서 만들어 cards/special/<slug>.png 로 보관
+
+on:
+  schedule:
+    - cron: '47 1 * * *'
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: '지금 올릴 카드 (special/ 아래 폴더 이름, 비우면 시간이 된 카드)'
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: special
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: p
+        run: python post_special.py pick "${{ inputs.slug }}"
+      - name: 카드 만들기
+        if: steps.p.outputs.slug != ''
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/Noto*CJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          python post_special.py make "${{ steps.p.outputs.slug }}"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/special && git commit -q -m "특별 카드 ${{ steps.p.outputs.slug }}" || true
+          git pull -q --rebase --autostash && git push -q
+      - name: 블로그 글
+        if: steps.p.outputs.slug != ''
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_special.py blog "${{ steps.p.outputs.slug }}"
+      - name: 인스타·스레드 게시물 올리기 (공개 주소용)
+        if: steps.p.outputs.slug != ''
+        id: up
+        run: |
+          python post_special.py insta "${{ steps.p.outputs.slug }}"
+          git add -A special_now special && git commit -q -m "특별 게시물 ${{ steps.p.outputs.slug }}" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/special_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        if: steps.p.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_special.py kakao "${{ steps.p.outputs.slug }}"
+      - name: 인스타그램
+        if: steps.p.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        if: steps.p.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
+      - name: 게시 완료 표시
+        if: always() && steps.p.outputs.slug != ''
+        run: |
+          echo "$(date -u +%FT%TZ) run ${{ github.run_id }}" > "special/${{ steps.p.outputs.slug }}/done.txt"
+          git add -A special && git commit -q -m "특별 카드 완료 ${{ steps.p.outputs.slug }}" || exit 0
+          git pull -q --rebase --autostash && git push -q
