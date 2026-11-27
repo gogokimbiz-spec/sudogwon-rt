@@ -1,0 +1,106 @@
+name: KB 매수우위·전세수급 TOP 10 (수·목)
+
+# KB부동산 주간 매수우위지수(수요일) · 전세수급지수(목요일) 16개 시도 TOP 10 카드 – 13시 전후 블로그 → 카톡 → 인스타 → 스레드 (2026-11-27 사용자 확정)
+# - 자료: 저장소 kb/kb_wk.json (예약 작업 'KB 심리지수 받기'가 수요일 오전 사장님 PC 의 Chrome 으로 KB 데이터허브 표를 읽어 올림)
+# - 카드·글: make_cards_kb.py buy|rent → special/<조사일>_kb_<모드>/meta.json → post_special.py (같은 카드는 한 번만 – done.txt)
+# - 최신 조사일이 12일보다 오래되면(자료가 안 올라온 경우) 게시하지 않음
+# - 수동 실행: Run workflow (mode = buy 또는 rent)
+
+on:
+  schedule:
+    - cron: '47 3 * * 3,4'    # 수·목 12:47 KST (GitHub 예약은 보통 10~20분 늦게 시작 → 13시 전후)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'buy = 매수우위, rent = 전세수급 (비우면 요일대로: 수 buy · 목 rent)'
+        type: choice
+        options: ['', 'buy', 'rent']
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: special
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 카드 만들기
+        id: c
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/Noto*CJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          M="${{ inputs.mode }}"; [ -z "$M" ] && { [ "$(TZ=Asia/Seoul date +%u)" = 3 ] && M=buy || M=rent; }
+          echo "모드: $M"
+          set +e; python make_cards_kb.py "$M" kb_now kb/kb_wk.json; RC=$?; set -e
+          if [ $RC = 2 ]; then echo "slug=" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ $RC = 0 ] || exit $RC
+          S=$(cat kb_now/slug.txt)
+          P=$(GITHUB_OUTPUT= python post_special.py pick "$S")
+          if [ "$P" != "slug=$S" ]; then echo "slug=" >> "$GITHUB_OUTPUT"; echo "이번 주($S)는 이미 올렸습니다"; exit 0; fi
+          echo "slug=$S" >> "$GITHUB_OUTPUT"
+          python post_special.py make "$S"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/special special && git commit -q -m "KB 카드 $S" || true
+          git pull -q --rebase --autostash && git push -q
+      - name: 블로그 글
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_special.py blog "${{ steps.c.outputs.slug }}"
+      - name: 인스타·스레드 게시물 올리기 (공개 주소용)
+        if: steps.c.outputs.slug != ''
+        id: up
+        run: |
+          python post_special.py insta "${{ steps.c.outputs.slug }}"
+          git add -A special_now special && git commit -q -m "KB 게시물 ${{ steps.c.outputs.slug }}" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/special_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_special.py kakao "${{ steps.c.outputs.slug }}"
+      - name: 인스타그램
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
+      - name: 게시 완료 표시
+        if: always() && steps.c.outputs.slug != ''
+        run: |
+          echo "$(date -u +%FT%TZ) run ${{ github.run_id }}" > "special/${{ steps.c.outputs.slug }}/done.txt"
+          git add -A special && git commit -q -m "KB 카드 완료 ${{ steps.c.outputs.slug }}" || exit 0
+          git pull -q --rebase --autostash && git push -q
