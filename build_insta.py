@@ -226,6 +226,13 @@ if TH and TH.get('made') == TODAY.isoformat() and th_img and read('toheo/caption
     sections.append(dict(key='toheo', title='토허제 40곳 주간 아파트값', when='금', today=True,
                          guide='사진 1장 선택 → 캡션 붙여넣기', images=th_img, alt=[], caption=trim_tags(read('toheo/caption.txt'), 6)))
 
+# ── 8. 다음 달부터 달라지는 부동산 9가지 (말일 15시, policy_month.yml – 2026-11-27)
+PM = load('policy_month/summary.json')
+pm_img = imgs('policy_month', ['card.png'])
+if PM and PM.get('posted') == TODAY.isoformat() and pm_img and read('policy_month/caption.txt'):
+    sections.append(dict(key='policy_month', title='다음 달 달라지는 부동산', when='말일', today=True,
+                         guide='사진 1장 선택 → 캡션 붙여넣기', images=pm_img, alt=[], caption=read('policy_month/caption.txt')))
+
 # ── 자동 게시용: JPEG 복사본 + posts.json (Instagram API 는 공개 주소의 JPEG 만 받음 → post_instagram.py 가 사용)
 try:
     from PIL import Image
