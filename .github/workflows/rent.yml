@@ -1,0 +1,154 @@
+name: 매매 vs 전세 수도권 주간 (화)
+
+# 매주 화요일 오후 1시쯤 (2026-11-27 사용자 확정) – 블로그 → 카톡(나에게) → 인스타 → 스레드
+# 한국부동산원 주간 (주) 매매·전세가격지수 (목요일 발표분)로 '매매 vs 전세 · 수도권 주간' 지도 카드 1장.
+# - 지도 범위 = 토허제 40곳 상자, 그 안에 보이는 시·구 약 66곳 모두 색칠 (make_cards_toheo_rent.py)
+# - 부동산원 접속이 GitHub 서버(해외)에서 막히면 사장님 PC(self-hosted)에서 자료만 받음 → 화요일 13시쯤 PC 가 켜져 있어야 함
+# - 게시는 post_special.py (special/<조사일>_rent/meta.json, 같은 주 두 번 안 올림 – done.txt)
+# - 최신 조사일이 10일보다 오래되면(명절 등 발표 없음) 게시하지 않음
+
+on:
+  schedule:
+    - cron: '47 3 * * 2'      # 화 12:47 KST (GitHub 예약은 보통 10~20분 늦게 시작 → 13시 전후)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: special
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      ok: ${{ steps.f.outcome == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: f
+        name: 부동산원 자료 받기 (GitHub 서버)
+        continue-on-error: true
+        env:
+          REB_KEY: ${{ secrets.REB_KEY }}
+        run: python make_cards_toheo_rent.py --fetch-only rent_raw.json
+      - if: steps.f.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rent-raw
+          path: rent_raw.json
+          retention-days: 3
+
+  fetch_pc:
+    needs: fetch
+    if: needs.fetch.outputs.ok != 'true'
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 25
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+    steps:
+      - uses: actions/checkout@v4
+      - name: 부동산원 자료 받기 (내 PC)
+        shell: cmd
+        env:
+          REB_KEY: ${{ secrets.REB_KEY }}
+        run: |
+          set "PY=python"
+          if exist "C:\Program Files\Python311\python.exe" set "PY=C:\Program Files\Python311\python.exe"
+          if exist "C:\Program Files\Python312\python.exe" set "PY=C:\Program Files\Python312\python.exe"
+          if exist "C:\Program Files\Python313\python.exe" set "PY=C:\Program Files\Python313\python.exe"
+          if exist "C:\Program Files\Python314\python.exe" set "PY=C:\Program Files\Python314\python.exe"
+          "%PY%" make_cards_toheo_rent.py --fetch-only rent_raw.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rent-raw
+          path: rent_raw.json
+          retention-days: 3
+
+  post:
+    needs: [fetch, fetch_pc]
+    if: always() && (needs.fetch.outputs.ok == 'true' || needs.fetch_pc.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: rent-raw
+      - name: 카드 만들기
+        id: c
+        run: |
+          sudo mkdir -p /usr/share/fonts/noto-kr && sudo cp fonts/Noto*CJKkr-*.otf /usr/share/fonts/noto-kr/
+          pip install -q pillow
+          set +e; python make_cards_toheo_rent.py rent_now rent_raw.json; RC=$?; set -e
+          if [ $RC = 2 ]; then echo "slug=" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [ $RC = 0 ] || exit $RC
+          S=$(cat rent_now/slug.txt)
+          P=$(GITHUB_OUTPUT= python post_special.py pick "$S")
+          if [ "$P" != "slug=$S" ]; then echo "slug=" >> "$GITHUB_OUTPUT"; echo "이번 주($S)는 이미 올렸습니다"; exit 0; fi
+          echo "slug=$S" >> "$GITHUB_OUTPUT"
+          python post_special.py make "$S"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A cards/special special && git commit -q -m "매매·전세 카드 $S" || true
+          git pull -q --rebase --autostash && git push -q
+      - name: 블로그 글
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          ADSENSE_CLIENT: ${{ secrets.ADSENSE_CLIENT }}
+          ADSENSE_SLOT: ${{ secrets.ADSENSE_SLOT }}
+        run: python post_special.py blog "${{ steps.c.outputs.slug }}"
+      - name: 인스타·스레드 게시물 올리기 (공개 주소용)
+        if: steps.c.outputs.slug != ''
+        id: up
+        run: |
+          python post_special.py insta "${{ steps.c.outputs.slug }}"
+          git add -A special_now special && git commit -q -m "매매·전세 게시물 ${{ steps.c.outputs.slug }}" || true
+          git pull -q --rebase --autostash && git push -q
+          echo "site=https://raw.githubusercontent.com/${{ github.repository }}/$(git rev-parse HEAD)/special_now/" >> "$GITHUB_OUTPUT"
+      - name: 카톡
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_special.py kakao "${{ steps.c.outputs.slug }}"
+      - name: 인스타그램
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_instagram.py
+      - name: 스레드
+        if: steps.c.outputs.slug != ''
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.up.outputs.site }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 post_threads.py
+      - name: 게시 완료 표시
+        if: always() && steps.c.outputs.slug != ''
+        run: |
+          echo "$(date -u +%FT%TZ) run ${{ github.run_id }}" > "special/${{ steps.c.outputs.slug }}/done.txt"
+          git add -A special && git commit -q -m "매매·전세 카드 완료 ${{ steps.c.outputs.slug }}" || exit 0
+          git pull -q --rebase --autostash && git push -q
