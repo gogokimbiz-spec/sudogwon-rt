@@ -1,0 +1,83 @@
+{
+ "month": "2026-12",
+ "day": "2026-11-30",
+ "head1": "12월·새해부터 달라지는",
+ "head2": "부동산",
+ "source_line": "금융위원회·국토교통부·국세청 등",
+ "items": [
+  {
+   "icon": "key",
+   "title": "1주택자 전세대출 보증",
+   "before": "80%",
+   "after": "70%",
+   "note": "수도권·규제 (그 외 90→80%)",
+   "status": "1월 1일 시행",
+   "source": "https://www.korea.kr/news/policyNewsView.do?newsId=148970085"
+  },
+  {
+   "icon": "shield",
+   "title": "비거주 1주택자",
+   "main": "전세대출 신규·연장 금지",
+   "note": "수도권·규제지역 아파트, 실거주 이력 없을 때",
+   "status": "1월 1일 시행",
+   "source": "https://www.korea.kr/news/policyNewsView.do?newsId=148970396"
+  },
+  {
+   "icon": "chart",
+   "title": "DSR 소득 산정",
+   "main": "최근 2~3년 평균",
+   "note": "소득 급증 시 평균으로 산정",
+   "status": "1월 1일 시행",
+   "source": "https://www.korea.kr/news/policyNewsView.do?newsId=148970085"
+  },
+  {
+   "icon": "building",
+   "title": "리모델링 동의율",
+   "before": "75%",
+   "after": "70%",
+   "note": "1월 1일 이후 허가 신청분부터",
+   "status": "1월 1일 시행",
+   "source": "https://eiec.kdi.re.kr/policy/materialView.do?num=289650"
+  },
+  {
+   "icon": "people",
+   "title": "청년 주거 3종 세트",
+   "main": "청년미래보금자리론",
+   "note": "연 3조원 · 2년 한시 공급",
+   "status": "1월 출시 예정",
+   "source": "https://fsc.go.kr/no040000?cnId=3374"
+  },
+  {
+   "icon": "won",
+   "title": "지분적립형 분양",
+   "main": "분양가 25%로 입주",
+   "note": "LH 첫 분양 · 고양창릉 284세대",
+   "status": "12월 예정",
+   "source": "https://www.molit.go.kr/USR/NEWS/m_71/dtl.jsp?id=95092558"
+  },
+  {
+   "icon": "percent",
+   "title": "종합부동산세 납부",
+   "main": "12월 15일까지",
+   "note": "250만원 넘으면 분납 가능",
+   "status": "12.15 마감",
+   "source": "https://www.taxtimes.co.kr/news/article.html?no=272635"
+  },
+  {
+   "icon": "doc",
+   "title": "연말정산 주거공제",
+   "main": "12월 31일 납부분까지",
+   "note": "월세·청약통장·전세대출 상환",
+   "status": "12.31 마감",
+   "source": ""
+  },
+  {
+   "icon": "house",
+   "title": "지방 미분양 세제특례",
+   "main": "12월 31일 취득분까지",
+   "note": "비수도권 준공 후 미분양 양도세·종부세 중과 배제",
+   "status": "12.31 마감",
+   "source": "https://www.kacta.or.kr/new_new/popup/download/2026%EB%8B%AC%EB%9D%BC%EC%A7%80%EB%8A%94%EC%84%B8%EA%B8%88%EC%A0%9C%EB%8F%84e_book.pdf"
+  }
+ ]
+}
