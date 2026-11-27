@@ -1,0 +1,23 @@
+{
+ "slug": "2026-12-06_years",
+ "post_at": "2026-12-06T10:00",
+ "make": [
+  "env",
+  "YEARS_LIVE=1",
+  "YEARS_SLUG=2026-12-06_years",
+  "python",
+  "make_cards_toheo_years.py",
+  "special_tmp/years",
+  "toheo_now/toheo/raw.json"
+ ],
+ "out": "special_tmp/years/card_years.png",
+ "title": "(게시 당일 카드 스크립트가 채움)",
+ "labels": [
+  "내집마련"
+ ],
+ "blog_html": "",
+ "kakao_title": "🏠 이 동네 연봉으로 이 동네 집 사려면?",
+ "kakao_desc": "",
+ "kakao_button": "전체 보기",
+ "caption": ""
+}
